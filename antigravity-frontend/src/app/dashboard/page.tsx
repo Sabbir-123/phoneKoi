@@ -4,7 +4,7 @@ import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
-import { ShieldAlert, CheckCircle2, Activity, Smartphone, Search, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, Activity, Smartphone, Search, AlertTriangle, Bell } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { auth } from '@/utils/firebase/client';
 
