@@ -1,0 +1,54 @@
+name: Antigravity CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: antigravity
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Backend Dependencies
+      working-directory: ./antigravity-backend
+      run: npm ci
+
+    - name: Run Prisma Generate
+      working-directory: ./antigravity-backend
+      run: npx prisma generate
+
+    - name: Build Backend
+      working-directory: ./antigravity-backend
+      run: npm run build
+
+    - name: Install Frontend Dependencies
+      working-directory: ./antigravity-frontend
+      run: npm ci
+
+    - name: Build Frontend
+      working-directory: ./antigravity-frontend
+      run: npm run build

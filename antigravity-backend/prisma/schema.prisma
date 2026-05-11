@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// NOTE: using .env for DB URL
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DeviceStatus {
+  CLEAN
+  SUSPICIOUS
+  STOLEN
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String?  @unique
+  password  String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reports   Report[]
+}
+
+model Device {
+  imei       String       @id
+  status     DeviceStatus @default(CLEAN)
+  riskScore  Int          @default(0) // 0-100
+  riskLevel  RiskLevel    @default(LOW)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  reports    Report[]
+  searchLogs SearchLog[]
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  imei        String
+  device      Device       @relation(fields: [imei], references: [imei])
+  reporterIp  String?
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id])
+  date        DateTime     @default(now())
+  location    String?
+  description String?
+  status      ReportStatus @default(PENDING)
+  trustWeight Int          @default(1) // e.g. 1 (anonymous), 2 (verified email), 5 (evidence)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model SearchLog {
+  id        String   @id @default(uuid())
+  imei      String
+  device    Device   @relation(fields: [imei], references: [imei])
+  ip        String?
+  location  String?
+  timestamp DateTime @default(now())
+}
