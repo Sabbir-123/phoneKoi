@@ -11,9 +11,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
+    const supabase = createClient();
+
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
@@ -34,6 +35,7 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     window.location.reload();
   };

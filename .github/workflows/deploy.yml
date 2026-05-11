@@ -1,4 +1,4 @@
-name: Antigravity CI/CD
+name: PhoneKoi CI/CD
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: antigravity
+          POSTGRES_DB: phonekoi
         ports:
           - 5432:5432
         options: >-
