@@ -104,7 +104,7 @@ export default function Home() {
             <iframe
               width="100%"
               height="100%"
-              src="https://www.youtube.com/embed/9acFmlRqQjw?autoplay=1&mute=1&loop=1&playlist=9acFmlRqQjw"
+              src="https://www.youtube.com/embed/RzTucEPowrg?autoplay=1&mute=1&loop=1&playlist=RzTucEPowrg&controls=0&rel=0&modestbranding=1"
               title="Phone Koi Preview"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
