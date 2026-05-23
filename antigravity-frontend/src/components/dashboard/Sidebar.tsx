@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X } from 'lucide-react';
 import { auth } from '@/utils/firebase/client';
 import { signOut } from 'firebase/auth';
+import { createClient } from '@/utils/supabase/client';
 
 const navItems = [
   { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
@@ -21,8 +22,13 @@ export default function Sidebar() {
   const { sidebarOpen, toggleSidebar, language } = useDashboardStore();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    signOut(auth);
+  const handleLogout = async () => {
+    // 1. Firebase sign out
+    await signOut(auth);
+    // 2. Supabase sign out
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
   };
 
   return (
@@ -40,19 +46,24 @@ export default function Sidebar() {
         initial={{ x: -300 }}
         animate={{ x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth >= 1024 ? 0 : -300) }}
         transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-        className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-[#030712] border-r border-white/5 z-50 flex flex-col`}
+        className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-white/80 border-r border-slate-100 backdrop-blur-md z-50 flex flex-col`}
       >
-        <div className="h-20 lg:h-24 flex items-center justify-between px-8 border-b border-white/5">
-          <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-            <span className="text-white font-bold text-xl">P</span>
-          </div>
-          <button onClick={toggleSidebar} className="lg:hidden p-2 text-slate-400 hover:text-white">
+        <div className="h-20 lg:h-24 flex items-center justify-between px-8 border-b border-slate-100">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
+              <span className="text-white font-extrabold text-xl">P</span>
+            </div>
+            <span className="font-extrabold tracking-widest text-indigo-950 uppercase text-sm">
+              Phone Koi
+            </span>
+          </Link>
+          <button onClick={toggleSidebar} className="lg:hidden p-2 text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto py-8 px-4 flex flex-col gap-2">
-          <div className="px-4 mb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="px-4 mb-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
             {language === 'banglish' ? 'Apanar Dashboard' : 'Your Dashboard'}
           </div>
           
@@ -65,30 +76,25 @@ export default function Sidebar() {
                 href={item.href}
                 onClick={() => typeof window !== 'undefined' && window.innerWidth < 1024 && toggleSidebar()}
                 className={`relative flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group ${
-                  isActive ? 'text-white bg-white/5' : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+                  isActive 
+                    ? 'text-indigo-600 bg-indigo-50/65 font-bold shadow-sm border-l-4 border-indigo-600' 
+                    : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50/50'
                 }`}
               >
-                {isActive && (
-                  <motion.div 
-                    layoutId="sidebar-active"
-                    className="absolute left-0 w-1 h-8 bg-indigo-500 rounded-r-full"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <item.icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110 text-indigo-400' : 'group-hover:scale-110'}`} />
-                <span className="font-medium">{item.name}</span>
+                <item.icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110 text-indigo-600' : 'group-hover:scale-110'}`} />
+                <span className="font-semibold">{item.name}</span>
               </Link>
             );
           })}
         </div>
 
-        <div className="p-4 border-t border-white/5 mt-auto">
+        <div className="p-4 border-t border-slate-100 mt-auto">
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors group"
+            className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors group"
           >
             <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">{language === 'banglish' ? 'Log Out Korun' : 'Log Out'}</span>
+            <span className="font-semibold">{language === 'banglish' ? 'Log Out Korun' : 'Log Out'}</span>
           </button>
         </div>
       </motion.aside>

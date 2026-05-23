@@ -14,15 +14,38 @@ export default function Navbar() {
 
   useEffect(() => {
     const supabase = createClient();
+    let supabaseUser: any = null;
+    let firebaseUser: any = null;
 
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+    const updateUserState = () => {
+      if (supabaseUser) {
+        setUser({ email: supabaseUser.email, provider: 'supabase' });
+      } else if (firebaseUser) {
+        setUser({ email: firebaseUser.email, provider: 'firebase' });
+      } else {
+        setUser(null);
+      }
     };
-    getUser();
+
+    // 1. Supabase Init & Listener
+    const getSupabaseUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      supabaseUser = session?.user || null;
+      updateUserState();
+    };
+    getSupabaseUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
+      supabaseUser = session?.user || null;
+      updateUserState();
+    });
+
+    // 2. Firebase Listener
+    const { auth: firebaseAuth } = require("@/utils/firebase/client");
+    const { onAuthStateChanged } = require("firebase/auth");
+    const unsubscribeFirebase = onAuthStateChanged(firebaseAuth, (fUser: any) => {
+      firebaseUser = fUser || null;
+      updateUserState();
     });
 
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -30,15 +53,31 @@ export default function Navbar() {
 
     return () => {
       authListener.subscription.unsubscribe();
+      unsubscribeFirebase();
       window.removeEventListener("scroll", onScroll);
     };
   }, []);
 
   const handleLogout = async () => {
+    // 1. Supabase sign out
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.reload();
+
+    // 2. Firebase sign out
+    try {
+      const { auth: firebaseAuth } = require("@/utils/firebase/client");
+      const { signOut: firebaseSignOut } = require("firebase/auth");
+      await firebaseSignOut(firebaseAuth);
+    } catch (e) {
+      console.error("Firebase logout error:", e);
+    }
+
+    window.location.href = "/";
   };
+
+  if (pathname?.startsWith("/dashboard")) {
+    return null;
+  }
 
   const navItems = [
     { name: "Check IMEI", href: "/check", icon: Search },

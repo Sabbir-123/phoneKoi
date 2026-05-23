@@ -1,11 +1,26 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly aiService: AiService
+  ) {}
 
-  async submitReport(data: { imei: string, ip: string, location?: string, description?: string, userId?: string, trustWeight?: number }) {
+  async submitReport(data: { 
+    imei: string, 
+    ip: string, 
+    location?: string, 
+    description?: string, 
+    contactNumber?: string,
+    deviceName?: string,
+    extractedFromGd?: boolean,
+    aiExtractionConfidence?: number,
+    userId?: string, 
+    trustWeight?: number 
+  }) {
     if (!/^\d{15}$/.test(data.imei)) {
       throw new BadRequestException('Invalid IMEI format');
     }
@@ -38,8 +53,27 @@ export class ReportsService {
         reporterIp: data.ip,
         location: data.location,
         description: data.description,
+        contactNumber: data.contactNumber,
+        deviceName: data.deviceName,
+        extractedFromGd: data.extractedFromGd || false,
+        aiExtractionConfidence: data.aiExtractionConfidence,
         userId: data.userId,
         trustWeight: data.trustWeight || 1
+      }
+    });
+  }
+
+  async extractInfoFromGd(base64Image: string) {
+    if (!base64Image) {
+      throw new BadRequestException('Image data is required');
+    }
+    return this.aiService.extractInfoFromGd(base64Image);
+  }
+
+  async getAllReports() {
+    return this.prisma.report.findMany({
+      orderBy: {
+        createdAt: 'desc'
       }
     });
   }

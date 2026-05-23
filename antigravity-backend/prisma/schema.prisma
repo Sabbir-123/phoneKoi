@@ -53,19 +53,23 @@ model Device {
 }
 
 model Report {
-  id          String       @id @default(uuid())
-  imei        String
-  device      Device       @relation(fields: [imei], references: [imei])
-  reporterIp  String?
-  userId      String?
-  user        User?        @relation(fields: [userId], references: [id])
-  date        DateTime     @default(now())
-  location    String?
-  description String?
-  status      ReportStatus @default(PENDING)
-  trustWeight Int          @default(1) // e.g. 1 (anonymous), 2 (verified email), 5 (evidence)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                     String       @id @default(uuid())
+  imei                   String
+  device                 Device       @relation(fields: [imei], references: [imei])
+  reporterIp             String?
+  userId                 String?
+  user                   User?        @relation(fields: [userId], references: [id])
+  date                   DateTime     @default(now())
+  location               String?
+  description            String?
+  contactNumber          String?
+  deviceName             String?
+  extractedFromGd        Boolean      @default(false)
+  aiExtractionConfidence Float?
+  status                 ReportStatus @default(PENDING)
+  trustWeight            Int          @default(1) // e.g. 1 (anonymous), 2 (verified email), 5 (evidence)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 }
 
 model SearchLog {

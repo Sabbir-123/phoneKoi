@@ -11,8 +11,8 @@ export class AiService {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      // We use a fast, cost-effective model like gemini-1.5-flash for real-time explanations
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      // We use gemini-2.5-flash as the active multimodal model
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     } else {
       this.logger.warn('GEMINI_API_KEY is missing. AI explanations will be disabled or mocked.');
     }
@@ -58,6 +58,74 @@ Generate the explanation based on the rules and context.
     } catch (error) {
       this.logger.error('Failed to generate AI explanation', error);
       return this.getMockExplanation(status, language);
+    }
+  }
+
+  async extractInfoFromGd(base64Image: string): Promise<{
+    imei?: string;
+    deviceName?: string;
+    description?: string;
+    incidentDate?: string;
+    policeStation?: string;
+    confidence: number;
+  }> {
+    if (!this.model) {
+      throw new Error('AI Service not initialized');
+    }
+
+    const prompt = `
+You are a highly accurate OCR and information extraction system for Phone Koi.
+Analyze this Police GD (General Diary) copy and extract the following information in JSON format:
+
+1. imei: The 15-digit IMEI number of the stolen/lost device.
+2. deviceName: The brand and model of the device (e.g., iPhone 15 Pro Max, Techno Spark 20 Pro+).
+3. description: A brief summary of the incident. If multiple devices are reported lost/stolen, describe ALL of them in detail here.
+4. incidentDate: The date of the incident mentioned in the document.
+5. policeStation: The name of the police station where the GD was filed.
+6. confidence: A number between 0 and 1 representing your confidence in this extraction.
+
+CRITICAL Rules for IMEI & Text Extraction:
+- The document is in Bangla, English, or a mix of both. Parse both languages carefully.
+- Convert all Bengali numerals (০=0, ১=1, ২=2, ৩=3, ৪=4, ৫=5, ৬=6, ৭=7, ৮=8, ৯=9) to standard English numerals.
+- Strip away serial prefixes and index notations. For example, "১.৩৫০৬৬১৪..." or "1.3506614..." represents "Serial 1" followed by the IMEI starting with "35". Separate the serial number (1 or 2) from the actual IMEI.
+- The final extracted IMEI must be a clean numeric string of exactly 15 digits.
+- If the IMEI written in the document is 14 digits (because the typist omitted the final check digit), calculate the 15th Luhn check digit or append a zero/valid digit to ensure it forms a valid 15-digit IMEI.
+- If multiple devices are reported in the document:
+  - Populate the main "imei" and "deviceName" fields with the details of the FIRST device.
+  - In the "description" field, provide a comprehensive explanation mentioning both devices, their respective model names, and their IMEIs, so both devices are accounted for.
+
+ONLY return a valid JSON object, no markdown wrapper or extra text.
+    `.trim();
+
+    try {
+      const result = await this.model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Image.split(',')[1] || base64Image,
+            mimeType: 'image/jpeg',
+          },
+        },
+      ]);
+      
+      const response = await result.response;
+      const text = response.text().trim();
+      
+      // Clean the response if it contains markdown code blocks
+      const jsonStr = text.replace(/```json\n?|\n?```/g, '').replace(/```/g, '').trim();
+      const data = JSON.parse(jsonStr);
+
+      return {
+        imei: data.imei ? String(data.imei).replace(/\D/g, '').slice(0, 15) : undefined,
+        deviceName: data.deviceName || undefined,
+        description: data.description || undefined,
+        incidentDate: data.incidentDate || undefined,
+        policeStation: data.policeStation || undefined,
+        confidence: data.confidence || 0.5,
+      };
+    } catch (error) {
+      this.logger.error('Failed to extract info from GD', error);
+      throw new Error('Failed to process document. Please try again or fill manually.');
     }
   }
 

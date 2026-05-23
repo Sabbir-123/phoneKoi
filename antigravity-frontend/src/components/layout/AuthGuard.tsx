@@ -11,15 +11,49 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push('/login');
-      } else {
-        setLoading(false);
+    const { createClient } = require("@/utils/supabase/client");
+    const supabase = createClient();
+    let firebaseChecked = false;
+    let supabaseChecked = false;
+    let firebaseUser: any = null;
+    let supabaseUser: any = null;
+
+    const checkAuthStatus = () => {
+      if (firebaseChecked && supabaseChecked) {
+        if (firebaseUser || supabaseUser) {
+          setLoading(false);
+        } else {
+          router.push('/login');
+        }
       }
+    };
+
+    // 1. Firebase Listener
+    const unsubscribeFirebase = onAuthStateChanged(auth, (user) => {
+      firebaseUser = user;
+      firebaseChecked = true;
+      checkAuthStatus();
     });
 
-    return () => unsubscribe();
+    // 2. Supabase Listener
+    const getSupabaseSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      supabaseUser = session?.user || null;
+      supabaseChecked = true;
+      checkAuthStatus();
+    };
+    getSupabaseSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      supabaseUser = session?.user || null;
+      supabaseChecked = true;
+      checkAuthStatus();
+    });
+
+    return () => {
+      unsubscribeFirebase();
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   if (loading) {

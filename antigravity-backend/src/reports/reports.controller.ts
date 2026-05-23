@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
@@ -14,8 +14,22 @@ export class ReportsController {
       ip,
       location: body.location,
       description: body.description,
+      contactNumber: body.contactNumber,
+      deviceName: body.deviceName,
+      extractedFromGd: body.extractedFromGd,
+      aiExtractionConfidence: body.aiExtractionConfidence,
       userId: req.user?.id, // Optional user from auth middleware (if implemented)
-      trustWeight: req.user ? 2 : 1 // Simple trust scoring, 2 if user, 1 if anonymous
+      trustWeight: body.extractedFromGd ? 5 : (req.user ? 2 : 1)
     });
+  }
+
+  @Post('extract-gd')
+  async extractGd(@Body('base64Image') base64Image: string) {
+    return this.reportsService.extractInfoFromGd(base64Image);
+  }
+
+  @Get()
+  async getReports() {
+    return this.reportsService.getAllReports();
   }
 }

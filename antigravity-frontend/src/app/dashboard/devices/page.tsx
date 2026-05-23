@@ -3,72 +3,113 @@
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Smartphone, Sparkles, Plus } from 'lucide-react';
+import { Smartphone, Sparkles, Plus, Calendar, Hash, ArrowRight } from 'lucide-react';
 import { MotionButton } from '@/components/ui/MotionButton';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 
 const mockDevices = [
-  { id: 1, name: 'iPhone 14 Pro Max', imei: '359281093827164', status: 'Pending', risk: 'Medium', lastActivity: '2 hours ago' },
-  { id: 2, name: 'Samsung Galaxy S23', imei: '867291038475621', status: 'Verified', risk: 'High', lastActivity: '1 day ago' },
+  { id: '1', name: 'iPhone 14 Pro Max', imei: '359281093827164', status: 'Pending', risk: 'Medium', lastActivity: '2 hours ago', description: 'Stolen during travel on a bus near Uttara.', confidence: 0.92 },
+  { id: '2', name: 'Samsung Galaxy S23', imei: '867291038475621', status: 'Verified', risk: 'High', lastActivity: '1 day ago', description: 'Snatched by bike riders in Dhanmondi.', confidence: 0.88 },
 ];
 
 export default function ReportedDevicesPage() {
   const { language } = useDashboardStore();
-  const [selectedDevice, setSelectedDevice] = useState<number | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+
+  // Fetch real reports from backend
+  const { data: reports, isLoading } = useQuery({
+    queryKey: ['user-reports'],
+    queryFn: async () => {
+      const res = await fetch('http://localhost:4000/reports');
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      return res.json();
+    }
+  });
+
+  const devices = reports && reports.length > 0
+    ? reports.map((r: any) => ({
+        id: r.id,
+        name: r.deviceName || 'Unknown Device',
+        imei: r.imei,
+        status: r.status === 'PENDING' ? 'Pending' : 'Verified',
+        risk: r.extractedFromGd ? 'High' : 'Medium',
+        lastActivity: new Date(r.createdAt).toLocaleDateString(),
+        description: r.description || 'No description provided.',
+        confidence: r.aiExtractionConfidence,
+      }))
+    : mockDevices;
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight">
             {language === 'banglish' ? 'Amar Report Kora Devices' : 'My Reported Devices'}
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-slate-500 mt-1">
             {language === 'banglish' ? 'Apnar harano device track korun.' : 'Manage and track your reported stolen devices.'}
           </p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <MotionButton>
-            <Plus className="w-5 h-5" />
-            {language === 'banglish' ? 'Notun Device Add Korun' : 'Add New Device'}
-          </MotionButton>
+          <Link href="/report">
+            <MotionButton variant="primary" className="shadow-md">
+              <Plus className="w-5 h-5" />
+              {language === 'banglish' ? 'Notun Device Add Korun' : 'Add New Device'}
+            </MotionButton>
+          </Link>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
-          {mockDevices.map((device, i) => (
-            <motion.div
-              key={device.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <GlassCard 
-                className={`p-6 cursor-pointer transition-colors ${selectedDevice === device.id ? 'border-indigo-500/50 bg-indigo-500/5' : 'hover:bg-white/5'}`}
-                onClick={() => setSelectedDevice(device.id)}
+          {isLoading ? (
+            <div className="h-48 flex items-center justify-center bg-transparent">
+              <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
+            </div>
+          ) : (
+            devices.map((device: any, i: number) => (
+              <motion.div
+                key={device.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                      <Smartphone className="w-6 h-6 text-indigo-400" />
+                <GlassCard 
+                  className={`p-6 cursor-pointer transition-all bg-white/70 border hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] ${
+                    selectedDevice?.id === device.id 
+                      ? 'border-indigo-500 bg-indigo-50/20 shadow-md' 
+                      : 'border-slate-100 hover:border-indigo-100/50'
+                  }`}
+                  onClick={() => setSelectedDevice(device)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-indigo-50 border border-indigo-100/50 rounded-xl">
+                        <Smartphone className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-indigo-950">{device.name}</h3>
+                        <p className="text-sm font-mono text-slate-400 font-medium">{device.imei}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{device.name}</h3>
-                      <p className="text-sm font-mono text-slate-400">{device.imei}</p>
+                    <div className="text-right">
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-1 ${
+                        device.status === 'Pending' 
+                          ? 'bg-amber-50 border-amber-100 text-amber-600' 
+                          : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                      }`}>
+                        {device.status}
+                      </div>
+                      <p className="text-xs text-slate-400 font-medium">{device.lastActivity}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-1">
-                      {device.status}
-                    </div>
-                    <p className="text-xs text-slate-500">{device.lastActivity}</p>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          ))}
+                </GlassCard>
+              </motion.div>
+            ))
+          )}
         </div>
 
         {/* AI Detail Panel */}
@@ -79,26 +120,45 @@ export default function ReportedDevicesPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="sticky top-28"
             >
-              <GlassCard className="p-6 space-y-6 border-indigo-500/20">
-                <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="p-2 bg-purple-500/10 rounded-lg">
-                    <Sparkles className="w-5 h-5 text-purple-400" />
+              <GlassCard className="p-6 space-y-6 bg-white/80 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-50 rounded-lg border border-purple-100">
+                      <Sparkles className="w-5 h-5 text-purple-600 animate-pulse" />
+                    </div>
+                    <h3 className="font-bold text-indigo-950 text-base">
+                      {language === 'banglish' ? 'AI Analysis' : 'AI Analysis'}
+                    </h3>
                   </div>
-                  <h3 className="font-bold text-white">
-                    {language === 'banglish' ? 'AI Analysis' : 'AI Analysis'}
-                  </h3>
+                  {selectedDevice.confidence && (
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-purple-50 border border-purple-100 text-purple-600 font-bold font-mono">
+                      Conf: {(selectedDevice.confidence * 100).toFixed(0)}%
+                    </span>
+                  )}
                 </div>
                 
                 <div className="space-y-4">
-                  <p className="text-sm text-slate-300 leading-relaxed">
-                    {language === 'banglish' 
-                      ? 'Ei device ta multiple jaygay search hoise, jar mane keu eita use korar chesta korche. High risk detect hoise dhaka area theke.'
-                      : 'This device has been searched from multiple locations recently, indicating someone is trying to use or sell it. High risk detected in the Dhaka area.'}
-                  </p>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Extraction Summary</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50 font-medium">
+                      {selectedDevice.description}
+                    </p>
+                  </div>
                   
-                  <div className="pt-4 border-t border-white/5">
-                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Next Steps</h4>
-                    <ul className="text-sm text-slate-400 space-y-2">
+                  <div className="flex flex-col gap-2.5 pt-2 text-xs font-semibold text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <Hash className="w-4 h-4 text-indigo-500" />
+                      <span>IMEI: {selectedDevice.imei}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-indigo-500" />
+                      <span>Reported On: {selectedDevice.lastActivity}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Next Recovery Steps</h4>
+                    <ul className="text-sm text-slate-500 space-y-2 font-medium">
                       <li className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                         Wait for further verification signals
@@ -113,8 +173,8 @@ export default function ReportedDevicesPage() {
               </GlassCard>
             </motion.div>
           ) : (
-            <div className="h-full min-h-[300px] flex items-center justify-center border border-dashed border-white/10 rounded-2xl">
-              <p className="text-slate-500 text-sm text-center px-6">
+            <div className="h-full min-h-[300px] flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-white/30 backdrop-blur-sm">
+              <p className="text-slate-400 text-sm text-center px-6 font-semibold">
                 {language === 'banglish' ? 'Kono device select korun details dekhar jonno.' : 'Select a device to view detailed AI analysis.'}
               </p>
             </div>
