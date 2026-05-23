@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { auth } from "@/utils/firebase/client";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ResultPage(props: { params: Promise<{ imei: string }> }) {
   const params = use(props.params);
@@ -14,14 +16,35 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   const [score, setScore] = useState(0);
   const [backendData, setBackendData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [quotaError, setQuotaError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`http://localhost:4000/imei/check/${params.imei}?lang=english`);
-        if (res.ok) setBackendData(await res.json());
-      } catch {
-        console.warn("Backend not running, using simulation.");
+        const firebaseUser = auth.currentUser;
+        let email = firebaseUser?.email || "";
+        if (!email) {
+          const supabase = createClient();
+          const { data: { session } } = await supabase.auth.getSession();
+          email = session?.user?.email || "";
+        }
+
+        const res = await fetch(`http://localhost:4000/imei/check/${params.imei}?lang=english&email=${email}`);
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          if (errData.message && errData.message.includes('QUOTA_LIMIT_EXCEEDED')) {
+            setQuotaError('You have used up all your free search limits. Please upgrade your subscription plan to run unlimited IMEI checks.');
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (res.ok) {
+          setBackendData(await res.json());
+        }
+      } catch (err: any) {
+        console.warn("Backend request failed, using simulation.", err);
       } finally {
         setLoading(false);
       }
@@ -91,11 +114,68 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm font-medium">Analyzing signals...</p>
+      <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden px-6">
+        {/* Background Ambient Orbs matching the website theme */}
+        <div className="orb w-[500px] h-[500px] bg-indigo-200/20 top-0 right-0 -z-10 blur-[80px]" />
+        <div className="orb w-[300px] h-[300px] bg-purple-200/20 bottom-0 left-0 -z-10 blur-[60px]" style={{ animationDelay: "3s" }} />
+
+        <div className="flex flex-col items-center max-w-sm text-center space-y-6 z-10">
+          {/* Circling loader with double ring for premium aesthetic */}
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-lg font-bold text-indigo-950">Analyzing IMEI Signals</h3>
+            <p className="text-slate-500 text-xs leading-relaxed font-semibold">
+              Please wait a bit while we query global theft records, extract insights, and evaluate trust indicators...
+            </p>
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  if (quotaError) {
+    return (
+      <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-24">
+        <div className="orb w-[500px] h-[500px] top-0 right-0 -z-10 bg-indigo-100" />
+        <div className="orb w-[300px] h-[300px] bg-purple-100 bottom-0 left-0 -z-10" />
+
+        <Link href="/check" className="absolute top-28 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors z-20">
+          <ArrowLeft className="w-4 h-4" /> Back to Search
+        </Link>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full glass rounded-[2rem] border border-amber-200/50 p-8 md:p-10 text-center shadow-2xl bg-white/70 backdrop-blur-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-50 to-orange-500" />
+          
+          <div className="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="w-8 h-8 text-amber-500 animate-bounce" />
+          </div>
+
+          <h1 className="text-2xl font-bold text-indigo-950 mb-3">Quota Limit Exceeded ⚠️</h1>
+          <p className="text-slate-500 leading-relaxed text-sm mb-8 font-medium">
+            {quotaError}
+          </p>
+
+          <div className="space-y-4">
+            <Link href="/dashboard/pricing" className="block w-full btn-primary bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-bold text-sm shadow-md transition-all">
+              View Premium Subscription Plans
+            </Link>
+            <Link href="/check" className="block w-full bg-slate-50 border border-slate-105 rounded-2xl py-3.5 text-center font-bold text-sm text-slate-500 hover:bg-slate-100 transition-colors">
+              Return to Search
+            </Link>
+          </div>
+        </motion.div>
       </div>
     );
   }

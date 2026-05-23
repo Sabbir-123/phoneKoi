@@ -33,4 +33,43 @@ export class UsersService {
       }
     };
   }
+
+  async getUserProfile(email: string) {
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { SubscriptionRequest: true }
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          role: email === 'ahmedsabbir2013@gmail.com' ? 'ADMIN' : 'USER',
+          plan: 'FREE',
+          searchLimit: 3,
+          searchesLeft: 3
+        },
+        include: { SubscriptionRequest: true }
+      });
+    }
+
+    return user;
+  }
+
+  async createSubscriptionRequest(email: string, dto: { planName: string, price: number, trxCode: string, bkashLastFour: string }) {
+    // Ensure user exists
+    const user = await this.getUserProfile(email);
+
+    return this.prisma.subscriptionRequest.create({
+      data: {
+        userId: user.id,
+        userEmail: email,
+        planName: dto.planName,
+        price: Number(dto.price),
+        trxCode: dto.trxCode,
+        bkashLastFour: dto.bkashLastFour,
+        status: 'PENDING'
+      }
+    });
+  }
 }

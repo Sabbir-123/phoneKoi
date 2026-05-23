@@ -4,23 +4,56 @@ import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X, CreditCard, ShieldCheck } from 'lucide-react';
 import { auth } from '@/utils/firebase/client';
 import { signOut } from 'firebase/auth';
 import { createClient } from '@/utils/supabase/client';
-
-const navItems = [
-  { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Reported Devices', href: '/dashboard/devices', icon: Smartphone },
-  { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
-  { name: 'History', href: '/dashboard/history', icon: History },
-  { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-];
+import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
   const { sidebarOpen, toggleSidebar, language } = useDashboardStore();
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const firebaseUser = auth.currentUser;
+      let email = firebaseUser?.email;
+      if (!email) {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        email = session?.user?.email;
+      }
+      
+      if (email) {
+        try {
+          const res = await fetch(`http://localhost:4000/users/profile?email=${email}`);
+          if (res.ok) {
+            const profile = await res.json();
+            if (profile?.role === 'ADMIN') {
+              setIsAdmin(true);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    checkRole();
+    const interval = setInterval(checkRole, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const navItems = [
+    { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Reported Devices', href: '/dashboard/devices', icon: Smartphone },
+    { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
+    { name: 'History', href: '/dashboard/history', icon: History },
+    { name: 'Pricing & Plans', href: '/dashboard/pricing', icon: CreditCard },
+    { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    ...(isAdmin ? [{ name: 'Admin panel', href: '/dashboard/admin', icon: ShieldCheck }] : []),
+  ];
 
   const handleLogout = async () => {
     // 1. Firebase sign out
@@ -48,7 +81,7 @@ export default function Sidebar() {
         transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
         className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-white/80 border-r border-slate-100 backdrop-blur-md z-50 flex flex-col`}
       >
-        <div className="h-20 lg:h-24 flex items-center justify-between px-8 border-b border-slate-100">
+        <div className="h-16 lg:h-20 flex items-center justify-between px-8 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
               <span className="text-white font-extrabold text-xl">P</span>

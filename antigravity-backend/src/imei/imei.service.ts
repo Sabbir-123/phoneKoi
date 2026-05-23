@@ -26,9 +26,32 @@ export class ImeiService {
     return sum % 10 === 0;
   }
 
-  async checkImei(imei: string, ip: string = '127.0.0.1', language: 'english' | 'banglish' = 'english') {
+  async checkImei(imei: string, ip: string = '127.0.0.1', language: 'english' | 'banglish' = 'english', email?: string) {
     if (!this.validateLuhn(imei)) {
       throw new BadRequestException('Invalid IMEI format or checksum failed');
+    }
+
+    if (email) {
+      let user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            email,
+            plan: 'FREE',
+            searchLimit: 3,
+            searchesLeft: 3
+          }
+        });
+      }
+
+      if (user.searchesLeft <= 0) {
+        throw new BadRequestException('QUOTA_LIMIT_EXCEEDED: You have used up your search limit. Please upgrade your subscription plan.');
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { searchesLeft: user.searchesLeft - 1 }
+      });
     }
 
     // Trigger Search Log Event asynchronously (fire and forget for now, normally use a queue)

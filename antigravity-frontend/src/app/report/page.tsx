@@ -102,7 +102,7 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl flex flex-col items-center justify-center py-20 px-6">
+    <div className="w-full max-w-4xl flex flex-col items-center justify-center py-8 px-6">
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -115,10 +115,10 @@ export default function ReportPage() {
             <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full -z-10" />
           </div>
         </div>
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-indigo-950">
           Report Stolen Device
         </h1>
-        <p className="text-neutral-400 text-lg max-w-2xl mx-auto">
+        <p className="text-slate-500 text-lg max-w-2xl mx-auto font-medium">
           Help protect the community. Your report will be instantly distributed to the network and increase device safety.
         </p>
       </motion.div>
@@ -131,21 +131,21 @@ export default function ReportPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="space-y-6"
         >
-          <div className="p-1 rounded-[2.5rem] bg-gradient-to-br from-red-500/20 via-transparent to-blue-500/20">
-            <div className="bg-neutral-900/90 backdrop-blur-3xl rounded-[2.4rem] p-8 space-y-6 h-full border border-white/5">
+          <div className="p-1 rounded-[2.5rem] bg-gradient-to-br from-red-500/10 via-transparent to-indigo-500/10">
+            <div className="bg-white/80 border border-slate-100/80 shadow-xl shadow-indigo-100/40 backdrop-blur-2xl rounded-[2.4rem] p-8 space-y-6 h-full">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center font-bold text-red-500">1</div>
-                <h2 className="text-xl font-bold text-white">Faster Way: AI Extraction</h2>
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600">1</div>
+                <h2 className="text-xl font-bold text-indigo-950">Faster Way: AI Extraction</h2>
               </div>
               <GDUpload onUpload={handleGdUpload} isExtracting={isExtracting} />
             </div>
           </div>
 
-          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-start gap-4">
-            <Info className="w-6 h-6 text-neutral-500 shrink-0 mt-1" />
+          <div className="p-6 rounded-3xl bg-white/60 border border-slate-100/80 shadow-sm flex items-start gap-4">
+            <Info className="w-6 h-6 text-slate-400 shrink-0 mt-1" />
             <div className="space-y-1">
-              <p className="text-sm font-medium text-neutral-300">Why upload a GD copy?</p>
-              <p className="text-xs text-neutral-500 leading-relaxed">
+              <p className="text-sm font-semibold text-slate-700">Why upload a GD copy?</p>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 GD verified reports get a higher trust score and are prioritized in our system. It helps law enforcement and recovery efforts.
               </p>
             </div>
@@ -160,48 +160,48 @@ export default function ReportPage() {
         >
           <form
             onSubmit={handleSubmit}
-            className="w-full bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 space-y-8"
+            className="w-full bg-white/80 border border-slate-100 shadow-xl shadow-indigo-100/40 rounded-[2.5rem] p-8 md:p-10 space-y-8 backdrop-blur-2xl"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center font-bold text-neutral-400">2</div>
-              <h2 className="text-xl font-bold text-white">Manual Entry Fallback</h2>
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600">2</div>
+              <h2 className="text-xl font-bold text-indigo-950">Manual Entry Fallback</h2>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-400 ml-1">Device IMEI (15 Digits)</label>
+                <label className="text-sm font-semibold text-slate-600 ml-1">Device IMEI (15 Digits)</label>
                 <input
                   type="text"
                   required
                   value={imei}
                   onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))}
                   placeholder="Enter 15-digit IMEI"
-                  className="w-full bg-black/40 border border-white/10 focus:border-red-500/50 rounded-2xl px-5 py-4 outline-none font-mono tracking-[0.2em] text-white transition-all text-lg shadow-inner"
+                  className="w-full bg-slate-50/50 border border-slate-100/80 focus:border-red-500/30 focus:bg-white rounded-2xl px-5 py-4 outline-none font-mono tracking-[0.2em] text-slate-800 transition-all text-lg shadow-inner"
                   disabled={isSubmitting || isExtracting}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-400 ml-1">Incident Details</label>
+                <label className="text-sm font-semibold text-slate-600 ml-1">Incident Details</label>
                 <textarea
                   required
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe where and how the device was stolen..."
-                  className="w-full bg-black/40 border border-white/10 focus:border-red-500/50 rounded-2xl px-5 py-4 outline-none text-white transition-all min-h-[120px] resize-none shadow-inner"
+                  className="w-full bg-slate-50/50 border border-slate-100/80 focus:border-red-500/30 focus:bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 transition-all min-h-[120px] resize-none shadow-inner"
                   disabled={isSubmitting || isExtracting}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-400 ml-1">Contact Number</label>
+                <label className="text-sm font-semibold text-slate-600 ml-1">Contact Number</label>
                 <input
                   type="text"
                   required
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value)}
                   placeholder="e.g. 017XXXXXXXX"
-                  className="w-full bg-black/40 border border-white/10 focus:border-red-500/50 rounded-2xl px-5 py-4 outline-none text-white transition-all shadow-inner"
+                  className="w-full bg-slate-50/50 border border-slate-100/80 focus:border-red-500/30 focus:bg-white rounded-2xl px-5 py-4 outline-none text-slate-800 transition-all shadow-inner"
                   disabled={isSubmitting || isExtracting}
                 />
               </div>
@@ -212,7 +212,7 @@ export default function ReportPage() {
               whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={isSubmitting || isExtracting || imei.length !== 15 || description.length < 10}
-              className="w-full bg-white text-black hover:bg-neutral-200 py-5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg shadow-xl shadow-white/5"
+              className="w-full btn-primary py-5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg shadow-xl shadow-indigo-100/35"
             >
               {isSubmitting ? (
                 <Loader2 className="w-6 h-6 animate-spin" />

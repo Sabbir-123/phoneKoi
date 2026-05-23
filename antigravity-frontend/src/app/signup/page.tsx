@@ -3,16 +3,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Mail, Lock, User, AlertCircle, UserPlus } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { Mail, Lock, User, AlertCircle, UserPlus } from "lucide-react";
 import { auth, googleProvider, initAnalytics } from "@/utils/firebase/client";
 import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-
-type AuthMode = "supabase" | "firebase";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -22,9 +19,6 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [mode, setMode] = useState<AuthMode>("supabase");
-
-  const supabase = createClient();
 
   useEffect(() => { initAnalytics(); }, []);
 
@@ -33,21 +27,12 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
-    if (mode === "supabase") {
-      const { error } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { full_name: name }, emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) setError(error.message);
-      else setSuccess(true);
-    } else {
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(cred.user, { displayName: name });
-        setSuccess(true);
-      } catch (err: any) {
-        setError(err.message?.replace("Firebase: ", "") || "Sign up failed");
-      }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName: name });
+      window.location.href = "/dashboard?showProfileWarning=true";
+    } catch (err: any) {
+      setError(err.message?.replace("Firebase: ", "") || "Sign up failed");
     }
     setLoading(false);
   };
@@ -56,19 +41,11 @@ export default function SignupPage() {
     setGoogleLoading(true);
     setError(null);
 
-    if (mode === "firebase") {
-      try {
-        await signInWithPopup(auth, googleProvider);
-        window.location.href = "/dashboard";
-      } catch (err: any) {
-        setError(err.message?.replace("Firebase: ", "") || "Google sign-up failed");
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) setError(error.message);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      window.location.href = "/dashboard?showProfileWarning=true";
+    } catch (err: any) {
+      setError(err.message?.replace("Firebase: ", "") || "Google sign-up failed");
     }
     setGoogleLoading(false);
   };
@@ -85,13 +62,10 @@ export default function SignupPage() {
             <Mail className="w-8 h-8 text-emerald-500" />
           </div>
           <h2 className="text-2xl font-bold text-indigo-950 mb-3">
-            {mode === "firebase" ? "Account Created!" : "Check your email"}
+            Account Created!
           </h2>
           <p className="text-slate-500 mb-8 text-sm">
-            {mode === "firebase"
-              ? "Your Firebase account was created successfully."
-              : <>We sent a link to <span className="text-indigo-600 font-semibold">{email}</span>. Please verify to continue.</>
-            }
+            Your Firebase account was created successfully.
           </p>
           <Link href="/login" className="btn-primary px-6 py-3 rounded-xl inline-block font-semibold text-sm">
             Go to Login
@@ -105,10 +79,6 @@ export default function SignupPage() {
     <div className="min-h-screen w-full flex items-center justify-center px-6 py-20 relative">
       <div className="orb w-[400px] h-[400px] bg-purple-200 top-0 left-0 -z-10" />
       <div className="orb w-[300px] h-[300px] bg-sky-200 bottom-0 right-0 -z-10" style={{ animationDelay: "4s" }} />
-
-      <Link href="/" className="absolute top-28 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors z-20">
-        <ArrowLeft className="w-4 h-4" /> Back Home
-      </Link>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -127,22 +97,7 @@ export default function SignupPage() {
             <p className="text-slate-500 text-sm">Join the community to track verifications.</p>
           </div>
 
-          {/* Auth Provider Toggle */}
-          <div className="flex bg-slate-100 rounded-xl p-1 mb-6 gap-1">
-            {(["supabase", "firebase"] as AuthMode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(null); }}
-                className={`flex-1 text-xs font-bold py-2 rounded-lg capitalize transition-all duration-200 ${
-                  mode === m
-                    ? "bg-white shadow text-purple-700"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                {m === "supabase" ? "🔷 Supabase" : "🔶 Firebase"}
-              </button>
-            ))}
-          </div>
+
 
           {error && (
             <motion.div

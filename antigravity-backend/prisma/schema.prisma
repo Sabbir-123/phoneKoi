@@ -32,13 +32,19 @@ enum ReportStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String?  @unique
-  password  String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  reports   Report[]
+  id                    String                @id @default(uuid())
+  email                 String?               @unique
+  password              String?
+  role                  Role                  @default(USER)
+  plan                  String                @default("FREE") // "FREE", "PRO"
+  searchLimit           Int                   @default(3)
+  searchesLeft          Int                   @default(3)
+  isPro                 Boolean               @default(false)
+  subscriptionExpiresAt DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  reports               Report[]
+  SubscriptionRequest   SubscriptionRequest[]
 }
 
 model Device {
@@ -79,4 +85,18 @@ model SearchLog {
   ip        String?
   location  String?
   timestamp DateTime @default(now())
+}
+
+model SubscriptionRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  userEmail     String
+  planName      String   // "1 Month", "3 Months", "6 Months", "12 Months"
+  price         Int      // 49, 99, 259, 999
+  trxCode       String   @unique
+  bkashLastFour String
+  status        String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

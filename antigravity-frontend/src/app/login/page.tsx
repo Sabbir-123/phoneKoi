@@ -3,13 +3,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Mail, Lock, AlertCircle, LogIn } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { Mail, Lock, AlertCircle, LogIn } from "lucide-react";
 import { auth, googleProvider, initAnalytics } from "@/utils/firebase/client";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-
-// Auth mode toggle: "supabase" | "firebase"
-type AuthMode = "supabase" | "firebase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,9 +13,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [mode, setMode] = useState<AuthMode>("supabase");
-
-  const supabase = createClient();
 
   // Boot Firebase Analytics on mount
   useEffect(() => { initAnalytics(); }, []);
@@ -29,17 +22,11 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    if (mode === "supabase") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-      else window.location.href = "/dashboard";
-    } else {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "/dashboard";
-      } catch (err: any) {
-        setError(err.message?.replace("Firebase: ", "") || "Sign in failed");
-      }
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "/";
+    } catch (err: any) {
+      setError(err.message?.replace("Firebase: ", "") || "Sign in failed");
     }
     setLoading(false);
   };
@@ -48,20 +35,11 @@ export default function LoginPage() {
     setGoogleLoading(true);
     setError(null);
 
-    if (mode === "firebase") {
-      try {
-        await signInWithPopup(auth, googleProvider);
-        window.location.href = "/dashboard";
-      } catch (err: any) {
-        setError(err.message?.replace("Firebase: ", "") || "Google sign-in failed");
-      }
-    } else {
-      // Supabase OAuth
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) setError(error.message);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      window.location.href = "/";
+    } catch (err: any) {
+      setError(err.message?.replace("Firebase: ", "") || "Google sign-in failed");
     }
     setGoogleLoading(false);
   };
@@ -70,10 +48,6 @@ export default function LoginPage() {
     <div className="min-h-screen w-full flex items-center justify-center px-6 py-20 relative">
       <div className="orb w-[400px] h-[400px] bg-indigo-200 top-0 right-0 -z-10" />
       <div className="orb w-[300px] h-[300px] bg-purple-200 bottom-0 left-0 -z-10" style={{ animationDelay: "3s" }} />
-
-      <Link href="/" className="absolute top-28 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors z-20">
-        <ArrowLeft className="w-4 h-4" /> Back Home
-      </Link>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -92,22 +66,7 @@ export default function LoginPage() {
             <p className="text-slate-500 text-sm">Sign in to access the Phone Koi Network.</p>
           </div>
 
-          {/* Auth Provider Toggle */}
-          <div className="flex bg-slate-100 rounded-xl p-1 mb-6 gap-1">
-            {(["supabase", "firebase"] as AuthMode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(null); }}
-                className={`flex-1 text-xs font-bold py-2 rounded-lg capitalize transition-all duration-200 ${
-                  mode === m
-                    ? "bg-white shadow text-indigo-700"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                {m === "supabase" ? "🔷 Supabase" : "🔶 Firebase"}
-              </button>
-            ))}
-          </div>
+
 
           {error && (
             <motion.div

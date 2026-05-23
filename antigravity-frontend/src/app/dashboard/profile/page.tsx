@@ -10,25 +10,88 @@ import { useQuery } from '@tanstack/react-query';
 
 export default function ProfilePage() {
   const { language } = useDashboardStore();
-  const [email, setEmail] = useState('No email attached');
+  const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('Phone Koi User');
+  const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [isSameAsPhone, setIsSameAsPhone] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [plan, setPlan] = useState('FREE');
+  const [searchesLeft, setSearchesLeft] = useState(3);
+  const [searchLimit, setSearchLimit] = useState(3);
 
   useEffect(() => {
-    const fUser = auth.currentUser;
-    if (fUser) {
-      setEmail(fUser.email || 'No email attached');
-      setDisplayName(fUser.displayName || 'Phone Koi User');
-    } else {
-      const { createClient } = require("@/utils/supabase/client");
-      const supabase = createClient();
-      supabase.auth.getSession().then(({ data: { session } }: any) => {
+    const loadProfile = async () => {
+      const fUser = auth.currentUser;
+      let emailAddress = '';
+      if (fUser) {
+        emailAddress = fUser.email || '';
+        setEmail(fUser.email || localStorage.getItem('profile_email') || '');
+        setDisplayName(fUser.displayName || 'Phone Koi User');
+      } else {
+        const { createClient } = require("@/utils/supabase/client");
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          setEmail(session.user.email || 'No email attached');
+          emailAddress = session.user.email || '';
+          setEmail(session.user.email || localStorage.getItem('profile_email') || '');
           setDisplayName(session.user.user_metadata?.full_name || 'Phone Koi User');
         }
-      });
+      }
+
+      if (emailAddress) {
+        try {
+          const res = await fetch(`http://localhost:4000/users/profile?email=${emailAddress}`);
+          if (res.ok) {
+            const data = await res.json();
+            setPlan(data.plan || 'FREE');
+            setSearchesLeft(data.searchesLeft ?? 3);
+            setSearchLimit(data.searchLimit ?? 3);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    loadProfile();
+
+    // Load profile details from localStorage
+    const savedPhone = localStorage.getItem('profile_phone') || '';
+    const savedWhatsapp = localStorage.getItem('profile_whatsapp') || '';
+    const savedIsSame = localStorage.getItem('profile_whatsapp_same_as_phone') === 'true';
+
+    setPhone(savedPhone);
+    setIsSameAsPhone(savedIsSame);
+    if (savedIsSame) {
+      setWhatsapp(savedPhone);
+    } else {
+      setWhatsapp(savedWhatsapp);
     }
   }, []);
+
+  useEffect(() => {
+    if (isSameAsPhone) {
+      setWhatsapp(phone);
+    }
+  }, [phone, isSameAsPhone]);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaveLoading(true);
+
+    localStorage.setItem('profile_email', email);
+    localStorage.setItem('profile_phone', phone);
+    localStorage.setItem('profile_whatsapp', isSameAsPhone ? phone : whatsapp);
+    localStorage.setItem('profile_whatsapp_same_as_phone', String(isSameAsPhone));
+    localStorage.setItem('profile_completed', 'true');
+
+    setTimeout(() => {
+      setSaveLoading(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }, 800);
+  };
 
   // Query live reports count from backend
   const { data: reports } = useQuery({
@@ -81,7 +144,7 @@ export default function ProfilePage() {
               {email}
             </div>
             
-            <div className="w-full pt-6 border-t border-slate-100 flex flex-col gap-3.5">
+            <div className="w-full pt-6 border-t border-slate-100 flex flex-col gap-3.5 text-left">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400 font-semibold">Account Status</span>
                 <span className="text-emerald-600 font-bold flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full text-xs">
@@ -89,12 +152,20 @@ export default function ProfilePage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400 font-semibold">Security Role</span>
-                <span className="text-indigo-600 font-bold bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full text-xs">Pro Reporter</span>
+                <span className="text-slate-400 font-semibold">Subscription</span>
+                <span className={`font-bold flex items-center gap-1 border px-2.5 py-0.5 rounded-full text-xs ${
+                  plan === 'PRO' 
+                    ? 'text-indigo-600 bg-indigo-50 border-indigo-100 shadow-sm shadow-indigo-100/50' 
+                    : 'text-slate-500 bg-slate-50 border-slate-200'
+                }`}>
+                  {plan === 'PRO' ? 'Pro Member 🌟' : 'Free Plan'}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400 font-semibold">Phone Verification</span>
-                <span className="text-amber-600 font-bold bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full text-xs">Pending</span>
+                <span className="text-slate-400 font-semibold">Queries Left</span>
+                <span className="text-indigo-950 font-bold bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-full text-xs">
+                  {searchesLeft} / {searchLimit}
+                </span>
               </div>
             </div>
           </GlassCard>
@@ -138,6 +209,104 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+            </GlassCard>
+          </motion.div>
+
+          {/* Edit Profile Form */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.25 }}
+          >
+            <GlassCard className="p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+              <h3 className="text-lg font-bold text-indigo-950 mb-4 flex items-center gap-2">
+                <UserCircle className="w-5 h-5 text-indigo-600" />
+                Complete Your Profile
+              </h3>
+              
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Email address */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      className="w-full bg-white/60 border border-indigo-100 rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium"
+                      required
+                    />
+                  </div>
+
+                  {/* Phone number */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+8801XXXXXXXXX"
+                      className="w-full bg-white/60 border border-indigo-100 rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* WhatsApp number with selection button */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp Number</label>
+                    
+                    {/* Selection button / Switch style */}
+                    <button
+                      type="button"
+                      onClick={() => setIsSameAsPhone(!isSameAsPhone)}
+                      className={`text-xs flex items-center gap-1.5 font-bold px-3 py-1 rounded-full transition-all ${
+                        isSameAsPhone 
+                          ? 'bg-indigo-600 text-white shadow-sm' 
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {isSameAsPhone ? '✓ Same as Phone' : 'Same as Phone?'}
+                    </button>
+                  </div>
+                  
+                  <input
+                    type="tel"
+                    value={isSameAsPhone ? phone : whatsapp}
+                    onChange={(e) => {
+                      if (!isSameAsPhone) {
+                        setWhatsapp(e.target.value);
+                      }
+                    }}
+                    disabled={isSameAsPhone}
+                    placeholder="+8801XXXXXXXXX"
+                    className={`w-full border rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium ${
+                      isSameAsPhone 
+                        ? 'bg-slate-50/60 border-slate-200/60 text-slate-400 cursor-not-allowed select-none' 
+                        : 'bg-white/60 border-indigo-100'
+                    }`}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  {saveSuccess && (
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl animate-fade-in flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Profile successfully updated!
+                    </span>
+                  )}
+                  
+                  <button
+                    type="submit"
+                    disabled={saveLoading}
+                    className="ml-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition-all disabled:opacity-50"
+                  >
+                    {saveLoading ? 'Saving...' : 'Save Profile Details'}
+                  </button>
+                </div>
+              </form>
             </GlassCard>
           </motion.div>
 

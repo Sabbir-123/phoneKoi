@@ -14,6 +14,7 @@ import Link from 'next/link';
 function DashboardHomeContent() {
   const { language } = useDashboardStore();
   const [name, setName] = useState('User');
+  const [profileWarning, setProfileWarning] = useState(false);
   const searchParams = useSearchParams();
   const reportSuccess = searchParams.get('reportSuccess') === 'true';
 
@@ -33,7 +34,15 @@ function DashboardHomeContent() {
         }
       });
     }
-  }, []);
+
+    // Check if redirect query param or localStorage says incomplete
+    const showWarning = searchParams.get('showProfileWarning') === 'true';
+    const profileCompleted = localStorage.getItem('profile_completed') === 'true';
+    
+    if (showWarning || !profileCompleted) {
+      setProfileWarning(true);
+    }
+  }, [searchParams]);
 
   // Fetch real reported devices from NestJS backend
   const { data: reports } = useQuery({
@@ -86,6 +95,58 @@ function DashboardHomeContent() {
       {/* Background Ambient Orbs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-200/20 rounded-full blur-[100px] pointer-events-none -z-10" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-200/20 rounded-full blur-[90px] pointer-events-none -z-10" />
+
+      {/* Profile Warning Banner */}
+      <AnimatePresence>
+        {profileWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.98 }}
+            className="p-1 rounded-[1.8rem] bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 relative z-20 shadow-xl"
+          >
+            <div className="bg-white/80 backdrop-blur-2xl rounded-[1.7rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex-shrink-0">
+                  <ShieldAlert className="w-8 h-8 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-indigo-950 mb-1">
+                    {language === 'banglish' ? 'Profile Incomplete! ⚠️' : 'Complete Your Profile! ⚠️'}
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {language === 'banglish'
+                      ? 'Apnar phone number, whatsapp number, ebong email address diye profile complete korun verification active korte.'
+                      : 'Please fill up and complete your profile sections (Phone Number, WhatsApp Number, and Email Address) to activate full verification trust.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Link href="/dashboard/profile">
+                  <MotionButton
+                    variant="primary"
+                    className="px-6 py-2.5 rounded-xl text-white bg-amber-500 hover:bg-amber-600 border border-transparent font-semibold transition-all shadow-sm flex items-center gap-2"
+                  >
+                    Go to Profile
+                  </MotionButton>
+                </Link>
+                <MotionButton
+                  variant="secondary"
+                  onClick={() => {
+                    setProfileWarning(false);
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('showProfileWarning');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold transition-all"
+                >
+                  Dismiss
+                </MotionButton>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Success Banner */}
       <AnimatePresence>
