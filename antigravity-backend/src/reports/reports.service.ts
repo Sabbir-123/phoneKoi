@@ -19,6 +19,7 @@ export class ReportsService {
     extractedFromGd?: boolean,
     aiExtractionConfidence?: number,
     userId?: string, 
+    email?: string,
     trustWeight?: number 
   }) {
     if (!/^\d{15}$/.test(data.imei)) {
@@ -39,6 +40,17 @@ export class ReportsService {
       throw new BadRequestException('Rate limit exceeded for reports from this IP');
     }
 
+    // Find user ID from email if provided
+    let finalUserId = data.userId;
+    if (data.email) {
+      const user = await this.prisma.user.findUnique({
+        where: { email: data.email }
+      });
+      if (user) {
+        finalUserId = user.id;
+      }
+    }
+
     // Upsert the device first (so it exists)
     await this.prisma.device.upsert({
       where: { imei: data.imei },
@@ -57,7 +69,7 @@ export class ReportsService {
         deviceName: data.deviceName,
         extractedFromGd: data.extractedFromGd || false,
         aiExtractionConfidence: data.aiExtractionConfidence,
-        userId: data.userId,
+        userId: finalUserId,
         trustWeight: data.trustWeight || 1
       }
     });

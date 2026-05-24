@@ -24,4 +24,9 @@ export class UsersController {
   ) {
     return this.usersService.createSubscriptionRequest(email || 'ahmedsabbir2013@gmail.com', dto);
   }
+
+  @Get('alerts')
+  async getAlerts(@Query('email') email: string) {
+    return this.usersService.getUserAlerts(email || 'ahmedsabbir2013@gmail.com');
+  }
 }

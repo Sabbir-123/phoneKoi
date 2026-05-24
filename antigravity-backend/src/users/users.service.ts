@@ -72,4 +72,88 @@ export class UsersService {
       }
     });
   }
+
+  async getUserAlerts(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: {
+        reports: {
+          include: {
+            device: {
+              include: {
+                searchLogs: {
+                  orderBy: { timestamp: 'desc' }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return [];
+    }
+
+    const alerts = [];
+
+    for (const report of user.reports) {
+      // 1. Report Status Alert
+      if (report.status === 'APPROVED') {
+        alerts.push({
+          id: `report-approved-${report.id}`,
+          type: 'success',
+          title: 'Report Verified',
+          desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} has been verified and red-flagged.`,
+          time: report.updatedAt.toISOString()
+        });
+      } else if (report.status === 'REJECTED') {
+        alerts.push({
+          id: `report-rejected-${report.id}`,
+          type: 'info',
+          title: 'Report Rejected',
+          desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} was rejected during admin review.`,
+          time: report.updatedAt.toISOString()
+        });
+      } else {
+        // Pending
+        alerts.push({
+          id: `report-pending-${report.id}`,
+          type: 'info',
+          title: 'Report Under Review',
+          desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} is currently under verification.`,
+          time: report.createdAt.toISOString()
+        });
+      }
+
+      // 2. Suspicious Searches (Live Log triggers after report date)
+      const logs = report.device?.searchLogs || [];
+      for (const log of logs) {
+        if (new Date(log.timestamp) > new Date(report.createdAt)) {
+          alerts.push({
+            id: `search-log-${log.id}`,
+            type: 'danger',
+            title: 'Suspicious Activity',
+            desc: `Your reported device (${report.deviceName || 'IMEI ' + report.imei}) was searched from IP ${log.ip || 'Unknown'} (Location: ${log.location || 'Dhaka'}).`,
+            time: log.timestamp.toISOString()
+          });
+        }
+      }
+    }
+
+    // Default System Welcome Broadcast
+    if (alerts.length === 0) {
+      alerts.push({
+        id: 'system-welcome',
+        type: 'info',
+        title: 'System Tracking Active',
+        desc: 'Welcome to Phone Koi Safety watchlist. Your account registry is live and scanning for risk vectors.',
+        time: user.createdAt.toISOString()
+      });
+    }
+
+    // Sort chronologically (newest first)
+    return alerts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+  }
 }
+
