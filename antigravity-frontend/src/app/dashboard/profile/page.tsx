@@ -105,6 +105,24 @@ export default function ProfilePage() {
 
   const reportsCount = reports ? reports.length : 2;
 
+  // Calculate Community Trust Score dynamically in real-time
+  const getCalculatedTrustScore = () => {
+    let score = 50; // base starting score for newly registered users
+    const hasCompletedProfile = phone && whatsapp && email;
+    if (hasCompletedProfile) score += 20;
+    if (plan === 'PRO') score += 20;
+
+    const approvedReportsCount = reports ? reports.filter((r: any) => r.status === 'APPROVED').length : 0;
+    const rejectedReportsCount = reports ? reports.filter((r: any) => r.status === 'REJECTED').length : 0;
+
+    score += approvedReportsCount * 15;
+    score -= rejectedReportsCount * 25;
+
+    return Math.max(10, Math.min(100, score));
+  };
+
+  const calculatedTrustScore = getCalculatedTrustScore();
+
   const trustBadges = [
     { name: 'Early Adopter', desc: 'Registered in the initial network launch phase.', icon: Award, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
     { name: 'Trusted Reporter', desc: 'Maintains reports that have been verified by police GD records.', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
@@ -187,12 +205,12 @@ export default function ProfilePage() {
                 <div className="flex-1 w-full">
                   <div className="flex justify-between mb-2.5">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Community Trust Score</span>
-                    <span className="text-sm font-extrabold text-emerald-600">92/100</span>
+                    <span className="text-sm font-extrabold text-emerald-600">{calculatedTrustScore}/100</span>
                   </div>
                   <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: '92%' }}
+                      animate={{ width: `${calculatedTrustScore}%` }}
                       transition={{ duration: 1, ease: 'easeOut' }}
                       className="h-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.25)] rounded-full"
                     />
@@ -204,7 +222,7 @@ export default function ProfilePage() {
 
                 <div className="flex-shrink-0 flex items-center justify-center w-24 h-24 rounded-full bg-emerald-50 border border-emerald-100/50 shadow-sm shadow-emerald-100">
                   <div className="text-center">
-                    <div className="text-3xl font-extrabold text-emerald-600 tracking-tighter">92</div>
+                    <div className="text-3xl font-extrabold text-emerald-600 tracking-tighter">{calculatedTrustScore}</div>
                     <div className="text-[9px] text-emerald-500/80 uppercase font-extrabold tracking-widest">Score</div>
                   </div>
                 </div>

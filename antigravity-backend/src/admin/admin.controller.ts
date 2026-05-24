@@ -19,4 +19,19 @@ export class AdminController {
   async rejectRequest(@Param('id') id: string) {
     return this.adminService.rejectSubscriptionRequest(id);
   }
+
+  @Get('reports')
+  async getDeviceReports() {
+    return this.adminService.getAllDeviceReports();
+  }
+
+  @Post('reports/:id/approve')
+  async approveReport(@Param('id') id: string) {
+    return this.adminService.approveDeviceReport(id);
+  }
+
+  @Post('reports/:id/reject')
+  async rejectReport(@Param('id') id: string) {
+    return this.adminService.rejectDeviceReport(id);
+  }
 }

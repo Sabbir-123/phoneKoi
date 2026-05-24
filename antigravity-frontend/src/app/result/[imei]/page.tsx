@@ -53,7 +53,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   }, [params.imei]);
 
   const activeStatus = (backendData?.status?.toLowerCase() || statusParam) as "clean" | "suspicious" | "stolen";
-  const targetScore = backendData ? backendData.risk_score : (activeStatus === "clean" ? 98 : activeStatus === "suspicious" ? 45 : 5);
+  const targetScore = backendData ? backendData.risk_score : (activeStatus === "clean" ? 2 : activeStatus === "suspicious" ? 55 : 98);
 
   const config = {
     clean: {
@@ -147,9 +147,6 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         <div className="orb w-[500px] h-[500px] top-0 right-0 -z-10 bg-indigo-100" />
         <div className="orb w-[300px] h-[300px] bg-purple-100 bottom-0 left-0 -z-10" />
 
-        <Link href="/check" className="absolute top-28 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors z-20">
-          <ArrowLeft className="w-4 h-4" /> Back to Search
-        </Link>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -186,10 +183,6 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
       <div className={`orb w-[500px] h-[500px] top-0 right-0 -z-10 ${activeStatus === "clean" ? "bg-emerald-100" : activeStatus === "suspicious" ? "bg-amber-100" : "bg-red-100"}`} />
       <div className="orb w-[300px] h-[300px] bg-indigo-100 bottom-0 left-0 -z-10" style={{ animationDelay: "4s" }} />
 
-      <Link href="/check" className="absolute top-28 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors z-20">
-        <ArrowLeft className="w-4 h-4" /> Back to Search
-      </Link>
-
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -215,7 +208,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           <p className="text-slate-500 mb-8 leading-relaxed">{config.desc}</p>
 
           <div className="py-6 border-t border-black/5 flex flex-col items-center">
-            <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-[0.2em]">Trust Score</div>
+            <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-[0.2em]">Risk Score</div>
             <div className={`text-8xl font-black font-mono tracking-tighter ${config.scoreColor}`}>{score}</div>
             <div className="text-xs text-slate-400 mt-1">out of 100</div>
           </div>
