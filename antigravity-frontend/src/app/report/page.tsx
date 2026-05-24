@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, Send, Loader2, Info, ArrowRight, CheckCircle2, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import GDUpload from "@/components/report/GDUpload";
-import { auth } from "@/utils/firebase/client";
-
 export default function ReportPage() {
   const [imei, setImei] = useState("");
   const [deviceName, setDeviceName] = useState("");
@@ -70,18 +68,10 @@ export default function ReportPage() {
     setIsSubmitting(true);
     try {
       // Get currently logged-in user email to associate with report
-      let userEmail = "";
-      const fUser = auth.currentUser;
-      if (fUser?.email) {
-        userEmail = fUser.email;
-      } else {
-        const { createClient } = require("@/utils/supabase/client");
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.email) {
-          userEmail = session.user.email;
-        }
-      }
+      const { createClient } = require("@/utils/supabase/client");
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const userEmail = session?.user?.email || "";
 
       const response = await fetch("http://localhost:4000/reports/submit", {
         method: "POST",

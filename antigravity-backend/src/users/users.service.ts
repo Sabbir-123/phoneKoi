@@ -46,8 +46,8 @@ export class UsersService {
           email,
           role: email === 'ahmedsabbir2013@gmail.com' ? 'ADMIN' : 'USER',
           plan: 'FREE',
-          searchLimit: 3,
-          searchesLeft: 3
+          searchLimit: 1,
+          searchesLeft: 1
         },
         include: { SubscriptionRequest: true }
       });

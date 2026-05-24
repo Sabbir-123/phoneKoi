@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { auth } from "@/utils/firebase/client";
 import { createClient } from "@/utils/supabase/client";
 
 export default function ResultPage(props: { params: Promise<{ imei: string }> }) {
@@ -22,13 +21,9 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const firebaseUser = auth.currentUser;
-        let email = firebaseUser?.email || "";
-        if (!email) {
-          const supabase = createClient();
-          const { data: { session } } = await supabase.auth.getSession();
-          email = session?.user?.email || "";
-        }
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const email = session?.user?.email || "";
 
         const res = await fetch(`http://localhost:4000/imei/check/${params.imei}?lang=english&email=${email}`);
         
@@ -46,7 +41,39 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         }
 
         if (res.ok) {
-          setBackendData(await res.json());
+          const data = await res.json();
+          setBackendData(data);
+
+          // Save to localStorage search history isolated by user email
+          if (email) {
+            try {
+              const historyKey = `search_history_${email}`;
+              const existingHistoryStr = localStorage.getItem(historyKey);
+              const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
+              
+              // Prevent duplicates in search history
+              if (!existingHistory.some((item: any) => item.imei === params.imei)) {
+                const newEntry = {
+                  id: Date.now(),
+                  imei: params.imei,
+                  result: data.status === 'PENDING' ? 'Pending' : (data.status === 'STOLEN' ? 'Stolen' : (data.status === 'SUSPICIOUS' ? 'Suspicious' : 'Clean')),
+                  score: data.risk_score,
+                  date: new Date().toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                };
+                
+                const updatedHistory = [newEntry, ...existingHistory].slice(0, 10);
+                localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+              }
+            } catch (historyErr) {
+              console.error('Error saving search history:', historyErr);
+            }
+          }
         }
       } catch (err: any) {
         console.warn("Backend request failed, using simulation.", err);
@@ -148,7 +175,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
 
   if (quotaError) {
     return (
-      <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-24">
+      <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-10">
         <div className="orb w-[500px] h-[500px] top-0 right-0 -z-10 bg-indigo-100" />
         <div className="orb w-[300px] h-[300px] bg-purple-100 bottom-0 left-0 -z-10" />
 
@@ -184,7 +211,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
 
   if (checksumError) {
     return (
-      <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-24">
+      <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-10">
         <div className="orb w-[500px] h-[500px] top-0 right-0 -z-10 bg-red-50/50" />
         <div className="orb w-[300px] h-[300px] bg-indigo-50/50 bottom-0 left-0 -z-10" />
 
@@ -215,7 +242,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   }
 
   return (
-    <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-24">
+    <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-10">
       {/* Background orbs matching status */}
       <div className={`orb w-[500px] h-[500px] top-0 right-0 -z-10 ${activeStatus === "clean" ? "bg-emerald-100" : activeStatus === "suspicious" ? "bg-amber-100" : "bg-red-100"}`} />
       <div className="orb w-[300px] h-[300px] bg-indigo-100 bottom-0 left-0 -z-10" style={{ animationDelay: "4s" }} />

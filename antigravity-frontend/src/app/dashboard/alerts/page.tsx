@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Bell, ShieldAlert, CheckCircle2, Info, Eye, Sliders, ToggleLeft, ToggleRight, RefreshCw, Smartphone } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { auth } from '@/utils/firebase/client';
 import { createClient } from '@/utils/supabase/client';
 
 export default function AlertsPage() {
@@ -15,9 +14,9 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAlerts = async (email: string) => {
+  const fetchAlerts = async (email: string, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(`http://localhost:4000/users/alerts?email=${email}`);
       if (res.ok) {
         const data = await res.json();
@@ -26,43 +25,66 @@ export default function AlertsPage() {
     } catch (e) {
       console.error('Error fetching dynamic alerts:', e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
-    const loadAlerts = async () => {
-      const fUser = auth.currentUser;
-      let emailAddress = '';
-      if (fUser?.email) {
-        emailAddress = fUser.email;
-      } else {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.email) {
-          emailAddress = session.user.email;
-        }
-      }
+    let intervalId: any;
+    let supabaseListener: any;
 
-      if (emailAddress) {
-        fetchAlerts(emailAddress);
-      } else {
-        setLoading(false);
-      }
+    const startPolling = (email: string) => {
+      if (!email) return;
+      if (intervalId) clearInterval(intervalId);
+
+      fetchAlerts(email, false);
+
+      intervalId = setInterval(() => {
+        fetchAlerts(email, true);
+      }, 5000);
     };
-    loadAlerts();
-  }, []);
 
-  const handleRefresh = async () => {
-    const fUser = auth.currentUser;
-    let emailAddress = fUser?.email || '';
-    if (!emailAddress) {
+    const initAuth = async () => {
+      // Supabase Auth Check & Listener
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      emailAddress = session?.user?.email || '';
-    }
+      let activeEmail = session?.user?.email || '';
+
+      const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+        const email = session?.user?.email || '';
+        if (email && email !== activeEmail) {
+          activeEmail = email;
+          startPolling(email);
+        }
+      });
+      supabaseListener = listener;
+
+      // If we already have an authenticated user on mount, start polling immediately
+      if (activeEmail) {
+        startPolling(activeEmail);
+      } else {
+        // Stop loader after a short timeout if still loading/no user session found
+        setTimeout(() => {
+          if (!activeEmail) setLoading(false);
+        }, 1500);
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (supabaseListener?.subscription) supabaseListener.subscription.unsubscribe();
+    };
+  }, []);
+ 
+  const handleRefresh = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const emailAddress = session?.user?.email || '';
+
     if (emailAddress) {
-      await fetchAlerts(emailAddress);
+      await fetchAlerts(emailAddress, false);
     }
   };
 

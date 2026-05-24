@@ -18,7 +18,7 @@ export default function PageWrapper({ children }: { children: React.ReactNode })
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="min-h-screen pt-24 pb-12 flex flex-col items-center w-full"
+        className="min-h-screen pt-20 pb-12 flex flex-col items-center w-full"
       >
         {children}
       </motion.div>

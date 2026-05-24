@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Get } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get, Query } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
@@ -30,7 +30,7 @@ export class ReportsController {
   }
 
   @Get()
-  async getReports() {
-    return this.reportsService.getAllReports();
+  async getReports(@Query('email') email?: string) {
+    return this.reportsService.getReports(email);
   }
 }

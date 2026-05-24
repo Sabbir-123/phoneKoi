@@ -5,30 +5,39 @@ import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Smartphone, Sparkles, Plus, Calendar, Hash, ArrowRight } from 'lucide-react';
 import { MotionButton } from '@/components/ui/MotionButton';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-
-const mockDevices = [
-  { id: '1', name: 'iPhone 14 Pro Max', imei: '359281093827164', status: 'Pending', risk: 'Medium', lastActivity: '2 hours ago', description: 'Stolen during travel on a bus near Uttara.', confidence: 0.92 },
-  { id: '2', name: 'Samsung Galaxy S23', imei: '867291038475621', status: 'Verified', risk: 'High', lastActivity: '1 day ago', description: 'Snatched by bike riders in Dhanmondi.', confidence: 0.88 },
-];
 
 export default function ReportedDevicesPage() {
   const { language } = useDashboardStore();
   const [selectedDevice, setSelectedDevice] = useState<any>(null);
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { createClient } = require("@/utils/supabase/client");
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) {
+        setEmail(session.user.email);
+      }
+    };
+    fetchSession();
+  }, []);
 
   // Fetch real reports from backend
   const { data: reports, isLoading } = useQuery({
-    queryKey: ['user-reports'],
+    queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4000/reports');
+      const res = await fetch(`http://localhost:4000/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
-    }
+    },
+    enabled: !!email
   });
 
-  const devices = reports && reports.length > 0
+  const devices = reports
     ? reports.map((r: any) => ({
         id: r.id,
         name: r.deviceName || 'Unknown Device',
@@ -39,7 +48,7 @@ export default function ReportedDevicesPage() {
         description: r.description || 'No description provided.',
         confidence: r.aiExtractionConfidence,
       }))
-    : mockDevices;
+    : [];
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -65,10 +74,30 @@ export default function ReportedDevicesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
-          {isLoading ? (
+          {isLoading || !email ? (
             <div className="h-48 flex items-center justify-center bg-transparent">
               <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
             </div>
+          ) : devices.length === 0 ? (
+            <GlassCard className="p-8 text-center bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)] flex flex-col items-center justify-center min-h-[300px]">
+              <div className="p-4 bg-indigo-50/50 border border-indigo-100/50 rounded-2xl mb-4">
+                <Smartphone className="w-10 h-10 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-bold text-indigo-950 mb-2">
+                {language === 'banglish' ? 'Kono Device Report Kora Hoyni' : 'No Devices Reported'}
+              </h3>
+              <p className="text-slate-500 max-w-md mb-6 text-sm font-semibold">
+                {language === 'banglish' 
+                  ? 'Apnar kono harano ba churi kora device ekhono report kora hoyni. Churi kora device report korte nicher button e click korun.' 
+                  : 'You have not reported any lost or stolen devices yet. Add your device to start tracking and receiving safety alerts.'}
+              </p>
+              <Link href="/report">
+                <MotionButton variant="primary" className="shadow-md">
+                  <Plus className="w-5 h-5" />
+                  {language === 'banglish' ? 'Notun Device Add Korun' : 'Add New Device'}
+                </MotionButton>
+              </Link>
+            </GlassCard>
           ) : (
             devices.map((device: any, i: number) => (
               <motion.div

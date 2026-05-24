@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Mail, Lock, AlertCircle, LogIn } from "lucide-react";
-import { auth, googleProvider, initAnalytics } from "@/utils/firebase/client";
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { createClient } from "@/utils/supabase/client";
+import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Boot Firebase Analytics on mount
-  useEffect(() => { initAnalytics(); }, []);
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/";
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +23,15 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = "/";
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      window.location.href = redirectTo;
     } catch (err: any) {
-      setError(err.message?.replace("Firebase: ", "") || "Sign in failed");
+      setError(err.message || "Sign in failed");
     }
     setLoading(false);
   };
@@ -36,12 +41,18 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await signInWithPopup(auth, googleProvider);
-      window.location.href = "/";
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+      if (error) throw error;
     } catch (err: any) {
-      setError(err.message?.replace("Firebase: ", "") || "Google sign-in failed");
+      setError(err.message || "Google sign-in failed");
+      setGoogleLoading(false);
     }
-    setGoogleLoading(false);
   };
 
   return (
@@ -65,8 +76,6 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-indigo-950 mb-1">Welcome Back</h1>
             <p className="text-slate-500 text-sm">Sign in to access the Phone Koi Network.</p>
           </div>
-
-
 
           {error && (
             <motion.div
@@ -143,10 +152,22 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-slate-400">
             Don't have an account?{" "}
-            <Link href="/signup" className="text-indigo-600 font-semibold hover:underline">Sign up</Link>
+            <Link href={`/signup?redirectTo=${encodeURIComponent(redirectTo)}`} className="text-indigo-600 font-semibold hover:underline">Sign up</Link>
           </p>
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
+        <div className="w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

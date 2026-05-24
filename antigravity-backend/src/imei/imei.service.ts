@@ -48,8 +48,8 @@ export class ImeiService {
           data: {
             email,
             plan: 'FREE',
-            searchLimit: 3,
-            searchesLeft: 3
+            searchLimit: 1,
+            searchesLeft: 1
           }
         });
       }

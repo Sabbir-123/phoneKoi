@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
-import { ShieldCheck, Sparkles, Smartphone, Search, AlertCircle, Copy, Check, Send } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, Copy, Check, Send } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 const subscriptionPlans = [
   {
@@ -71,8 +72,7 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [searchesLeft, setSearchesLeft] = useState<number | null>(null);
-  const [searchLimit, setSearchLimit] = useState<number | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchEmail = async () => {
@@ -80,16 +80,6 @@ export default function PricingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email) {
         setEmail(session.user.email);
-        try {
-          const res = await fetch(`http://localhost:4000/users/profile?email=${session.user.email}`);
-          if (res.ok) {
-            const data = await res.json();
-            setSearchesLeft(data.searchesLeft);
-            setSearchLimit(data.searchLimit);
-          }
-        } catch (e) {
-          console.error(e);
-        }
       }
     };
     fetchEmail();
@@ -99,6 +89,16 @@ export default function PricingPage() {
     navigator.clipboard.writeText('01626693505');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleChoosePlan = (plan: typeof subscriptionPlans[0]) => {
+    if (!email) {
+      router.push(`/login?redirectTo=/pricing`);
+      return;
+    }
+    setSelectedPlan(plan);
+    setSuccess(false);
+    setError(null);
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -136,49 +136,36 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 relative">
+    <div className="w-full max-w-7xl mx-auto space-y-12 relative px-6 py-20 min-h-[85vh]">
       {/* Background ambient lighting */}
-      <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-indigo-200/10 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[450px] h-[450px] bg-purple-200/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="orb w-[500px] h-[500px] bg-indigo-200/20 top-0 right-0 -z-10 blur-[80px]" />
+      <div className="orb w-[300px] h-[300px] bg-purple-200/20 bottom-0 left-0 -z-10 blur-[60px]" style={{ animationDelay: '3s' }} />
 
       {/* Pricing Header */}
-      <div className="text-center space-y-6">
-        <div className="space-y-4">
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100/50 text-indigo-600 text-xs font-bold uppercase tracking-widest"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Check Quota & Balance
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl font-extrabold text-indigo-950 tracking-tight"
-          >
-            Your Active Search Quota
-          </motion.h1>
-        </div>
-
-        {/* Quota Balance Banner */}
-        {searchesLeft !== null && searchLimit !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md mx-auto p-1 rounded-[1.8rem] bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-100/20 shadow-lg"
-          >
-            <div className="bg-white/90 backdrop-blur-2xl p-6 rounded-[1.7rem] text-center space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-600">Active Search Quota Balance</h3>
-              <div className="text-4xl font-black text-indigo-950">
-                {searchesLeft} <span className="text-sm font-bold text-slate-400">/ {searchLimit} searches remaining</span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                Each IMEI check dynamically deducts 1 search token. Once your balance runs out, purchase a package below to add more balance.
-              </p>
-            </div>
-          </motion.div>
-        )}
+      <div className="text-center space-y-4 max-w-2xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100/50 text-indigo-600 text-xs font-bold uppercase tracking-widest"
+        >
+          <Sparkles className="w-3.5 h-3.5" /> Pricing & Plans
+        </motion.div>
+        <motion.h1
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-4xl md:text-5xl font-extrabold text-indigo-950 tracking-tight leading-tight"
+        >
+          Unlock <span className="text-indigo-600">Pro Watcher</span> Standing
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="text-slate-500 text-base font-medium leading-relaxed"
+        >
+          Upgrade your plan to run queries, protect purchases in real-time, and get unlimited device track alerts.
+        </motion.p>
       </div>
 
       {/* Plans Grid */}
@@ -227,11 +214,7 @@ export default function PricingPage() {
               <div className="pt-8">
                 <MotionButton
                   variant={plan.popular ? 'primary' : 'secondary'}
-                  onClick={() => {
-                    setSelectedPlan(plan);
-                    setSuccess(false);
-                    setError(null);
-                  }}
+                  onClick={() => handleChoosePlan(plan)}
                   className="w-full font-bold py-3 rounded-xl border border-indigo-500/10"
                 >
                   Choose {plan.duration}
@@ -242,14 +225,14 @@ export default function PricingPage() {
         ))}
       </div>
 
-      {/* Payment Modals / Panels */}
+      {/* Payment Modals */}
       <AnimatePresence>
         {selectedPlan && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-6 z-50"
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-6 z-50 pointer-events-auto"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 10 }}

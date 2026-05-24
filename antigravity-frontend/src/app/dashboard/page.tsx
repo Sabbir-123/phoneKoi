@@ -6,7 +6,6 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
 import { ShieldAlert, CheckCircle2, Activity, Smartphone, Search, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { auth } from '@/utils/firebase/client';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
@@ -14,81 +13,121 @@ import Link from 'next/link';
 function DashboardHomeContent() {
   const { language } = useDashboardStore();
   const [name, setName] = useState('User');
+  const [email, setEmail] = useState('');
   const [profileWarning, setProfileWarning] = useState(false);
   const searchParams = useSearchParams();
   const reportSuccess = searchParams.get('reportSuccess') === 'true';
 
-  useEffect(() => {
-    // Check both Firebase and Supabase to get the user's name
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser?.displayName) {
-      setName(firebaseUser.displayName.split(' ')[0]);
-    } else {
-      const { createClient } = require("@/utils/supabase/client");
-      const supabase = createClient();
-      supabase.auth.getSession().then(({ data: { session } }: any) => {
-        if (session?.user?.user_metadata?.full_name) {
-          setName(session.user.user_metadata.full_name.split(' ')[0]);
-        } else if (session?.user?.email) {
-          setName(session.user.email.split('@')[0]);
-        }
-      });
-    }
+  const [searchesCount, setSearchesCount] = useState(0);
+  const [alertsCount, setAlertsCount] = useState(0);
+  const [dangerAlertsCount, setDangerAlertsCount] = useState(0);
+  const [realAlerts, setRealAlerts] = useState<any[]>([]);
+  const [realSearchHistory, setRealSearchHistory] = useState<any[]>([]);
 
-    // Check if redirect query param or localStorage says incomplete
-    const showWarning = searchParams.get('showProfileWarning') === 'true';
-    const profileCompleted = localStorage.getItem('profile_completed') === 'true';
-    
-    if (showWarning || !profileCompleted) {
-      setProfileWarning(true);
-    }
+  useEffect(() => {
+    // Check Supabase to get the user's name and email
+    const { createClient } = require("@/utils/supabase/client");
+    const supabase = createClient();
+    supabase.auth.getSession().then(async ({ data: { session } }: any) => {
+      if (session?.user?.email) {
+        const userEmail = session.user.email;
+        setEmail(userEmail);
+        if (session.user.user_metadata?.displayName) {
+          setName(session.user.user_metadata.displayName.split(' ')[0]);
+        } else {
+          setName(userEmail.split('@')[0]);
+        }
+
+        // Check if redirect query param or user-specific localStorage says incomplete
+        const showWarning = searchParams.get('showProfileWarning') === 'true';
+        const profileCompleted = localStorage.getItem(`profile_completed_${userEmail}`) === 'true';
+        
+        if (showWarning || !profileCompleted) {
+          setProfileWarning(true);
+        }
+
+        // Load local search history
+        try {
+          const historyKey = `search_history_${userEmail}`;
+          const savedHistory = localStorage.getItem(historyKey);
+          if (savedHistory) {
+            const parsedHistory = JSON.parse(savedHistory);
+            setRealSearchHistory(parsedHistory);
+            setSearchesCount(parsedHistory.length);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        // Fetch real alerts and danger alerts count
+        try {
+          const alertsRes = await fetch(`http://localhost:4000/users/alerts?email=${userEmail}`);
+          if (alertsRes.ok) {
+            const alertsData = await alertsRes.json();
+            setRealAlerts(alertsData);
+            setAlertsCount(alertsData.length);
+            
+            // Filter danger alerts (type === 'danger')
+            const dangers = alertsData.filter((a: any) => a.type === 'danger');
+            setDangerAlertsCount(dangers.length);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
   }, [searchParams]);
 
-  // Fetch real reported devices from NestJS backend
+  // Fetch real reported devices from NestJS backend (filtered by email)
   const { data: reports } = useQuery({
-    queryKey: ['user-reports'],
+    queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4000/reports');
+      const res = await fetch(`http://localhost:4000/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
-    }
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      // Simulate API delay
-      await new Promise(r => setTimeout(r, 600));
-      return {
-        recentChecks: 15,
-        alertsReceived: 3,
-        suspiciousActivities: 1
-      };
-    }
+    },
+    enabled: !!email
   });
 
   const greeting = language === 'banglish' ? 'Welcome back 👋' : 'Welcome back 👋';
-  const devicesCount = reports ? reports.length : 2;
+  const devicesCount = reports ? reports.length : 0;
 
   const statCards = [
     { label: language === 'banglish' ? 'Report Kora Device' : 'Devices Reported', value: devicesCount, icon: Smartphone, color: 'text-indigo-600 bg-indigo-50 border border-indigo-100/50', glow: 'rgba(99,102,241,0.02)' },
-    { label: language === 'banglish' ? 'Recent IMEI Check' : 'Recent Checks', value: stats?.recentChecks || 15, icon: Search, color: 'text-emerald-600 bg-emerald-50 border border-emerald-100/50', glow: 'rgba(52,211,153,0.02)' },
-    { label: language === 'banglish' ? 'Notun Alert' : 'Alerts Received', value: stats?.alertsReceived || 3, icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 border border-amber-100/50', glow: 'rgba(251,191,36,0.02)' },
-    { label: language === 'banglish' ? 'Sondehojonok Activity' : 'Suspicious Activities', value: stats?.suspiciousActivities || 1, icon: AlertTriangle, color: 'text-red-600 bg-red-50 border border-red-100/50', glow: 'rgba(248,113,113,0.02)' },
+    { label: language === 'banglish' ? 'Recent IMEI Check' : 'Recent Checks', value: searchesCount, icon: Search, color: 'text-emerald-600 bg-emerald-50 border border-emerald-100/50', glow: 'rgba(52,211,153,0.02)' },
+    { label: language === 'banglish' ? 'Notun Alert' : 'Alerts Received', value: alertsCount, icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 border border-amber-100/50', glow: 'rgba(251,191,36,0.02)' },
+    { label: language === 'banglish' ? 'Sondehojonok Activity' : 'Suspicious Activities', value: dangerAlertsCount, icon: AlertTriangle, color: 'text-red-600 bg-red-50 border border-red-100/50', glow: 'rgba(248,113,113,0.02)' },
   ];
 
-  const recentActivity = [
-    ...(reports ? reports.map((r: any) => ({
-      text: language === 'banglish' 
-        ? `Apnar reported device (${r.deviceName || 'Unknown'}) list e successfully jog hoyeche. IMEI: ${r.imei}` 
-        : `Your reported device (${r.deviceName || 'Unknown'}) was successfully added. IMEI: ${r.imei}`,
-      time: new Date(r.createdAt).toLocaleDateString(),
-      status: 'success'
-    })) : []),
-    { text: language === 'banglish' ? 'Apnar reported IMEI 2 ghonta age search hoise' : 'Your reported IMEI was searched 2 hours ago', time: '2h ago', status: 'warning' },
-    { text: language === 'banglish' ? 'Dhaka theke sondehojonok activity detect hoise' : 'Suspicious activity detected in Dhaka', time: '5h ago', status: 'danger' },
-    { text: language === 'banglish' ? 'Apnar report verify kora hoyese' : 'Your report has been verified', time: '1d ago', status: 'success' },
-  ];
+  // Combine real user activities chronologically
+  const reportEvents = reports ? reports.map((r: any) => ({
+    text: language === 'banglish' 
+      ? `Apnar reported device (${r.deviceName || 'Unknown'}) list e successfully jog hoyeche. IMEI: ${r.imei}` 
+      : `Your reported device (${r.deviceName || 'Unknown'}) was successfully added. IMEI: ${r.imei}`,
+    time: new Date(r.createdAt).toLocaleDateString(),
+    status: 'success',
+    timestamp: new Date(r.createdAt).getTime()
+  })) : [];
+
+  const searchEvents = realSearchHistory.map((h: any) => ({
+    text: language === 'banglish'
+      ? `Apni IMEI check korchen: ${h.imei} (Result: ${h.result})`
+      : `Checked device IMEI: ${h.imei} (Status: ${h.result})`,
+    time: h.date,
+    status: h.result === 'Stolen' ? 'danger' : 'success',
+    timestamp: new Date(h.date).getTime() || 0
+  }));
+
+  const alertEvents = realAlerts.map((a: any) => ({
+    text: `${a.title}: ${a.desc}`,
+    time: new Date(a.time).toLocaleDateString(),
+    status: a.type === 'danger' ? 'danger' : a.type === 'success' ? 'success' : 'warning',
+    timestamp: new Date(a.time).getTime()
+  }));
+
+  const recentActivity = [...reportEvents, ...searchEvents, ...alertEvents]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 relative">
@@ -116,8 +155,8 @@ function DashboardHomeContent() {
                   </h3>
                   <p className="text-sm text-slate-500">
                     {language === 'banglish'
-                      ? 'Apnar phone number, whatsapp number, ebong email address diye profile complete korun verification active korte.'
-                      : 'Please fill up and complete your profile sections (Phone Number, WhatsApp Number, and Email Address) to activate full verification trust.'}
+                      ? 'Apnar phone number, whatsapp number, ebong physical address diye profile complete korun verification active korte.'
+                      : 'Please fill up and complete your profile sections (Phone Number, WhatsApp Number, and Physical Address) to activate full verification trust.'}
                   </p>
                 </div>
               </div>
@@ -240,21 +279,29 @@ function DashboardHomeContent() {
           </h2>
           <GlassCard className="p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
             <div className="space-y-8">
-              {recentActivity.map((activity, i) => (
-                <div key={i} className="relative flex gap-4">
-                  {i !== recentActivity.length - 1 && (
-                    <div className="absolute left-3 top-8 bottom-0 w-px bg-slate-100" />
-                  )}
-                  <div className={`relative z-10 w-6 h-6 rounded-full border-4 border-white flex-shrink-0 ${
-                    activity.status === 'success' ? 'bg-emerald-500' :
-                    activity.status === 'warning' ? 'bg-amber-500' : 'bg-red-500 animate-pulse'
-                  }`} />
-                  <div>
-                    <p className="text-slate-700 font-semibold leading-tight mb-1 text-sm">{activity.text}</p>
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{activity.time}</p>
-                  </div>
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 font-semibold text-sm">
+                  {language === 'banglish' 
+                    ? 'Kono somprotik activity nai. Sob shanto ache.' 
+                    : 'No recent activity. All systems are quiet.'}
                 </div>
-              ))}
+              ) : (
+                recentActivity.map((activity, i) => (
+                  <div key={i} className="relative flex gap-4">
+                    {i !== recentActivity.length - 1 && (
+                      <div className="absolute left-3 top-8 bottom-0 w-px bg-slate-100" />
+                    )}
+                    <div className={`relative z-10 w-6 h-6 rounded-full border-4 border-white flex-shrink-0 ${
+                      activity.status === 'success' ? 'bg-emerald-500' :
+                      activity.status === 'warning' ? 'bg-amber-500' : 'bg-red-500 animate-pulse'
+                    }`} />
+                    <div>
+                      <p className="text-slate-700 font-semibold leading-tight mb-1 text-sm">{activity.text}</p>
+                      <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{activity.time}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </GlassCard>
         </motion.div>

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/utils/firebase/client';
+import { createClient } from '@/utils/supabase/client';
 import { motion } from 'framer-motion';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -11,47 +10,27 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const { createClient } = require("@/utils/supabase/client");
     const supabase = createClient();
-    let firebaseChecked = false;
-    let supabaseChecked = false;
-    let firebaseUser: any = null;
-    let supabaseUser: any = null;
 
-    const checkAuthStatus = () => {
-      if (firebaseChecked && supabaseChecked) {
-        if (firebaseUser || supabaseUser) {
-          setLoading(false);
-        } else {
-          router.push('/login');
-        }
+    const checkAuthStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setLoading(false);
+      } else {
+        router.push('/login');
       }
     };
-
-    // 1. Firebase Listener
-    const unsubscribeFirebase = onAuthStateChanged(auth, (user) => {
-      firebaseUser = user;
-      firebaseChecked = true;
-      checkAuthStatus();
-    });
-
-    // 2. Supabase Listener
-    const getSupabaseSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      supabaseUser = session?.user || null;
-      supabaseChecked = true;
-      checkAuthStatus();
-    };
-    getSupabaseSession();
+    checkAuthStatus();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      supabaseUser = session?.user || null;
-      supabaseChecked = true;
-      checkAuthStatus();
+      if (session) {
+        setLoading(false);
+      } else {
+        router.push('/login');
+      }
     });
 
     return () => {
-      unsubscribeFirebase();
       authListener.subscription.unsubscribe();
     };
   }, [router]);

@@ -6,9 +6,31 @@ import LanguageModal from '@/components/dashboard/LanguageModal';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { Menu } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { toggleSidebar } = useDashboardStore();
+  const [plan, setPlan] = useState('FREE');
+
+  useEffect(() => {
+    const fetchPlan = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          const res = await fetch(`http://localhost:4000/users/profile?email=${session.user.email}`);
+          if (res.ok) {
+            const data = await res.json();
+            setPlan(data.plan || 'FREE');
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching plan for dashboard layout:', err);
+      }
+    };
+    fetchPlan();
+  }, []);
 
   return (
     <AuthGuard>
@@ -31,8 +53,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="h-10 px-4 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                <span className="text-sm font-semibold text-indigo-600">Pro Member</span>
+              <div className={`h-10 px-4 rounded-full flex items-center justify-center border transition-all ${
+                plan === 'PRO' 
+                  ? 'bg-indigo-50 border-indigo-100' 
+                  : 'bg-slate-50 border-slate-200'
+              }`}>
+                <span className={`text-sm font-semibold transition-colors ${
+                  plan === 'PRO' ? 'text-indigo-600' : 'text-slate-500'
+                }`}>
+                  {plan === 'PRO' ? 'Pro Member' : 'Basic Member'}
+                </span>
               </div>
             </div>
           </header>

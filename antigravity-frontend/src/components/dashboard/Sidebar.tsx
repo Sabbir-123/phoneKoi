@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X, CreditCard, ShieldCheck } from 'lucide-react';
-import { auth } from '@/utils/firebase/client';
-import { signOut } from 'firebase/auth';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 
@@ -14,16 +12,24 @@ export default function Sidebar() {
   const { sidebarOpen, toggleSidebar, language } = useDashboardStore();
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [searchesLeft, setSearchesLeft] = useState<number | null>(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const checkRole = async () => {
-      const firebaseUser = auth.currentUser;
-      let email = firebaseUser?.email;
-      if (!email) {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        email = session?.user?.email;
-      }
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const email = session?.user?.email;
       
       if (email) {
         try {
@@ -32,6 +38,9 @@ export default function Sidebar() {
             const profile = await res.json();
             if (profile?.role === 'ADMIN') {
               setIsAdmin(true);
+            }
+            if (profile?.searchesLeft !== undefined) {
+              setSearchesLeft(profile.searchesLeft);
             }
           }
         } catch (e) {
@@ -44,21 +53,22 @@ export default function Sidebar() {
     return () => clearInterval(interval);
   }, []);
 
+  const pricingLabel = searchesLeft !== null 
+    ? (language === 'banglish' ? `Check Quota (${searchesLeft} Search Baki)` : `Check Quota (${searchesLeft} Left)`)
+    : (language === 'banglish' ? 'Check Quota' : 'Check Quota');
+
   const navItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Reported Devices', href: '/dashboard/devices', icon: Smartphone },
     { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
     { name: 'History', href: '/dashboard/history', icon: History },
-    { name: 'Pricing & Plans', href: '/dashboard/pricing', icon: CreditCard },
+    { name: pricingLabel, href: '/dashboard/pricing', icon: CreditCard },
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ...(isAdmin ? [{ name: 'Admin panel', href: '/dashboard/admin', icon: ShieldCheck }] : []),
   ];
 
   const handleLogout = async () => {
-    // 1. Firebase sign out
-    await signOut(auth);
-    // 2. Supabase sign out
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = "/";
@@ -77,7 +87,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <motion.aside
         initial={{ x: -300 }}
-        animate={{ x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth >= 1024 ? 0 : -300) }}
+        animate={{ x: isMobile ? (sidebarOpen ? 0 : -300) : 0 }}
         transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
         className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-white/80 border-r border-slate-100 backdrop-blur-md z-50 flex flex-col`}
       >

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
 import { ShieldCheck, UserCheck, Search, Filter, RefreshCw, XCircle, Clock, Smartphone, ShieldAlert, AlertTriangle, FileText, Check } from 'lucide-react';
-import { auth } from '@/utils/firebase/client';
 import { createClient } from '@/utils/supabase/client';
 
 interface SubscriptionRequest {
@@ -79,13 +78,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const authorize = async () => {
-      const firebaseUser = auth.currentUser;
-      let email = firebaseUser?.email;
-      if (!email) {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        email = session?.user?.email;
-      }
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const email = session?.user?.email;
 
       if (email) {
         try {

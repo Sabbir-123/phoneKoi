@@ -4,7 +4,6 @@ import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { UserCircle, ShieldCheck, Award, Mail, Smartphone, Search, Bell, ShieldAlert, BadgeCheck } from 'lucide-react';
-import { auth } from '@/utils/firebase/client';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -14,40 +13,70 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('Phone Koi User');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [address, setAddress] = useState('');
   const [isSameAsPhone, setIsSameAsPhone] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [plan, setPlan] = useState('FREE');
-  const [searchesLeft, setSearchesLeft] = useState(3);
-  const [searchLimit, setSearchLimit] = useState(3);
+  const [searchesLeft, setSearchesLeft] = useState(1);
+  const [searchLimit, setSearchLimit] = useState(1);
+  const [searchesCount, setSearchesCount] = useState(0);
+  const [alertsCount, setAlertsCount] = useState(0);
 
   useEffect(() => {
     const loadProfile = async () => {
-      const fUser = auth.currentUser;
+      const { createClient } = require("@/utils/supabase/client");
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       let emailAddress = '';
-      if (fUser) {
-        emailAddress = fUser.email || '';
-        setEmail(fUser.email || localStorage.getItem('profile_email') || '');
-        setDisplayName(fUser.displayName || 'Phone Koi User');
-      } else {
-        const { createClient } = require("@/utils/supabase/client");
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          emailAddress = session.user.email || '';
-          setEmail(session.user.email || localStorage.getItem('profile_email') || '');
-          setDisplayName(session.user.user_metadata?.full_name || 'Phone Koi User');
-        }
+      
+      if (session?.user) {
+        emailAddress = session.user.email || '';
+        setEmail(session.user.email || localStorage.getItem('profile_email') || '');
+        setDisplayName(session.user.user_metadata?.displayName || session.user.user_metadata?.full_name || 'Phone Koi User');
       }
 
       if (emailAddress) {
+        // Load user-specific profile details from localStorage
+        const savedPhone = localStorage.getItem(`profile_phone_${emailAddress}`) || '';
+        const savedWhatsapp = localStorage.getItem(`profile_whatsapp_${emailAddress}`) || '';
+        const savedAddress = localStorage.getItem(`profile_address_${emailAddress}`) || '';
+        const savedIsSame = localStorage.getItem(`profile_whatsapp_same_as_phone_${emailAddress}`) === 'true';
+
+        setPhone(savedPhone);
+        setAddress(savedAddress);
+        setIsSameAsPhone(savedIsSame);
+        if (savedIsSame) {
+          setWhatsapp(savedPhone);
+        } else {
+          setWhatsapp(savedWhatsapp);
+        }
+
         try {
           const res = await fetch(`http://localhost:4000/users/profile?email=${emailAddress}`);
           if (res.ok) {
             const data = await res.json();
             setPlan(data.plan || 'FREE');
-            setSearchesLeft(data.searchesLeft ?? 3);
-            setSearchLimit(data.searchLimit ?? 3);
+            setSearchesLeft(data.searchesLeft ?? 1);
+            setSearchLimit(data.searchLimit ?? 1);
+          }
+
+          // Fetch real dynamic alerts count
+          const alertsRes = await fetch(`http://localhost:4000/users/alerts?email=${emailAddress}`);
+          if (alertsRes.ok) {
+            const alertsData = await alertsRes.json();
+            setAlertsCount(alertsData.length);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        // Fetch local search history count
+        try {
+          const historyKey = `search_history_${emailAddress}`;
+          const savedHistory = localStorage.getItem(historyKey);
+          if (savedHistory) {
+            setSearchesCount(JSON.parse(savedHistory).length);
           }
         } catch (e) {
           console.error(e);
@@ -55,19 +84,6 @@ export default function ProfilePage() {
       }
     };
     loadProfile();
-
-    // Load profile details from localStorage
-    const savedPhone = localStorage.getItem('profile_phone') || '';
-    const savedWhatsapp = localStorage.getItem('profile_whatsapp') || '';
-    const savedIsSame = localStorage.getItem('profile_whatsapp_same_as_phone') === 'true';
-
-    setPhone(savedPhone);
-    setIsSameAsPhone(savedIsSame);
-    if (savedIsSame) {
-      setWhatsapp(savedPhone);
-    } else {
-      setWhatsapp(savedWhatsapp);
-    }
   }, []);
 
   useEffect(() => {
@@ -80,10 +96,19 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaveLoading(true);
 
+    if (email) {
+      localStorage.setItem(`profile_phone_${email}`, phone);
+      localStorage.setItem(`profile_whatsapp_${email}`, isSameAsPhone ? phone : whatsapp);
+      localStorage.setItem(`profile_whatsapp_same_as_phone_${email}`, String(isSameAsPhone));
+      localStorage.setItem(`profile_address_${email}`, address);
+      localStorage.setItem(`profile_completed_${email}`, 'true');
+    }
+
     localStorage.setItem('profile_email', email);
     localStorage.setItem('profile_phone', phone);
     localStorage.setItem('profile_whatsapp', isSameAsPhone ? phone : whatsapp);
     localStorage.setItem('profile_whatsapp_same_as_phone', String(isSameAsPhone));
+    localStorage.setItem('profile_address', address);
     localStorage.setItem('profile_completed', 'true');
 
     setTimeout(() => {
@@ -95,22 +120,32 @@ export default function ProfilePage() {
 
   // Query live reports count from backend
   const { data: reports } = useQuery({
-    queryKey: ['user-reports'],
+    queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4000/reports');
+      const res = await fetch(`http://localhost:4000/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
-    }
+    },
+    enabled: !!email
   });
 
-  const reportsCount = reports ? reports.length : 2;
+  const reportsCount = reports ? reports.length : 0;
 
   // Calculate Community Trust Score dynamically in real-time
   const getCalculatedTrustScore = () => {
-    let score = 50; // base starting score for newly registered users
-    const hasCompletedProfile = phone && whatsapp && email;
-    if (hasCompletedProfile) score += 20;
-    if (plan === 'PRO') score += 20;
+    let score = 50; // base starting score for newly registered users (50%)
+    
+    const hasPhone = phone.trim() !== '';
+    const hasWhatsapp = (isSameAsPhone ? phone : whatsapp).trim() !== '';
+    const hasAddress = address.trim() !== '';
+
+    if (hasPhone && hasWhatsapp) {
+      if (hasAddress) {
+        score = 100;
+      } else {
+        score = 80;
+      }
+    }
 
     const approvedReportsCount = reports ? reports.filter((r: any) => r.status === 'APPROVED').length : 0;
     const rejectedReportsCount = reports ? reports.filter((r: any) => r.status === 'REJECTED').length : 0;
@@ -309,6 +344,19 @@ export default function ProfilePage() {
                   />
                 </div>
 
+                {/* Physical Address */}
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Physical Address</label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. House 12, Road 4, Uttara, Dhaka"
+                    className="w-full bg-white/60 border border-indigo-100 rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium"
+                    required
+                  />
+                </div>
+
                 <div className="flex items-center justify-between pt-2">
                   {saveSuccess && (
                     <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl animate-fade-in flex items-center gap-1">
@@ -347,12 +395,12 @@ export default function ProfilePage() {
                   </div>
                   <div className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/20 text-center">
                     <Search className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                    <div className="text-xl font-extrabold text-indigo-950">15</div>
+                    <div className="text-xl font-extrabold text-indigo-950">{searchesCount}</div>
                     <div className="text-[9px] font-bold text-slate-400 uppercase">Searches</div>
                   </div>
                   <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/20 text-center col-span-2">
                     <Bell className="w-5 h-5 text-amber-600 mx-auto mb-1" />
-                    <div className="text-xl font-extrabold text-indigo-950">3 Active</div>
+                    <div className="text-xl font-extrabold text-indigo-950">{alertsCount} Active</div>
                     <div className="text-[9px] font-bold text-slate-400 uppercase">Device Alerts</div>
                   </div>
                 </div>

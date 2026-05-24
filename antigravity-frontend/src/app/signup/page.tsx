@@ -1,17 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Mail, Lock, User, AlertCircle, UserPlus } from "lucide-react";
-import { auth, googleProvider, initAnalytics } from "@/utils/firebase/client";
-import {
-  signInWithPopup,
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth";
+import { createClient } from "@/utils/supabase/client";
+import { useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+function SignupContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,7 +16,8 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  useEffect(() => { initAnalytics(); }, []);
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard?showProfileWarning=true";
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +25,20 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName: name });
-      window.location.href = "/dashboard?showProfileWarning=true";
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            displayName: name,
+          },
+        },
+      });
+      if (error) throw error;
+      window.location.href = redirectTo;
     } catch (err: any) {
-      setError(err.message?.replace("Firebase: ", "") || "Sign up failed");
+      setError(err.message || "Sign up failed");
     }
     setLoading(false);
   };
@@ -42,12 +48,18 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      await signInWithPopup(auth, googleProvider);
-      window.location.href = "/dashboard?showProfileWarning=true";
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+      if (error) throw error;
     } catch (err: any) {
-      setError(err.message?.replace("Firebase: ", "") || "Google sign-up failed");
+      setError(err.message || "Google sign-up failed");
+      setGoogleLoading(false);
     }
-    setGoogleLoading(false);
   };
 
   if (success) {
@@ -65,9 +77,9 @@ export default function SignupPage() {
             Account Created!
           </h2>
           <p className="text-slate-500 mb-8 text-sm">
-            Your Firebase account was created successfully.
+            Your Phone Koi account was created successfully.
           </p>
-          <Link href="/login" className="btn-primary px-6 py-3 rounded-xl inline-block font-semibold text-sm">
+          <Link href={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} className="btn-primary px-6 py-3 rounded-xl inline-block font-semibold text-sm">
             Go to Login
           </Link>
         </motion.div>
@@ -96,8 +108,6 @@ export default function SignupPage() {
             <h1 className="text-2xl font-bold text-indigo-950 mb-1">Create Account</h1>
             <p className="text-slate-500 text-sm">Join the community to track verifications.</p>
           </div>
-
-
 
           {error && (
             <motion.div
@@ -165,10 +175,22 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-slate-400">
             Already have an account?{" "}
-            <Link href="/login" className="text-indigo-600 font-semibold hover:underline">Log in</Link>
+            <Link href={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} className="text-indigo-600 font-semibold hover:underline">Log in</Link>
           </p>
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
+        <div className="w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   );
 }

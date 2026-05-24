@@ -69,7 +69,7 @@ export default function Home() {
       <div className="orb w-[300px] h-[300px] bg-sky-200 bottom-[0px] right-[20%]" style={{ animationDelay: "5s" }} />
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex flex-col md:flex-row items-center justify-between px-6 max-w-7xl mx-auto pt-16 gap-12">
+      <section className="relative min-h-[90vh] flex flex-col md:flex-row items-center justify-between px-6 max-w-7xl mx-auto pt-6 gap-12">
         <div className="flex-1 flex flex-col items-start justify-center z-10 space-y-8 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-indigo-100 shadow-sm text-indigo-600 text-sm font-medium">
             <Sparkles className="w-4 h-4" />
@@ -88,7 +88,7 @@ export default function Home() {
               href="/check"
               className="btn-primary px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-lg"
             >
-              Verify IMEI Now <ArrowRight className="w-5 h-5" />
+              Check IMEI Now <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
               href="/report"

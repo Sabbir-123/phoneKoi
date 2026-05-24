@@ -82,7 +82,22 @@ export class ReportsService {
     return this.aiService.extractInfoFromGd(base64Image);
   }
 
-  async getAllReports() {
+  async getReports(email?: string) {
+    if (email) {
+      const user = await this.prisma.user.findUnique({
+        where: { email }
+      });
+      if (user) {
+        return this.prisma.report.findMany({
+          where: { userId: user.id },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+      }
+      return [];
+    }
+
     return this.prisma.report.findMany({
       orderBy: {
         createdAt: 'desc'
