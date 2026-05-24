@@ -34,7 +34,7 @@ export default function CheckPage() {
 
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid || imei.length !== 15) return;
+    if (imei.length !== 15) return;
     setIsSearching(true);
     setTimeout(() => {
       const lastDigit = parseInt(imei.charAt(14), 10);
@@ -47,6 +47,8 @@ export default function CheckPage() {
 
   const ringColor = isValid
     ? "ring-emerald-400 shadow-emerald-100"
+    : imei.length === 15
+    ? "ring-amber-400 shadow-amber-50"
     : imei.length > 0 && !isTyping
     ? "ring-red-300 shadow-red-50"
     : "ring-indigo-200 shadow-indigo-50";
@@ -111,7 +113,7 @@ export default function CheckPage() {
           </AnimatePresence>
 
           <AnimatePresence>
-            {isValid && (
+            {imei.length === 15 && (
               <motion.button
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -129,6 +131,11 @@ export default function CheckPage() {
         <div className="text-center text-sm font-mono text-slate-400 mt-2 pb-1">
           {imei.length}/15 digits
         </div>
+        {imei.length === 15 && !isValid && (
+          <div className="text-center text-xs text-amber-500 font-semibold mt-2 animate-pulse max-w-md mx-auto leading-relaxed">
+            ⚠️ Luhn checksum mismatch. If this device is already reported in our registry, search will still proceed.
+          </div>
+        )}
       </motion.form>
     </div>
   );

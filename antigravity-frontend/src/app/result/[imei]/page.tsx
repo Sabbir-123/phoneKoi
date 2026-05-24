@@ -17,6 +17,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   const [backendData, setBackendData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quotaError, setQuotaError] = useState<string | null>(null);
+  const [checksumError, setChecksumError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +36,10 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           const errData = await res.json();
           if (errData.message && errData.message.includes('QUOTA_LIMIT_EXCEEDED')) {
             setQuotaError('You have used up all your free search limits. Please upgrade your subscription plan to run unlimited IMEI checks.');
+            setLoading(false);
+            return;
+          } else {
+            setChecksumError(errData.message || 'Invalid IMEI format or checksum failed.');
             setLoading(false);
             return;
           }
@@ -169,6 +174,38 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
               View Premium Subscription Plans
             </Link>
             <Link href="/check" className="block w-full bg-slate-50 border border-slate-105 rounded-2xl py-3.5 text-center font-bold text-sm text-slate-500 hover:bg-slate-100 transition-colors">
+              Return to Search
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (checksumError) {
+    return (
+      <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-24">
+        <div className="orb w-[500px] h-[500px] top-0 right-0 -z-10 bg-red-50/50" />
+        <div className="orb w-[300px] h-[300px] bg-indigo-50/50 bottom-0 left-0 -z-10" />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full glass rounded-[2rem] border border-red-200/50 p-8 md:p-10 text-center shadow-2xl bg-white/70 backdrop-blur-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-400 to-rose-500" />
+          
+          <div className="w-16 h-16 bg-red-50 rounded-2xl border border-red-100 flex items-center justify-center mx-auto mb-6">
+            <AlertOctagon className="w-8 h-8 text-red-500 animate-pulse" />
+          </div>
+
+          <h1 className="text-2xl font-bold text-indigo-950 mb-3">Verification Failed</h1>
+          <p className="text-slate-500 leading-relaxed text-sm mb-8 font-semibold">
+            {checksumError}
+          </p>
+
+          <div className="space-y-4">
+            <Link href="/check" className="block w-full btn-primary bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-bold text-sm shadow-md transition-all">
               Return to Search
             </Link>
           </div>

@@ -27,7 +27,17 @@ export class ImeiService {
   }
 
   async checkImei(imei: string, ip: string = '127.0.0.1', language: 'english' | 'banglish' = 'english', email?: string) {
-    if (!this.validateLuhn(imei)) {
+    // Attempt to find the device first
+    let device = await this.prisma.device.findUnique({
+      where: { imei },
+      include: {
+        reports: {
+          select: { status: true, trustWeight: true, date: true }
+        }
+      }
+    });
+
+    if (!device && !this.validateLuhn(imei)) {
       throw new BadRequestException('Invalid IMEI format or checksum failed');
     }
 
@@ -56,16 +66,6 @@ export class ImeiService {
 
     // Trigger Search Log Event asynchronously (fire and forget for now, normally use a queue)
     this.searchLogsService.logSearch(imei, ip).catch(err => console.error('Search log error:', err));
-
-    // Attempt to find the device
-    let device = await this.prisma.device.findUnique({
-      where: { imei },
-      include: {
-        reports: {
-          select: { status: true, trustWeight: true, date: true }
-        }
-      }
-    });
 
     if (!device) {
       // Return a clean default state if not found
