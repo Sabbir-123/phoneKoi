@@ -186,14 +186,15 @@ export default function PricingPage() {
                   : 'border-slate-100 hover:border-indigo-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]'
               }`}
             >
-              {plan.popular && (
-                <span className="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full shadow-sm">
-                  Popular
-                </span>
-              )}
-
               <div className="space-y-6">
                 <div>
+                  {plan.popular && (
+                    <div className="mb-3">
+                      <span className="bg-indigo-600 text-white text-[9px] uppercase font-extrabold tracking-widest px-2.5 py-1 rounded-full shadow-sm">
+                        Popular
+                      </span>
+                    </div>
+                  )}
                   <h3 className="text-lg font-bold text-indigo-950">{plan.name}</h3>
                   <div className="flex items-baseline gap-1 mt-2">
                     <span className="text-3xl font-extrabold text-indigo-950">৳{plan.price}</span>
@@ -215,9 +216,9 @@ export default function PricingPage() {
                 <MotionButton
                   variant={plan.popular ? 'primary' : 'secondary'}
                   onClick={() => handleChoosePlan(plan)}
-                  className="w-full font-bold py-3 rounded-xl border border-indigo-500/10"
+                  className="w-full font-bold py-3 rounded-xl border border-indigo-500/10 whitespace-nowrap"
                 >
-                  Choose {plan.duration}
+                  Choose Plan
                 </MotionButton>
               </div>
             </GlassCard>
