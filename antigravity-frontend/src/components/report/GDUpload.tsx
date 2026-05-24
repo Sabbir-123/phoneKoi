@@ -167,10 +167,10 @@ export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
         <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="text-[13px] leading-relaxed text-indigo-950 font-semibold">
-            Tomar uploaded GD copy encrypted vabe process kora hobe. Amra ei document amader server e permanently save kori na.
+            GD copy verification process er jonno use kora hobe.
           </p>
           <p className="text-[12px] leading-relaxed text-slate-500 font-medium">
-            Your uploaded GD copy is processed securely and encrypted during extraction. We do not permanently store these documents on our servers.
+            GD copy will be used for verification process.
           </p>
         </div>
       </div>
