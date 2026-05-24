@@ -6,10 +6,27 @@
 
 ## ✨ Key Features
 
-*   **🔍 Smart IMEI Safety Verification**: Instant mathematical verification of IMEI formats using Luhn validation, integrated with contextual guest redirects (`/login?redirectTo=/check`) that bring users back to their target results seamlessly upon registration.
-*   **🔐 Multi-User Session Isolation**: Full security boundaries preventing cross-account cache leakage. Personal user details and query caches are mapped to email-suffixed LocalStorage keys (`search_history_${email}`, `profile_phone_${email}`) and loaded dynamically inside authentication promises.
-*   **🛡️ Dynamic Community Trust Score**: Calculates a real-time credibility index from `50%` up to `100%` based on Phone, WhatsApp, and Home Address profile completions, combined with automated audits adjusting scores on approved (`+15%`) or rejected (`-25%`) theft reports.
-*   **📊 Cinematic User Dashboard**: Displays live user-specific indicators for reported devices, search checks, and watchlist alerts, completely replacing residual mock statistics.
-*   **⏱️ Chronological Activity Timeline**: Synthesizes and merges reported devices, check searches, and safety alerts into a single dynamic, real-time chronological activity timeline sorted newest first.
-*   **💳 Check Quota Indicator & bKash Gateway**: Tracks active search token balance dynamically (`searchesLeft / searchLimit`), integrating custom bKash Send Money payment modals for direct subscription upgrades.
-*   **📱 Responsive Viewport Auto-Restore**: Standardizes desktop flexbox structures and registers viewport resize listeners to automatically slide the minimized sidebar back into view when scaling screen sizes.
+### 🔍 Smart IMEI Safety Verification
+*   **Luhn Validation**: Instant mathematical verification of IMEI structure.
+*   **Registry Check**: Immediate lookup against active police logs and community stolen reports.
+*   **Smart Redirects**: Saves search targets, routes guests to `/login`, and returns them to their target result seamlessly on registration.
+
+### 🔐 Multi-User Session Isolation
+*   **Privacy Boundaries**: Prevents any cross-account data leaks or search history leaks.
+*   **Suffixed Caching**: Isolates all user details in LocalStorage using email-prefixed keys.
+*   **Secure Loading**: Synchronizes client-side parsing inside active authentication promises.
+
+### 🛡️ Dynamic Community Trust Score
+*   **Credibility Index**: Calculates a real-time trust percentage (`50%` to `100%`) based on profile completions.
+*   **Verification Audits**: Automatically boosts score (`+15%`) for verified police reports or penalizes submissions (`-25%`) on rejections.
+
+### 📊 Cinematic User Dashboard
+*   **Live Metrics**: Displays user-specific statistics for reported devices, checks, and alerts with zero mock data.
+*   **Dynamic Timeline**: Synthesizes reports, searches, and safety alerts into a single chronological feed sorted newest first.
+
+### 💳 Search Quota & bKash Gateway
+*   **Balance Tracking**: Displays active remaining checks (`searchesLeft / searchLimit`) in real-time in the sidebar.
+*   **bKash Checkout**: Integrates secure Send Money verification modals for manual admin subscription reviews.
+
+### 📱 Responsive Viewport Auto-Restore
+*   **Auto-Restore Sidebar**: Deploys dynamic resize listeners to automatically slide the minimized sidebar back into view when scaling screen sizes.
