@@ -51,6 +51,16 @@ export class UsersService {
         },
         include: { SubscriptionRequest: true }
       });
+    } else if (user.plan === 'FREE' && user.searchLimit > 1) {
+      // Legacy user correction: Sync searchesLeft/searchLimit to 1 for basic free tier
+      user = await this.prisma.user.update({
+        where: { email },
+        data: {
+          searchLimit: 1,
+          searchesLeft: Math.min(user.searchesLeft, 1)
+        },
+        include: { SubscriptionRequest: true }
+      });
     }
 
     return user;

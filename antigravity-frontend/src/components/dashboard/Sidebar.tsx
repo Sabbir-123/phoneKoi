@@ -53,9 +53,7 @@ export default function Sidebar() {
     return () => clearInterval(interval);
   }, []);
 
-  const pricingLabel = searchesLeft !== null 
-    ? (language === 'banglish' ? `Check Quota (${searchesLeft} Search Baki)` : `Check Quota (${searchesLeft} Left)`)
-    : (language === 'banglish' ? 'Check Quota' : 'Check Quota');
+  const pricingLabel = language === 'banglish' ? 'Check Quota' : 'Check Quota';
 
   const navItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
