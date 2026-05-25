@@ -14,6 +14,7 @@ const subscriptionPlans = [
     price: 49,
     duration: '1 Month',
     features: [
+      'Report up to 2 mobile devices',
       '3 IMEI searches total',
       'Unlimited real-time theft alerts',
       'Priority safety reporting database access',
@@ -27,6 +28,7 @@ const subscriptionPlans = [
     price: 99,
     duration: '3 Months',
     features: [
+      'Report up to 4 mobile devices',
       '15 IMEI searches total',
       'Unlimited real-time theft alerts',
       'Priority safety reporting database access',
@@ -40,6 +42,7 @@ const subscriptionPlans = [
     price: 259,
     duration: '6 Months',
     features: [
+      'Report up to 10 mobile devices',
       '30 IMEI searches total',
       'Unlimited real-time theft alerts',
       'Priority safety reporting database access',
@@ -53,6 +56,7 @@ const subscriptionPlans = [
     price: 999,
     duration: '12 Months',
     features: [
+      'Report up to 50 mobile devices',
       '99 IMEI searches total',
       'Unlimited real-time theft alerts',
       'Priority safety reporting database access',
