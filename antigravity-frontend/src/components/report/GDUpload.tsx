@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, X, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { useDashboardStore } from "@/store/useDashboardStore";
 
 interface GDUploadProps {
   onUpload: (base64: string) => void;
@@ -10,6 +11,7 @@ interface GDUploadProps {
 }
 
 export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
+  const { language } = useDashboardStore();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -17,12 +19,20 @@ export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
 
   const handleFile = (selectedFile: File) => {
     if (!selectedFile.type.startsWith("image/") && selectedFile.type !== "application/pdf") {
-      alert("Please upload an image (JPG, PNG) or PDF.");
+      alert(
+        language === 'banglish'
+          ? "Please key image (JPG, PNG) ba PDF upload korun."
+          : "Please upload an image (JPG, PNG) or PDF."
+      );
       return;
     }
 
     if (selectedFile.size > 10 * 1024 * 1024) {
-      alert("File size should be less than 10MB.");
+      alert(
+        language === 'banglish'
+          ? "File details 10MB er kom hote hobe."
+          : "File size should be less than 10MB."
+      );
       return;
     }
 
@@ -67,10 +77,12 @@ export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
     <div className="w-full space-y-4">
       <div className="flex flex-col items-center justify-center space-y-2 text-center mb-2">
         <h3 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
-          GD copy upload koro <span className="text-sm font-normal text-slate-400">(Upload police GD copy)</span>
+          {language === 'banglish' ? 'GD Copy Upload Korun' : 'Upload Police GD Copy'}
         </h3>
         <p className="text-sm text-slate-500 max-w-md font-medium">
-          Upload a clear photo or PDF of your police GD copy for AI-powered fast reporting.
+          {language === 'banglish' 
+            ? 'AI-powered fast reporting er jonno apnar police GD copy er clear photo ba PDF upload korun.'
+            : 'Upload a clear photo or PDF of your police GD copy for AI-powered fast reporting.'}
         </p>
       </div>
 
@@ -155,7 +167,9 @@ export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-4 z-20">
             <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
             <div className="space-y-1 text-center">
-              <p className="text-indigo-950 font-bold animate-pulse">GD analyse kortesi...</p>
+              <p className="text-indigo-950 font-bold animate-pulse">
+                {language === 'banglish' ? 'GD copy analyse kortesi...' : 'Analyzing GD copy...'}
+              </p>
               <p className="text-xs text-slate-500 font-medium">Extracting information using AI</p>
             </div>
           </div>
@@ -167,10 +181,9 @@ export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
         <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="text-[13px] leading-relaxed text-indigo-950 font-semibold">
-            GD copy verification process er jonno use kora hobe.
-          </p>
-          <p className="text-[12px] leading-relaxed text-slate-500 font-medium">
-            GD copy will be used for verification process.
+            {language === 'banglish' 
+              ? 'GD copy verification process er jonno use kora hobe.'
+              : 'The GD copy will strictly be used for safety and ownership verification.'}
           </p>
         </div>
       </div>
