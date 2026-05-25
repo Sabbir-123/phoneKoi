@@ -207,7 +207,7 @@ export default function ReportPage() {
             </div>
 
             <button
-              onClick={() => router.push("/dashboard/pricing")}
+              onClick={() => router.push("/dashboard/quota")}
               className="w-full font-bold py-3.5 bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 text-xs"
             >
               Purchase Premium Package <ArrowRight className="w-4 h-4" />

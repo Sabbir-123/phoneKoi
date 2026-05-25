@@ -60,7 +60,7 @@ export default function Sidebar() {
     { name: 'Reported Devices', href: '/dashboard/devices', icon: Smartphone },
     { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
     { name: 'History', href: '/dashboard/history', icon: History },
-    { name: pricingLabel, href: '/dashboard/pricing', icon: CreditCard },
+    { name: pricingLabel, href: '/dashboard/quota', icon: CreditCard },
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ...(isAdmin ? [{ name: 'Admin panel', href: '/dashboard/admin', icon: ShieldCheck }] : []),

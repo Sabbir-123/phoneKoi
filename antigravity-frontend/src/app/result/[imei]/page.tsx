@@ -197,7 +197,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           </p>
 
           <div className="space-y-4">
-            <Link href="/dashboard/pricing" className="block w-full btn-primary bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-bold text-sm shadow-md transition-all">
+            <Link href="/dashboard/quota" className="block w-full btn-primary bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-bold text-sm shadow-md transition-all">
               View Premium Subscription Plans
             </Link>
             <Link href="/check" className="block w-full bg-slate-50 border border-slate-105 rounded-2xl py-3.5 text-center font-bold text-sm text-slate-500 hover:bg-slate-100 transition-colors">

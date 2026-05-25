@@ -77,6 +77,8 @@ export default function PricingPage() {
   const [success, setSuccess] = useState(false);
   const [searchesLeft, setSearchesLeft] = useState<number | null>(null);
   const [searchLimit, setSearchLimit] = useState<number | null>(null);
+  const [reportsLeft, setReportsLeft] = useState<number | null>(null);
+  const [reportLimit, setReportLimit] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchEmail = async () => {
@@ -90,6 +92,8 @@ export default function PricingPage() {
             const data = await res.json();
             setSearchesLeft(data.searchesLeft);
             setSearchLimit(data.searchLimit);
+            setReportsLeft(data.reportsLeft);
+            setReportLimit(data.reportLimit);
           }
         } catch (e) {
           console.error(e);
@@ -161,27 +165,47 @@ export default function PricingPage() {
             transition={{ delay: 0.1 }}
             className="text-4xl font-extrabold text-indigo-950 tracking-tight"
           >
-            Your Active Search Quota
+            Your Active Quota & Balance
           </motion.h1>
         </div>
 
-        {/* Quota Balance Banner */}
+        {/* Quota Balance Banners */}
         {searchesLeft !== null && searchLimit !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md mx-auto p-1 rounded-[1.8rem] bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-100/20 shadow-lg"
-          >
-            <div className="bg-white/90 backdrop-blur-2xl p-6 rounded-[1.7rem] text-center space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-600">Active Search Quota Balance</h3>
-              <div className="text-4xl font-black text-indigo-950">
-                {searchesLeft} <span className="text-sm font-bold text-slate-400">/ {searchLimit} searches remaining</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Search Quota Balance */}
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="p-1 rounded-[1.8rem] bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-100/20 shadow-lg text-left"
+            >
+              <div className="bg-white/90 backdrop-blur-2xl p-6 rounded-[1.7rem] text-center space-y-2 h-full flex flex-col justify-center">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-600">Active Search Quota Balance</h3>
+                <div className="text-4xl font-black text-indigo-950 my-1">
+                  {searchesLeft} <span className="text-sm font-bold text-slate-400">/ {searchLimit} left</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                  Each IMEI check dynamically deducts 1 search token. Purchase a package below to add more search checks.
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                Each IMEI check dynamically deducts 1 search token. Once your balance runs out, purchase a package below to add more balance.
-              </p>
-            </div>
-          </motion.div>
+            </motion.div>
+
+            {/* Stolen Report Quota Balance */}
+            <motion.div
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="p-1 rounded-[1.8rem] bg-gradient-to-r from-pink-500/10 to-red-500/10 border border-pink-100/20 shadow-lg text-left"
+            >
+              <div className="bg-white/90 backdrop-blur-2xl p-6 rounded-[1.7rem] text-center space-y-2 h-full flex flex-col justify-center">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-pink-650">Stolen Report Quota Balance</h3>
+                <div className="text-4xl font-black text-indigo-950 my-1">
+                  {reportsLeft ?? 0} <span className="text-sm font-bold text-slate-400">/ {reportLimit ?? 0} left</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                  Required to register mobile theft reports in the database. Exhausted quotas require a package upgrade.
+                </p>
+              </div>
+            </motion.div>
+          </div>
         )}
       </div>
 
