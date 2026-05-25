@@ -68,11 +68,21 @@ export default function ReportPage() {
         body: JSON.stringify({ base64Image: base64 }),
       });
       
-      if (!response.ok) throw new Error("Extraction failed");
+      if (!response.ok) {
+        console.warn("GD extraction server endpoint returned a non-OK response.");
+        setGdUploaded(true);
+        setExtractedFromGd(true);
+        setErrorMessage(
+          language === 'banglish'
+            ? "GD copy processing ektu problem hoyese, kintu file successfully peyechi. Dayani niche manual details puron korun."
+            : "We encountered an issue processing the GD copy automatically, but your file is uploaded. Please fill in the details below manually."
+        );
+        return;
+      }
       
       const data = await response.json();
       
-      // Auto-populate the form fields with extracted details
+      // Auto-populate the form fields with extracted details if they exist
       if (data.imei) setImei(data.imei);
       if (data.deviceName) setDeviceName(data.deviceName);
       if (data.description) setDescription(data.description);
@@ -80,9 +90,18 @@ export default function ReportPage() {
       setAiConfidence(data.confidence || 0.85);
       setExtractedFromGd(true);
       setGdUploaded(true);
+
+      // If confidence is low or fields are empty, show a soft helper warning instead of a hard crash
+      if (data.confidence < 0.3 || (!data.imei && !data.deviceName)) {
+        setErrorMessage(
+          language === 'banglish'
+            ? "Information fully detect kora jay nai. Please manually fill the fields below."
+            : "Could not fully extract details automatically. Please fill in the fields below manually."
+        );
+      }
     } catch (error) {
-      console.error(error);
-      // Even if AI fails, they have successfully uploaded a file, so we mark it as uploaded
+      console.error("GD copy upload/extraction failed:", error);
+      // Even if API fails, they have successfully uploaded a file, so we mark it as uploaded
       // but they must fill in the details manually.
       setGdUploaded(true);
       setExtractedFromGd(true);

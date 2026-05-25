@@ -125,7 +125,12 @@ ONLY return a valid JSON object, no markdown wrapper or extra text.
       };
     } catch (error) {
       this.logger.error('Failed to extract info from GD', error);
-      throw new Error('Failed to process document. Please try again or fill manually.');
+      return {
+        imei: undefined,
+        deviceName: undefined,
+        description: undefined,
+        confidence: 0,
+      };
     }
   }
 
