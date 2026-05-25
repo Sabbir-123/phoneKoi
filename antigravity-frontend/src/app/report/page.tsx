@@ -5,7 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, Send, Loader2, Info, ArrowRight, CheckCircle2, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import GDUpload from "@/components/report/GDUpload";
+import { useDashboardStore } from "@/store/useDashboardStore";
+
 export default function ReportPage() {
+  const { language } = useDashboardStore();
   const [imei, setImei] = useState("");
   const [deviceName, setDeviceName] = useState("");
   const [description, setDescription] = useState("");
@@ -48,7 +51,11 @@ export default function ReportPage() {
       // but they must fill in the details manually.
       setGdUploaded(true);
       setExtractedFromGd(true);
-      setErrorMessage("Information fully detect kora jay nai. Please manually fill the fields below.");
+      setErrorMessage(
+        language === 'banglish'
+          ? "Information fully detect kora jay nai. Please manually fill the fields below."
+          : "Could not fully extract details automatically. Please fill in the fields below manually."
+      );
     } finally {
       setIsExtracting(false);
     }
@@ -57,7 +64,11 @@ export default function ReportPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gdUploaded) {
-      alert("Verification Police GD copy upload koro mandatory!");
+      alert(
+        language === 'banglish'
+          ? "Verification Police GD copy upload koro mandatory!"
+          : "Uploading a verification Police GD copy is mandatory!"
+      );
       return;
     }
     if (imei.length !== 15 || description.length < 10 || deviceName.trim().length === 0 || contactNumber.trim().length === 0) {
@@ -121,10 +132,12 @@ export default function ReportPage() {
           </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-indigo-950">
-          Report Stolen Device
+          {language === 'banglish' ? 'Report Stolen Device' : 'Report Stolen Device'}
         </h1>
         <p className="text-slate-500 text-base max-w-lg mx-auto font-medium">
-          GD copy verification process er jonno upload kora mandatory. System will automatically verify and queue report for Admin review.
+          {language === 'banglish' 
+            ? 'GD copy verification process er jonno upload kora mandatory. System will automatically verify and queue report for Admin review.'
+            : 'Uploading a Police GD copy is mandatory for verification. The system will automatically parse and queue the report for Admin review.'}
         </p>
       </motion.div>
 
@@ -144,9 +157,13 @@ export default function ReportPage() {
           </div>
           <div>
             <h2 className="text-base font-bold text-indigo-950">
-              {gdUploaded ? 'GD Copy Uploaded' : 'Upload Police GD Copy'}
+              {gdUploaded 
+                ? (language === 'banglish' ? 'GD Copy Uploaded' : 'GD Copy Uploaded') 
+                : (language === 'banglish' ? 'Police GD Copy Upload Korun' : 'Upload Police GD Copy')}
             </h2>
-            <p className="text-xs text-slate-400 font-semibold">Mandatory verification document</p>
+            <p className="text-xs text-slate-400 font-semibold">
+              {language === 'banglish' ? 'Verification copy upload kora lagbe' : 'Mandatory verification document'}
+            </p>
           </div>
         </div>
 
@@ -175,8 +192,14 @@ export default function ReportPage() {
             >
               <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5 animate-bounce" />
               <div className="space-y-0.5">
-                <p className="text-xs leading-relaxed text-emerald-800 font-bold">GD Copy uploaded successfully! 🎉</p>
-                <p className="text-[10px] text-emerald-600 font-semibold">AI has extracted data fields in real-time. Please review them below.</p>
+                <p className="text-xs leading-relaxed text-emerald-800 font-bold">
+                  {language === 'banglish' ? 'GD Copy successfully upload hoyese! 🎉' : 'GD Copy uploaded successfully! 🎉'}
+                </p>
+                <p className="text-[10px] text-emerald-600 font-semibold">
+                  {language === 'banglish' 
+                    ? 'AI automatic details extract korse. Niche check kore nin.' 
+                    : 'AI has extracted data fields in real-time. Please review them below.'}
+                </p>
               </div>
             </motion.div>
           )}
@@ -197,15 +220,21 @@ export default function ReportPage() {
                   2
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-indigo-950">Verify Details</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Review and update extracted details</p>
+                  <h3 className="text-base font-bold text-indigo-950">
+                    {language === 'banglish' ? 'Details Verify Korun' : 'Verify Details'}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-semibold">
+                    {language === 'banglish' ? 'Extracted details check ebong update korun' : 'Review and update extracted details'}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-5">
                 {/* Device Name */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Device Name / Model</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                    {language === 'banglish' ? 'Device er Name / Model' : 'Device Name / Model'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -218,7 +247,9 @@ export default function ReportPage() {
 
                 {/* Device IMEI */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Device IMEI (15 Digits)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                    {language === 'banglish' ? 'Device er IMEI (15 Digits)' : 'Device IMEI (15 Digits)'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -231,7 +262,9 @@ export default function ReportPage() {
 
                 {/* Incident Details */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Incident Details</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                    {language === 'banglish' ? 'Incident Details (Kivabe haralo)' : 'Incident Details'}
+                  </label>
                   <textarea
                     required
                     value={description}
@@ -243,7 +276,9 @@ export default function ReportPage() {
 
                 {/* Contact Number */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Contact / WhatsApp Number</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                    {language === 'banglish' ? 'Contact / WhatsApp Number' : 'Contact / WhatsApp Number'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -252,7 +287,9 @@ export default function ReportPage() {
                     placeholder="e.g. 017XXXXXXXX"
                     className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-5 py-4 outline-none text-slate-800 transition-all shadow-inner text-sm font-semibold"
                   />
-                  <p className="text-[10px] text-slate-400 font-semibold pl-1">Used for verification communication.</p>
+                  <p className="text-[10px] text-slate-400 font-semibold pl-1">
+                    {language === 'banglish' ? 'Verification er jonno phone kora hote pare.' : 'Used for verification communication.'}
+                  </p>
                 </div>
               </div>
 
@@ -268,7 +305,7 @@ export default function ReportPage() {
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    Confirm & Submit Report <ArrowRight className="w-5 h-5" />
+                    {language === 'banglish' ? 'Confirm & Submit Korun' : 'Confirm & Submit Report'} <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </motion.button>
