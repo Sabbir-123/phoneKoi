@@ -158,7 +158,7 @@ export class UsersService {
               id: `search-log-${log.id}`,
               type: 'danger',
               title: 'Suspicious Activity',
-              desc: `Your reported device (${report.deviceName || 'IMEI ' + report.imei}) was searched from IP ${displayIp} (Location: ${displayLocation}).`,
+              desc: `Your reported device (${report.deviceName || 'IMEI ' + report.imei}) was searched from IP ${displayIp}.`,
               time: log.timestamp.toISOString()
             });
           }
