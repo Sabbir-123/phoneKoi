@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles } from "lucide-react";
+import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles, Phone, MessageSquare, Copy, Check, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
@@ -17,6 +17,8 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   const [loading, setLoading] = useState(true);
   const [quotaError, setQuotaError] = useState<string | null>(null);
   const [checksumError, setChecksumError] = useState<string | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -274,6 +276,17 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
     );
   }
 
+  const formatWhatsAppLink = (phone: string) => {
+    if (!phone) return "";
+    let clean = phone.replace(/\D/g, "");
+    if (clean.startsWith("01")) {
+      clean = "88" + clean;
+    } else if (clean.length === 10 && clean.startsWith("1")) {
+      clean = "880" + clean;
+    }
+    return `https://wa.me/${clean}`;
+  };
+
   return (
     <div className="w-full relative flex flex-col items-center justify-center min-h-[85vh] px-6 py-10">
       {/* Background orbs matching status */}
@@ -284,36 +297,46 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg space-y-5"
+        className="w-full max-w-md mx-auto space-y-4"
       >
         {/* Main Card */}
         <motion.div
           animate={activeStatus === "stolen" ? { x: [-1.5, 1.5, -1.5, 0], transition: { repeat: Infinity, duration: 0.6, repeatDelay: 2.5 } } : {}}
-          className={`${config.cardBg} border ${config.border} rounded-3xl p-8 md:p-10 text-center shadow-xl ${config.shadow}`}
+          className={`${config.cardBg} border ${config.border} rounded-[2rem] p-6 md:p-8 text-center shadow-lg backdrop-blur-md ${config.shadow}`}
         >
-          <div className="flex justify-center mb-6">
-            <div className={`p-5 rounded-3xl ${config.iconBg}`}>
-              <Icon className={`w-14 h-14 ${config.iconColor}`} />
+          <div className="flex justify-center mb-4">
+            <div className={`p-4 rounded-2xl ${config.iconBg}`}>
+              <Icon className={`w-10 h-10 ${config.iconColor}`} />
             </div>
           </div>
 
-          <div className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest mb-5 ${config.badge}`}>
+          <div className={`inline-block px-3.5 py-1 rounded-full text-[10px] font-bold tracking-widest mb-4 ${config.badge}`}>
             {config.badgeText}
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-indigo-950">{config.title}</h1>
-          <p className="text-slate-500 mb-8 leading-relaxed">{config.desc}</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold mb-1.5 text-indigo-950 tracking-tight">{config.title}</h1>
+          <p className="text-slate-500 mb-5 leading-relaxed text-sm font-medium">{config.desc}</p>
 
-          <div className="py-6 border-t border-black/5 flex flex-col items-center">
-            <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-[0.2em]">Risk Score</div>
-            <div className={`text-8xl font-black font-mono tracking-tighter ${config.scoreColor}`}>{score}</div>
-            <div className="text-xs text-slate-400 mt-1">out of 100</div>
+          <div className="py-4 border-t border-indigo-950/5 flex flex-col items-center">
+            <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-[0.2em]">Risk Score</div>
+            <div className={`text-7xl font-black font-mono tracking-tighter leading-none ${config.scoreColor}`}>{score}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">out of 100</div>
           </div>
 
-          <div className="mt-4 py-4 bg-white/60 rounded-2xl border border-white/80">
-            <div className="text-xs text-slate-400 mb-1 uppercase tracking-widest">IMEI</div>
-            <div className="text-lg font-mono text-indigo-950 tracking-[0.15em] font-semibold">{params.imei}</div>
+          <div className="mt-3 py-2.5 bg-white/60 rounded-2xl border border-white/80">
+            <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-widest font-bold">IMEI</div>
+            <div className="text-base font-mono text-indigo-950 tracking-[0.15em] font-bold">{params.imei}</div>
           </div>
+
+          {activeStatus === "stolen" && backendData?.contactNumber && (
+            <button
+              onClick={() => setShowContactModal(true)}
+              className="mt-4 w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-red-200/50 transition-all hover:scale-[1.01] active:scale-[0.99] text-sm tracking-wide"
+            >
+              <Phone className="w-4 h-4 animate-pulse" />
+              Contact Verified Owner
+            </button>
+          )}
         </motion.div>
 
         {/* AI Insight Card */}
@@ -348,6 +371,91 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           Check Another Device
         </Link>
       </motion.div>
+
+      {/* Contact Owner Modal */}
+      <AnimatePresence>
+        {showContactModal && backendData?.contactNumber && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowContactModal(false)}
+              className="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white/90 backdrop-blur-2xl rounded-3xl border border-indigo-50/50 shadow-2xl p-6 overflow-hidden z-10"
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500 to-rose-500" />
+              
+              {/* Close Button */}
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center mb-6 mt-2">
+                <div className="w-12 h-12 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Phone className="w-6 h-6 text-red-500 animate-pulse" />
+                </div>
+                <h3 className="text-lg font-bold text-indigo-950">Contact Stolen Device Owner</h3>
+                <p className="text-xs text-slate-400 font-semibold tracking-wide uppercase mt-1">IMEI: {params.imei}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center relative overflow-hidden">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Owner Contact Number</p>
+                  <p className="text-xl font-bold text-indigo-950 tracking-wide">{backendData.contactNumber}</p>
+                </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed text-center font-medium px-2">
+                  This device has been red-flagged. You can directly contact the owner to facilitate return or coordinate reporting.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(backendData.contactNumber);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 font-bold py-3 px-4 rounded-xl text-xs text-slate-700 transition-colors"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    {copied ? "Copied!" : "Copy Number"}
+                  </button>
+
+                  <a
+                    href={`tel:${backendData.contactNumber}`}
+                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs text-center shadow-md transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call Owner
+                  </a>
+                </div>
+
+                <a
+                  href={formatWhatsAppLink(backendData.contactNumber)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl text-xs text-center shadow-md transition-colors mt-2"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Chat on WhatsApp
+                </a>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

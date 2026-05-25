@@ -81,12 +81,23 @@ export class ImeiService {
 
     const explanation = await this.aiService.generateRiskExplanation(device.status, device.riskScore, language);
 
+    // Fetch the verified owner's contact number if the device is reported stolen
+    let contactNumber: string | null = null;
+    if (device.status === DeviceStatus.STOLEN) {
+      const approvedReport = await this.prisma.report.findFirst({
+        where: { imei: device.imei, status: 'APPROVED' },
+        select: { contactNumber: true }
+      });
+      contactNumber = approvedReport?.contactNumber || null;
+    }
+
     return {
       imei: device.imei,
       risk_score: device.riskScore,
       risk_level: device.riskLevel,
       status: device.status,
       explanation,
+      contactNumber,
     };
   }
 }
