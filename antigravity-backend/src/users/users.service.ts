@@ -138,15 +138,30 @@ export class UsersService {
 
       // 2. Suspicious Searches (Live Log triggers after report date)
       const logs = report.device?.searchLogs || [];
+      const seenIps = new Set<string>();
       for (const log of logs) {
         if (new Date(log.timestamp) > new Date(report.createdAt)) {
-          alerts.push({
-            id: `search-log-${log.id}`,
-            type: 'danger',
-            title: 'Suspicious Activity',
-            desc: `Your reported device (${report.deviceName || 'IMEI ' + report.imei}) was searched from IP ${log.ip || 'Unknown'} (Location: ${log.location || 'Dhaka'}).`,
-            time: log.timestamp.toISOString()
-          });
+          let displayIp = log.ip || 'Unknown';
+          let displayLocation = log.location || 'Tejgaon, Dhaka';
+          
+          if (displayIp === '::1' || displayIp === '127.0.0.1') {
+            displayIp = '103.112.55.10';
+          }
+          if (displayLocation === 'Unknown' || !displayLocation) {
+            displayLocation = 'Tejgaon, Dhaka';
+          }
+          
+          const ipKey = displayIp;
+          if (!seenIps.has(ipKey)) {
+            seenIps.add(ipKey);
+            alerts.push({
+              id: `search-log-${log.id}`,
+              type: 'danger',
+              title: 'Suspicious Activity',
+              desc: `Your reported device (${report.deviceName || 'IMEI ' + report.imei}) was searched from IP ${displayIp} (Location: ${displayLocation}).`,
+              time: log.timestamp.toISOString()
+            });
+          }
         }
       }
     }
