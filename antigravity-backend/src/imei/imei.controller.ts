@@ -11,6 +11,7 @@ export class ImeiController {
     @Query('lang') lang: 'english' | 'banglish',
     @Query('email') email: string,
     @Query('clientIp') clientIp: string,
+    @Query('clientLocation') clientLocation: string,
     @Req() req: any
   ) {
     if (!imei) throw new BadRequestException('IMEI is required');
@@ -19,6 +20,6 @@ export class ImeiController {
     const ip = clientIp || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const language = lang === 'banglish' ? 'banglish' : 'english';
     
-    return this.imeiService.checkImei(imei, ip, language, email);
+    return this.imeiService.checkImei(imei, ip, language, email, clientLocation);
   }
 }

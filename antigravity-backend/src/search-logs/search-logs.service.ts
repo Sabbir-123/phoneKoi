@@ -6,7 +6,7 @@ import * as geoip from 'geoip-lite';
 export class SearchLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async logSearch(imei: string, ip: string) {
+  async logSearch(imei: string, ip: string, clientLocation?: string) {
     let clientIp = ip || '';
 
     // Handle comma-separated list from x-forwarded-for
@@ -32,15 +32,18 @@ export class SearchLogsService {
       clientIp = '103.112.55.10'; // Standardize to a realistic Dhaka Metro IP for development/demo
     }
 
-    const geo = geoip.lookup(clientIp);
-    let location = 'Tejgaon, Dhaka'; // Premium default fallback for Dhaka Metro
-    if (geo) {
-      const city = geo.city || 'Dhaka';
-      const country = geo.country === 'BD' ? 'Bangladesh' : (geo.country || 'Bangladesh');
-      if (city.toLowerCase() === 'dhaka') {
-        location = `Tejgaon, Dhaka`;
-      } else {
-        location = `${city}, ${country}`;
+    let location = clientLocation || '';
+    if (!location) {
+      const geo = geoip.lookup(clientIp);
+      location = 'Tejgaon, Dhaka'; // Premium default fallback for Dhaka Metro
+      if (geo) {
+        const city = geo.city || 'Dhaka';
+        const country = geo.country === 'BD' ? 'Bangladesh' : (geo.country || 'Bangladesh');
+        if (city.toLowerCase() === 'dhaka') {
+          location = `Tejgaon, Dhaka`;
+        } else {
+          location = `${city}, ${country}`;
+        }
       }
     }
 

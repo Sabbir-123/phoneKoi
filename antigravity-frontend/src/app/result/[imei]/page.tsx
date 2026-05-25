@@ -26,20 +26,39 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         const email = session?.user?.email || "";
 
         let clientIp = "";
+        let clientLocation = "";
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2000);
-          const ipRes = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
+          const ipRes = await fetch("https://ipapi.co/json/", { signal: controller.signal });
           clearTimeout(timeoutId);
           if (ipRes.ok) {
             const ipData = await ipRes.json();
             clientIp = ipData.ip || "";
+            const city = ipData.city || "";
+            const region = ipData.region || "";
+            const country = ipData.country_name || "";
+            if (city) {
+              clientLocation = region ? `${city}, ${region}` : `${city}, ${country || 'Bangladesh'}`;
+            }
           }
         } catch (ipErr) {
-          console.warn("Could not fetch client public IP from ipify:", ipErr);
+          console.warn("Could not fetch client public IP/location from ipapi.co:", ipErr);
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
+            const fbRes = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (fbRes.ok) {
+              const fbData = await fbRes.json();
+              clientIp = fbData.ip || "";
+            }
+          } catch (fbErr) {
+            console.warn("Fallback IP fetch failed:", fbErr);
+          }
         }
 
-        const res = await fetch(`http://localhost:4000/imei/check/${params.imei}?lang=english&email=${email}${clientIp ? `&clientIp=${clientIp}` : ''}`);
+        const res = await fetch(`http://localhost:4000/imei/check/${params.imei}?lang=english&email=${email}${clientIp ? `&clientIp=${clientIp}` : ''}${clientLocation ? `&clientLocation=${encodeURIComponent(clientLocation)}` : ''}`);
         
         if (!res.ok) {
           const errData = await res.json();
