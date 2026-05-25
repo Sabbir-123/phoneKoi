@@ -100,10 +100,10 @@ export default function HistoryPage() {
 
                   <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
                     <div className="flex flex-col items-start md:items-end">
-                      <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wider font-bold">Safety Index</div>
+                      <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wider font-bold">Risk Score</div>
                       <div className={`text-lg font-extrabold ${
-                        item.score > 80 ? 'text-emerald-600' :
-                        item.score > 40 ? 'text-amber-600' : 'text-red-600'
+                        item.score > 80 ? 'text-red-600' :
+                        item.score > 30 ? 'text-amber-600' : 'text-emerald-600'
                       }`}>
                         {item.score}/100
                       </div>
