@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
@@ -53,7 +54,7 @@ export default function ProfilePage() {
         }
 
         try {
-          const res = await fetch(`http://localhost:4000/users/profile?email=${emailAddress}`);
+          const res = await fetch(`${API_URL}/users/profile?email=${emailAddress}`);
           if (res.ok) {
             const data = await res.json();
             setPlan(data.plan || 'FREE');
@@ -62,7 +63,7 @@ export default function ProfilePage() {
           }
 
           // Fetch real dynamic alerts count
-          const alertsRes = await fetch(`http://localhost:4000/users/alerts?email=${emailAddress}`);
+          const alertsRes = await fetch(`${API_URL}/users/alerts?email=${emailAddress}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
             setAlertsCount(alertsData.length);
@@ -122,7 +123,7 @@ export default function ProfilePage() {
   const { data: reports } = useQuery({
     queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch(`http://localhost:4000/reports?email=${email}`);
+      const res = await fetch(`${API_URL}/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
     },

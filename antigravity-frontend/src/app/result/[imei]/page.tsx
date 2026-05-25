@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/utils/api';
 
 import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,7 +61,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           }
         }
 
-        const res = await fetch(`http://localhost:4000/imei/check/${params.imei}?lang=english&email=${email}${clientIp ? `&clientIp=${clientIp}` : ''}${clientLocation ? `&clientLocation=${encodeURIComponent(clientLocation)}` : ''}`);
+        const res = await fetch(`${API_URL}/imei/check/${params.imei}?lang=english&email=${email}${clientIp ? `&clientIp=${clientIp}` : ''}${clientLocation ? `&clientLocation=${encodeURIComponent(clientLocation)}` : ''}`);
         
         if (!res.ok) {
           const errData = await res.json();

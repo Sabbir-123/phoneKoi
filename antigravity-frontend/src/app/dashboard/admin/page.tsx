@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,7 +56,7 @@ export default function AdminDashboard() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:4000/admin/subscription-requests`);
+      const res = await fetch(`${API_URL}/admin/subscription-requests`);
       if (res.ok) {
         const data = await res.json();
         setRequests(data);
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
   const fetchDeviceReports = async () => {
     try {
       setReportsLoading(true);
-      const res = await fetch(`http://localhost:4000/admin/reports`);
+      const res = await fetch(`${API_URL}/admin/reports`);
       if (res.ok) {
         const data = await res.json();
         setDeviceReports(data);
@@ -90,7 +91,7 @@ export default function AdminDashboard() {
 
       if (email) {
         try {
-          const res = await fetch(`http://localhost:4000/users/profile?email=${email}`);
+          const res = await fetch(`${API_URL}/users/profile?email=${email}`);
           if (res.ok) {
             const profile = await res.json();
             if (profile?.role === 'ADMIN') {
@@ -117,7 +118,7 @@ export default function AdminDashboard() {
   const handleRequestAction = async (id: string, action: 'approve' | 'reject') => {
     setActionLoadingId(id);
     try {
-      const res = await fetch(`http://localhost:4000/admin/subscription-requests/${id}/${action}`, {
+      const res = await fetch(`${API_URL}/admin/subscription-requests/${id}/${action}`, {
         method: 'POST',
       });
       if (res.ok) {
@@ -133,7 +134,7 @@ export default function AdminDashboard() {
   const handleReportAction = async (id: string, action: 'approve' | 'reject') => {
     setActionLoadingId(id);
     try {
-      const res = await fetch(`http://localhost:4000/admin/reports/${id}/${action}`, {
+      const res = await fetch(`${API_URL}/admin/reports/${id}/${action}`, {
         method: 'POST',
       });
       if (res.ok) {

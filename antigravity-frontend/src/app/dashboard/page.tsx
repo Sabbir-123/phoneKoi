@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,7 +62,7 @@ function DashboardHomeContent() {
 
         // Fetch real alerts and danger alerts count
         try {
-          const alertsRes = await fetch(`http://localhost:4000/users/alerts?email=${userEmail}`);
+          const alertsRes = await fetch(`${API_URL}/users/alerts?email=${userEmail}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
             setRealAlerts(alertsData);
@@ -82,7 +83,7 @@ function DashboardHomeContent() {
   const { data: reports } = useQuery({
     queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch(`http://localhost:4000/reports?email=${email}`);
+      const res = await fetch(`${API_URL}/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
     },

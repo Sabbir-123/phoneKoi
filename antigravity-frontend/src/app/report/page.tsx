@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/utils/api';
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +43,7 @@ export default function ReportPage() {
           return;
         }
 
-        const res = await fetch(`http://localhost:4000/users/profile?email=${session.user.email}`);
+        const res = await fetch(`${API_URL}/users/profile?email=${session.user.email}`);
         if (res.ok) {
           const data = await res.json();
           setIsPro(data.isPro && data.plan === "PRO");
@@ -62,7 +63,7 @@ export default function ReportPage() {
     setErrorMessage(null);
     setGdImage(base64);
     try {
-      const response = await fetch("http://localhost:4000/reports/extract-gd", {
+      const response = await fetch(`${API_URL}/reports/extract-gd`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ base64Image: base64 }),
@@ -138,7 +139,7 @@ export default function ReportPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const userEmail = session?.user?.email || "";
 
-      const response = await fetch("http://localhost:4000/reports/submit", {
+      const response = await fetch(`${API_URL}/reports/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

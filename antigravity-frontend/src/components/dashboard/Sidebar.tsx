@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
@@ -33,7 +34,7 @@ export default function Sidebar() {
       
       if (email) {
         try {
-          const res = await fetch(`http://localhost:4000/users/profile?email=${email}`);
+          const res = await fetch(`${API_URL}/users/profile?email=${email}`);
           if (res.ok) {
             const profile = await res.json();
             if (profile?.role === 'ADMIN') {

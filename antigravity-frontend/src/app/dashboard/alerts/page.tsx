@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +18,7 @@ export default function AlertsPage() {
   const fetchAlerts = async (email: string, silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const res = await fetch(`http://localhost:4000/users/alerts?email=${email}`);
+      const res = await fetch(`${API_URL}/users/alerts?email=${email}`);
       if (res.ok) {
         const data = await res.json();
         setAlerts(data);

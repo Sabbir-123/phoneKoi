@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import AuthGuard from '@/components/layout/AuthGuard';
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -19,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.email) {
-          const res = await fetch(`http://localhost:4000/users/profile?email=${session.user.email}`);
+          const res = await fetch(`${API_URL}/users/profile?email=${session.user.email}`);
           if (res.ok) {
             const data = await res.json();
             setPlan(data.plan || 'FREE');

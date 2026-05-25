@@ -1,4 +1,5 @@
 'use client';
+import { API_URL } from '@/utils/api';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -112,7 +113,7 @@ export default function PricingPage() {
     setError(null);
 
     try {
-      const res = await fetch(`http://localhost:4000/users/subscription-request?email=${email}`, {
+      const res = await fetch(`${API_URL}/users/subscription-request?email=${email}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
