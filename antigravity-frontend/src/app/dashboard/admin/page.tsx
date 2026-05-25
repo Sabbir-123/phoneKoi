@@ -31,6 +31,7 @@ interface DeviceReport {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   updatedAt: string;
+  gdImage?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -45,6 +46,7 @@ export default function AdminDashboard() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [viewingGdImage, setViewingGdImage] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     try {
@@ -424,15 +426,24 @@ export default function AdminDashboard() {
                             {report.deviceName || 'Unknown Device'}
                           </td>
                           <td className="px-6 py-4 font-mono font-bold text-indigo-950 tracking-wider">{report.imei}</td>
-                          <td className="px-6 py-4">
-                            {report.extractedFromGd ? (
-                              <span className="inline-flex items-center gap-1 font-bold text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                                <FileText className="w-3 h-3" /> Police GD Copy
-                              </span>
-                            ) : (
-                              <span className="font-semibold text-xs text-slate-400">Manual Entry</span>
-                            )}
-                          </td>
+                           <td className="px-6 py-4">
+                             {report.extractedFromGd ? (
+                               <button
+                                 onClick={() => {
+                                   if (report.gdImage) {
+                                     setViewingGdImage(report.gdImage);
+                                   } else {
+                                     alert("No GD image evidence available for this report.");
+                                   }
+                                 }}
+                                 className="inline-flex items-center gap-1 font-bold text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full cursor-pointer hover:bg-indigo-100 transition-colors shadow-sm"
+                               >
+                                 <FileText className="w-3.5 h-3.5" /> View GD Copy
+                               </button>
+                             ) : (
+                               <span className="font-semibold text-xs text-slate-400 select-none">Manual Entry</span>
+                             )}
+                           </td>
                           <td className="px-6 py-4 font-semibold text-slate-600">{report.contactNumber || 'N/A'}</td>
                           <td className="px-6 py-4 max-w-[200px] truncate text-slate-500 font-semibold text-xs" title={report.description || ''}>
                             {report.description || 'N/A'}
@@ -492,6 +503,64 @@ export default function AdminDashboard() {
                 </div>
               )}
             </GlassCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* GD Image Viewer Modal */}
+      <AnimatePresence>
+        {viewingGdImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-6 z-50 pointer-events-auto"
+            onClick={() => setViewingGdImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white rounded-[2rem] border border-slate-100 p-6 max-w-2xl w-full relative shadow-2xl overflow-hidden flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500 to-indigo-600" />
+              
+              <div className="flex items-center justify-between w-full mb-4 border-b border-slate-100 pb-3">
+                <h3 className="text-lg font-bold text-indigo-950 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600 animate-pulse" />
+                  Police GD Copy Evidence
+                </h3>
+                <button
+                  onClick={() => setViewingGdImage(null)}
+                  className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="w-full max-h-[70vh] rounded-2xl overflow-y-auto border border-slate-100 bg-slate-50 flex items-center justify-center shadow-inner p-2">
+                {viewingGdImage.startsWith("data:application/pdf") ? (
+                  <div className="py-24 text-center space-y-2">
+                    <FileText className="w-16 h-16 text-red-500 mx-auto animate-bounce" />
+                    <p className="text-sm font-bold text-slate-700">PDF Document Evidence</p>
+                    <a 
+                      href={viewingGdImage} 
+                      download="police_gd_evidence.pdf" 
+                      className="inline-block px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all mt-2"
+                    >
+                      Download PDF File
+                    </a>
+                  </div>
+                ) : (
+                  <img 
+                    src={viewingGdImage} 
+                    alt="Uploaded GD Copy Evidence" 
+                    className="max-w-full h-auto object-contain rounded-xl shadow-lg border border-slate-100" 
+                  />
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

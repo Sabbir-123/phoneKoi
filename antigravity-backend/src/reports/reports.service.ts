@@ -20,7 +20,8 @@ export class ReportsService {
     aiExtractionConfidence?: number,
     userId?: string, 
     email?: string,
-    trustWeight?: number 
+    trustWeight?: number,
+    gdImage?: string
   }) {
     if (!/^\d{15}$/.test(data.imei)) {
       throw new BadRequestException('Invalid IMEI format');
@@ -70,7 +71,8 @@ export class ReportsService {
         extractedFromGd: data.extractedFromGd || false,
         aiExtractionConfidence: data.aiExtractionConfidence,
         userId: finalUserId,
-        trustWeight: data.trustWeight || 1
+        trustWeight: data.trustWeight || 1,
+        gdImage: data.gdImage
       }
     });
   }

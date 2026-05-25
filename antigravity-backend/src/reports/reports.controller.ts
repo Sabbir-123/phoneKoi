@@ -20,7 +20,8 @@ export class ReportsController {
       aiExtractionConfidence: body.aiExtractionConfidence,
       userId: req.user?.id, // Optional user from auth middleware (if implemented)
       email: body.email, // Pass the email submitted by the client
-      trustWeight: body.extractedFromGd ? 5 : (req.user ? 2 : 1)
+      trustWeight: body.extractedFromGd ? 5 : (req.user ? 2 : 1),
+      gdImage: body.gdImage
     });
   }
 

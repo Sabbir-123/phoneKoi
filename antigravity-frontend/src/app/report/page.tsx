@@ -13,6 +13,7 @@ export default function ReportPage() {
   const [deviceName, setDeviceName] = useState("");
   const [description, setDescription] = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [gdImage, setGdImage] = useState<string | null>(null);
   
   const [gdUploaded, setGdUploaded] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -26,6 +27,7 @@ export default function ReportPage() {
   const handleGdUpload = async (base64: string) => {
     setIsExtracting(true);
     setErrorMessage(null);
+    setGdImage(base64);
     try {
       const response = await fetch("http://localhost:4000/reports/extract-gd", {
         method: "POST",
@@ -95,6 +97,7 @@ export default function ReportPage() {
           extractedFromGd,
           aiExtractionConfidence: aiConfidence,
           email: userEmail, // Send email to link userId on the backend
+          gdImage, // Send the base64 GD copy image!
         }),
       });
 
