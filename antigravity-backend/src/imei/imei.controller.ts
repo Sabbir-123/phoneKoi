@@ -10,12 +10,13 @@ export class ImeiController {
     @Param('imei') imei: string, 
     @Query('lang') lang: 'english' | 'banglish',
     @Query('email') email: string,
+    @Query('clientIp') clientIp: string,
     @Req() req: any
   ) {
     if (!imei) throw new BadRequestException('IMEI is required');
     
-    // Get IP address for search logging
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    // Get IP address for search logging (favor clientIp query param for localhost dev environment testing)
+    const ip = clientIp || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const language = lang === 'banglish' ? 'banglish' : 'english';
     
     return this.imeiService.checkImei(imei, ip, language, email);
