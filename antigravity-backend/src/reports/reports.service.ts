@@ -43,13 +43,19 @@ export class ReportsService {
 
     // Find user ID from email if provided
     let finalUserId = data.userId;
+    let userRecord = null;
     if (data.email) {
-      const user = await this.prisma.user.findUnique({
+      userRecord = await this.prisma.user.findUnique({
         where: { email: data.email }
       });
-      if (user) {
-        finalUserId = user.id;
+      if (userRecord) {
+        finalUserId = userRecord.id;
       }
+    }
+
+    // STRICT PLAN CHECK: Basic/FREE users or users with 0 quota left cannot submit reports
+    if (!userRecord || userRecord.plan !== 'PRO' || !userRecord.isPro || userRecord.reportsLeft <= 0) {
+      throw new BadRequestException('Reporting is strictly restricted to premium accounts with active quotas. Please purchase a package.');
     }
 
     // Upsert the device first (so it exists)
@@ -59,21 +65,34 @@ export class ReportsService {
       create: { imei: data.imei }
     });
 
-    // Create the report
-    return this.prisma.report.create({
-      data: {
-        imei: data.imei,
-        reporterIp: data.ip,
-        location: data.location,
-        description: data.description,
-        contactNumber: data.contactNumber,
-        deviceName: data.deviceName,
-        extractedFromGd: data.extractedFromGd || false,
-        aiExtractionConfidence: data.aiExtractionConfidence,
-        userId: finalUserId,
-        trustWeight: data.trustWeight || 1,
-        gdImage: data.gdImage
-      }
+    // Create the report and decrement user's reportsLeft quota in a transaction
+    return this.prisma.$transaction(async (tx) => {
+      const newReport = await tx.report.create({
+        data: {
+          imei: data.imei,
+          reporterIp: data.ip,
+          location: data.location,
+          description: data.description,
+          contactNumber: data.contactNumber,
+          deviceName: data.deviceName,
+          extractedFromGd: data.extractedFromGd || false,
+          aiExtractionConfidence: data.aiExtractionConfidence,
+          userId: finalUserId,
+          trustWeight: data.trustWeight || 1,
+          gdImage: data.gdImage
+        }
+      });
+
+      await tx.user.update({
+        where: { id: userRecord.id },
+        data: {
+          reportsLeft: {
+            decrement: 1
+          }
+        }
+      });
+
+      return newReport;
     });
   }
 

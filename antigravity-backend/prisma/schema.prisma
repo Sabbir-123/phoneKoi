@@ -39,6 +39,8 @@ model User {
   plan                  String                @default("FREE") // "FREE", "PRO"
   searchLimit           Int                   @default(1)
   searchesLeft          Int                   @default(1)
+  reportLimit           Int                   @default(0)
+  reportsLeft           Int                   @default(0)
   isPro                 Boolean               @default(false)
   subscriptionExpiresAt DateTime?
   createdAt             DateTime              @default(now())

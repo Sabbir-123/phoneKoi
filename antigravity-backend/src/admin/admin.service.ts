@@ -27,16 +27,20 @@ export class AdminService {
     // Determine plan quotas
     let months = 1;
     let searches = 3;
+    let reportQuota = 2; // ৳49/1 Month -> 2 mobile reports
 
     if (request.planName.toLowerCase().includes('3 month')) {
       months = 3;
       searches = 15;
+      reportQuota = 4; // ৳99/3 Months -> 4 mobile reports
     } else if (request.planName.toLowerCase().includes('6 month')) {
       months = 6;
       searches = 30;
+      reportQuota = 10; // ৳259/6 Months -> 10 mobile reports
     } else if (request.planName.toLowerCase().includes('12 month') || request.planName.toLowerCase().includes('1 year')) {
       months = 12;
       searches = 99;
+      reportQuota = 50; // ৳999/12 Months -> 50 mobile reports
     }
 
     // Calculate expiry date
@@ -51,7 +55,7 @@ export class AdminService {
         data: { status: 'APPROVED' }
       });
 
-      // 2. Update user subscription status and search quota
+      // 2. Update user subscription status, search quota, and report limit quotas
       await tx.user.update({
         where: { id: request.userId },
         data: {
@@ -59,6 +63,8 @@ export class AdminService {
           isPro: true,
           searchLimit: searches,
           searchesLeft: searches,
+          reportLimit: reportQuota,
+          reportsLeft: reportQuota,
           subscriptionExpiresAt: expiresAt
         }
       });
