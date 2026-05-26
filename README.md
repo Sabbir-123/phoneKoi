@@ -30,3 +30,12 @@
 
 ### 📱 Responsive Viewport Auto-Restore
 *   **Auto-Restore Sidebar**: Deploys dynamic resize listeners to automatically slide the minimized sidebar back into view when scaling screen sizes.
+
+---
+
+## 🚀 Production Deployments
+
+The application stack is fully deployed and active online:
+*   **Backend API (NestJS + Prisma):** [https://phonekoi-production.up.railway.app](https://phonekoi-production.up.railway.app)
+*   **Frontend UI (Next.js):** [https://phone-koi-git-main-sabbir123s-projects.vercel.app](https://phone-koi-git-main-sabbir123s-projects.vercel.app)
+
