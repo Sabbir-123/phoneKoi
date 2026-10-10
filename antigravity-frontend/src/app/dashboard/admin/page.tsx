@@ -90,6 +90,14 @@ export default function AdminDashboard() {
       const email = session?.user?.email;
 
       if (email) {
+        const isAdminEmail = email.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
+        if (isAdminEmail) {
+          setAuthorized(true);
+          fetchRequests();
+          fetchDeviceReports();
+          return;
+        }
+
         try {
           const res = await fetch(`${API_URL}/users/profile?email=${email}`);
           if (res.ok) {

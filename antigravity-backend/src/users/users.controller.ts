@@ -14,7 +14,25 @@ export class UsersController {
 
   @Get('profile')
   async getProfile(@Query('email') email: string) {
-    return this.usersService.getUserProfile(email || 'ahmedsabbir2013@gmail.com');
+    if (!email) {
+      return null;
+    }
+    return this.usersService.getUserProfile(email);
+  }
+
+  @Get('check-phone')
+  async checkPhone(@Query('phone') phone: string, @Query('email') email: string) {
+    if (!phone) {
+      return { available: false, message: 'Phone number is required' };
+    }
+    return this.usersService.checkPhoneAvailability(phone, email);
+  }
+
+  @Post('profile')
+  async updateProfile(
+    @Body() dto: { email: string; phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string }
+  ) {
+    return this.usersService.updateUserProfile(dto.email, dto);
   }
 
   @Post('subscription-request')
@@ -22,11 +40,17 @@ export class UsersController {
     @Query('email') email: string,
     @Body() dto: { planName: string, price: number, trxCode: string, bkashLastFour: string }
   ) {
-    return this.usersService.createSubscriptionRequest(email || 'ahmedsabbir2013@gmail.com', dto);
+    if (!email) {
+      return null;
+    }
+    return this.usersService.createSubscriptionRequest(email, dto);
   }
 
   @Get('alerts')
   async getAlerts(@Query('email') email: string) {
-    return this.usersService.getUserAlerts(email || 'ahmedsabbir2013@gmail.com');
+    if (!email) {
+      return [];
+    }
+    return this.usersService.getUserAlerts(email);
   }
 }

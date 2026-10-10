@@ -4,25 +4,33 @@ import { API_URL } from '@/utils/api';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { UserCircle, ShieldCheck, Award, Mail, Smartphone, Search, Bell, ShieldAlert, BadgeCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { UserCircle, ShieldCheck, Award, Mail, Smartphone, Search, Bell, ShieldAlert, BadgeCheck, AlertCircle, Check, Camera, UploadCloud, User } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 export default function ProfilePage() {
   const { language } = useDashboardStore();
   const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('Phone Koi User');
+  const [displayName, setDisplayName] = useState('');
+  const [avatar, setAvatar] = useState('');
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [address, setAddress] = useState('');
   const [isSameAsPhone, setIsSameAsPhone] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [phoneAvailable, setPhoneAvailable] = useState(false);
   const [plan, setPlan] = useState('FREE');
+  const [isPro, setIsPro] = useState(false);
   const [searchesLeft, setSearchesLeft] = useState(1);
   const [searchLimit, setSearchLimit] = useState(1);
   const [searchesCount, setSearchesCount] = useState(0);
   const [alertsCount, setAlertsCount] = useState(0);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -34,18 +42,25 @@ export default function ProfilePage() {
       if (session?.user) {
         emailAddress = session.user.email || '';
         setEmail(session.user.email || localStorage.getItem('profile_email') || '');
-        setDisplayName(session.user.user_metadata?.displayName || session.user.user_metadata?.full_name || 'Phone Koi User');
+        const metaName = session.user.user_metadata?.displayName || session.user.user_metadata?.full_name || '';
+        setDisplayName(metaName || localStorage.getItem(`profile_displayName_${emailAddress}`) || '');
+        const metaAvatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '';
+        if (metaAvatar) setAvatar(metaAvatar);
       }
 
       if (emailAddress) {
-        // Load user-specific profile details from localStorage
+        // Load user-specific profile details from localStorage fallback
         const savedPhone = localStorage.getItem(`profile_phone_${emailAddress}`) || '';
         const savedWhatsapp = localStorage.getItem(`profile_whatsapp_${emailAddress}`) || '';
         const savedAddress = localStorage.getItem(`profile_address_${emailAddress}`) || '';
+        const savedAvatar = localStorage.getItem(`profile_avatar_${emailAddress}`) || '';
+        const savedName = localStorage.getItem(`profile_displayName_${emailAddress}`) || '';
         const savedIsSame = localStorage.getItem(`profile_whatsapp_same_as_phone_${emailAddress}`) === 'true';
 
-        setPhone(savedPhone);
-        setAddress(savedAddress);
+        if (savedPhone) setPhone(savedPhone);
+        if (savedAddress) setAddress(savedAddress);
+        if (savedAvatar) setAvatar(savedAvatar);
+        if (savedName && !displayName) setDisplayName(savedName);
         setIsSameAsPhone(savedIsSame);
         if (savedIsSame) {
           setWhatsapp(savedPhone);
@@ -54,16 +69,23 @@ export default function ProfilePage() {
         }
 
         try {
-          const res = await fetch(`${API_URL}/users/profile?email=${emailAddress}`);
+          const res = await fetch(`${API_URL}/users/profile?email=${encodeURIComponent(emailAddress)}`);
           if (res.ok) {
             const data = await res.json();
-            setPlan(data.plan || 'FREE');
+            const isAdminEmail = emailAddress.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
+            setPlan(data.plan || (isAdminEmail ? 'PRO' : 'FREE'));
+            setIsPro(Boolean(data.isPro || isAdminEmail || (data.plan && data.plan.includes('Pro'))));
             setSearchesLeft(data.searchesLeft ?? 1);
             setSearchLimit(data.searchLimit ?? 1);
+            if (data.phone) setPhone(data.phone);
+            if (data.whatsapp) setWhatsapp(data.whatsapp);
+            if (data.address) setAddress(data.address);
+            if (data.displayName) setDisplayName(data.displayName);
+            if (data.avatar) setAvatar(data.avatar);
           }
 
           // Fetch real dynamic alerts count
-          const alertsRes = await fetch(`${API_URL}/users/alerts?email=${emailAddress}`);
+          const alertsRes = await fetch(`${API_URL}/users/alerts?email=${encodeURIComponent(emailAddress)}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
             setAlertsCount(alertsData.length);
@@ -87,36 +109,157 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
+  // Handle avatar photo selection and conversion to base64 DataURL
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please select a valid image file (PNG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image size must be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setAvatar(result);
+      setAvatarError(null);
+      setSaveError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Live duplicate phone check with debouncing
+  useEffect(() => {
+    if (!phone || phone.trim().length < 10 || !email) {
+      setPhoneError(null);
+      setPhoneAvailable(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/users/check-phone?phone=${encodeURIComponent(phone.trim())}&email=${encodeURIComponent(email.trim())}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.available) {
+            setPhoneError(data.message || 'Duplicate number: another user has already used this phone number. Please use a different number.');
+            setPhoneAvailable(false);
+          } else {
+            setPhoneError(null);
+            setPhoneAvailable(true);
+          }
+        }
+      } catch (err) {
+        console.error('Phone check error:', err);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [phone, email]);
+
   useEffect(() => {
     if (isSameAsPhone) {
       setWhatsapp(phone);
     }
   }, [phone, isSameAsPhone]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveLoading(true);
+    setSaveError(null);
+    setAvatarError(null);
+    setPhoneError(null);
 
-    if (email) {
-      localStorage.setItem(`profile_phone_${email}`, phone);
-      localStorage.setItem(`profile_whatsapp_${email}`, isSameAsPhone ? phone : whatsapp);
-      localStorage.setItem(`profile_whatsapp_same_as_phone_${email}`, String(isSameAsPhone));
-      localStorage.setItem(`profile_address_${email}`, address);
-      localStorage.setItem(`profile_completed_${email}`, 'true');
+    if (!displayName.trim()) {
+      setSaveError('Full Name is mandatory to complete your profile.');
+      setSaveLoading(false);
+      return;
     }
 
-    localStorage.setItem('profile_email', email);
-    localStorage.setItem('profile_phone', phone);
-    localStorage.setItem('profile_whatsapp', isSameAsPhone ? phone : whatsapp);
-    localStorage.setItem('profile_whatsapp_same_as_phone', String(isSameAsPhone));
-    localStorage.setItem('profile_address', address);
-    localStorage.setItem('profile_completed', 'true');
-
-    setTimeout(() => {
+    if (!avatar.trim()) {
+      setAvatarError('Profile picture is mandatory. Please upload your profile photo.');
+      setSaveError('Profile picture is mandatory. Please upload your profile photo.');
       setSaveLoading(false);
+      return;
+    }
+
+    if (!phone.trim()) {
+      setPhoneError('Phone number is required.');
+      setSaveLoading(false);
+      return;
+    }
+
+    if (!address.trim()) {
+      setSaveError('Physical address is mandatory to complete your profile.');
+      setSaveLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/users/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          displayName: displayName.trim(),
+          avatar: avatar.trim(),
+          phone: phone.trim(),
+          whatsapp: (isSameAsPhone ? phone : whatsapp).trim(),
+          address: address.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.message && (data.message.toLowerCase().includes('duplicate') || data.message.toLowerCase().includes('phone'))) {
+          setPhoneError(data.message);
+        } else {
+          setSaveError(data.message || 'Failed to save profile');
+        }
+        setSaveLoading(false);
+        return;
+      }
+
+      // Save locally for fallback
+      if (email) {
+        localStorage.setItem(`profile_displayName_${email}`, displayName.trim());
+        localStorage.setItem(`profile_avatar_${email}`, avatar);
+        localStorage.setItem(`profile_phone_${email}`, phone);
+        localStorage.setItem(`profile_whatsapp_${email}`, isSameAsPhone ? phone : whatsapp);
+        localStorage.setItem(`profile_whatsapp_same_as_phone_${email}`, String(isSameAsPhone));
+        localStorage.setItem(`profile_address_${email}`, address);
+        localStorage.setItem(`profile_completed_${email}`, 'true');
+      }
+
+      localStorage.setItem('profile_email', email);
+      localStorage.setItem('profile_displayName', displayName.trim());
+      localStorage.setItem('profile_avatar', avatar);
+      localStorage.setItem('profile_phone', phone);
+      localStorage.setItem('profile_whatsapp', isSameAsPhone ? phone : whatsapp);
+      localStorage.setItem('profile_whatsapp_same_as_phone', String(isSameAsPhone));
+      localStorage.setItem('profile_address', address);
+      localStorage.setItem('profile_completed', 'true');
+
+      // Dispatch event to automatically dismiss mandatory modal
+      window.dispatchEvent(new Event('phonekoi_profile_completed'));
+
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }, 800);
+      setPhoneAvailable(true);
+      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch (err: any) {
+      setSaveError(err.message || 'Failed to submit profile to server');
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   // Query live reports count from backend
@@ -189,10 +332,25 @@ export default function ProfilePage() {
           transition={{ delay: 0.1 }}
         >
           <GlassCard className="p-6 flex flex-col items-center text-center bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
-            <div className="w-24 h-24 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4 overflow-hidden relative shadow-inner">
-              <span className="text-4xl font-extrabold text-indigo-600">{displayName.charAt(0)}</span>
+            <div className="w-24 h-24 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4 overflow-hidden relative shadow-inner group">
+              {avatar ? (
+                <img src={avatar} alt={displayName || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-4xl font-extrabold text-indigo-600">
+                  {(displayName || email || 'U').charAt(0).toUpperCase()}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-bold"
+                title="Upload Profile Picture"
+              >
+                <Camera className="w-5 h-5 mb-0.5" />
+                <span>Upload</span>
+              </button>
             </div>
-            <h2 className="text-xl font-bold text-indigo-950 mb-1">{displayName}</h2>
+            <h2 className="text-xl font-bold text-indigo-950 mb-1">{displayName || email?.split('@')[0] || 'Phone Koi User'}</h2>
             <div className="flex items-center justify-center gap-2 text-sm text-slate-400 font-semibold mb-6">
               <Mail className="w-4 h-4 text-indigo-500" />
               {email}
@@ -208,11 +366,13 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400 font-semibold">Subscription</span>
                 <span className={`font-bold flex items-center gap-1 border px-2.5 py-0.5 rounded-full text-xs ${
-                  plan === 'PRO' 
-                    ? 'text-indigo-600 bg-indigo-50 border-indigo-100 shadow-sm shadow-indigo-100/50' 
+                  isPro || plan === 'PRO' || (typeof plan === 'string' && plan.includes('Pro'))
+                    ? 'text-indigo-600 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200/80 shadow-sm shadow-indigo-100/50' 
                     : 'text-slate-500 bg-slate-50 border-slate-200'
                 }`}>
-                  {plan === 'PRO' ? 'Pro Member 🌟' : 'Free Plan'}
+                  {isPro || plan === 'PRO' || (typeof plan === 'string' && plan.includes('Pro'))
+                    ? (plan === '6 Months Pro' ? '6 Months Pro Member 🌟' : (plan === 'PRO' ? 'Pro Member 🌟' : `${plan} Member 🌟`))
+                    : 'Free Plan'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -278,76 +438,189 @@ export default function ProfilePage() {
                 Complete Your Profile
               </h3>
               
-              <form onSubmit={handleSaveProfile} className="space-y-4">
+              <form id="complete-profile-form" onSubmit={handleSaveProfile} className="space-y-5">
+                {saveError && (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2.5 text-xs font-bold animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>{saveError}</span>
+                  </div>
+                )}
+
+                {/* Profile Picture Upload Section (Mandatory) */}
+                <div className="p-4 bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-slate-50/80 rounded-2xl border border-indigo-100/80">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-16 h-16 rounded-full bg-white border-2 border-indigo-200 shadow-sm overflow-hidden flex items-center justify-center shrink-0 cursor-pointer relative group hover:border-indigo-400 transition-all"
+                    >
+                      {avatar ? (
+                        <img src={avatar} alt="Profile preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-7 h-7 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                      )}
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <Camera className="w-5 h-5" />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 text-center sm:text-left space-y-1">
+                      <div className="flex items-center justify-center sm:justify-start gap-2">
+                        <label className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                          Profile Picture <span className="text-rose-500">*</span>
+                        </label>
+                        {avatar && (
+                          <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            <Check className="w-3 h-3" /> Photo Uploaded
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Upload a clear avatar or photo. Required to verify your identity.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 bg-white hover:bg-slate-50 border border-indigo-200 text-indigo-700 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 shrink-0"
+                    >
+                      <UploadCloud className="w-4 h-4 text-indigo-600" />
+                      <span>{avatar ? 'Change Photo' : 'Upload Photo'}</span>
+                    </button>
+                  </div>
+
+                  {avatarError && (
+                    <div className="mt-3 p-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600 flex items-center gap-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{avatarError}</span>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Email address */}
+                  {/* Full Name */}
                   <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Email Address</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                      Full Name <span className="text-rose-500">*</span>
+                    </label>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="email@example.com"
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => {
+                        setDisplayName(e.target.value);
+                        setSaveError(null);
+                      }}
+                      placeholder="e.g. Sabbir Ahmed"
                       className="w-full bg-white/60 border border-indigo-100 rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium"
                       required
                     />
                   </div>
 
-                  {/* Phone number */}
+                  {/* Email address */}
                   <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Phone Number</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                      Email Address <span className="text-slate-400 font-normal">(Account)</span>
+                    </label>
                     <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+8801XXXXXXXXX"
-                      className="w-full bg-white/60 border border-indigo-100 rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium"
-                      required
+                      type="email"
+                      value={email}
+                      readOnly
+                      disabled
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl py-3 px-4 text-slate-600 cursor-not-allowed text-sm font-semibold select-none"
                     />
                   </div>
                 </div>
 
-                {/* WhatsApp number with selection button */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp Number</label>
-                    
-                    {/* Selection button / Switch style */}
-                    <button
-                      type="button"
-                      onClick={() => setIsSameAsPhone(!isSameAsPhone)}
-                      className={`text-xs flex items-center gap-1.5 font-bold px-3 py-1 rounded-full transition-all ${
-                        isSameAsPhone 
-                          ? 'bg-indigo-600 text-white shadow-sm' 
-                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Phone number */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                        Phone Number <span className="text-rose-500">*</span>
+                      </label>
+                      {phoneAvailable && !phoneError && (
+                        <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Unique & Available
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setPhoneError(null);
+                        setSaveError(null);
+                      }}
+                      placeholder="01XXXXXXXXX"
+                      className={`w-full border rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 transition-all text-sm font-medium ${
+                        phoneError
+                          ? 'border-rose-400 focus:ring-rose-200 bg-rose-50/20'
+                          : 'bg-white/60 border-indigo-100 focus:ring-indigo-300'
                       }`}
-                    >
-                      {isSameAsPhone ? '✓ Same as Phone' : 'Same as Phone?'}
-                    </button>
+                      required
+                    />
+                    {phoneError && (
+                      <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs font-bold text-rose-600 animate-in fade-in">
+                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>{phoneError}</span>
+                      </div>
+                    )}
                   </div>
-                  
-                  <input
-                    type="tel"
-                    value={isSameAsPhone ? phone : whatsapp}
-                    onChange={(e) => {
-                      if (!isSameAsPhone) {
-                        setWhatsapp(e.target.value);
-                      }
-                    }}
-                    disabled={isSameAsPhone}
-                    placeholder="+8801XXXXXXXXX"
-                    className={`w-full border rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium ${
-                      isSameAsPhone 
-                        ? 'bg-slate-50/60 border-slate-200/60 text-slate-400 cursor-not-allowed select-none' 
-                        : 'bg-white/60 border-indigo-100'
-                    }`}
-                    required
-                  />
+
+                  {/* WhatsApp number with selection button */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        WhatsApp Number <span className="text-rose-500">*</span>
+                      </label>
+                      
+                      {/* Selection button / Switch style */}
+                      <button
+                        type="button"
+                        onClick={() => setIsSameAsPhone(!isSameAsPhone)}
+                        className={`text-xs flex items-center gap-1.5 font-bold px-3 py-1 rounded-full transition-all ${
+                          isSameAsPhone 
+                            ? 'bg-indigo-600 text-white shadow-sm' 
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                        }`}
+                      >
+                        {isSameAsPhone ? '✓ Same as Phone' : 'Same as Phone?'}
+                      </button>
+                    </div>
+                    
+                    <input
+                      type="tel"
+                      value={isSameAsPhone ? phone : whatsapp}
+                      onChange={(e) => {
+                        if (!isSameAsPhone) {
+                          setWhatsapp(e.target.value);
+                        }
+                      }}
+                      disabled={isSameAsPhone}
+                      placeholder="01XXXXXXXXX"
+                      className={`w-full border rounded-xl py-3 px-4 text-indigo-950 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all text-sm font-medium ${
+                        isSameAsPhone 
+                          ? 'bg-slate-50/60 border-slate-200/60 text-slate-400 cursor-not-allowed select-none' 
+                          : 'bg-white/60 border-indigo-100'
+                      }`}
+                      required
+                    />
+                  </div>
                 </div>
 
                 {/* Physical Address */}
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Physical Address</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                    Physical Address <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={address}
@@ -361,16 +634,16 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between pt-2">
                   {saveSuccess && (
                     <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl animate-fade-in flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Profile successfully updated!
+                      <ShieldCheck className="w-3.5 h-3.5" /> Profile successfully verified & updated!
                     </span>
                   )}
                   
                   <button
                     type="submit"
-                    disabled={saveLoading}
-                    className="ml-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition-all disabled:opacity-50"
+                    disabled={saveLoading || Boolean(phoneError)}
+                    className="ml-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {saveLoading ? 'Saving...' : 'Save Profile Details'}
+                    {saveLoading ? 'Verifying & Saving...' : 'Save Profile Details'}
                   </button>
                 </div>
               </form>

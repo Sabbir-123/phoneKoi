@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, Lock, AlertCircle, LogIn } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
@@ -70,8 +71,17 @@ function LoginContent() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-sky-400" />
 
           <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
-              <LogIn className="w-7 h-7 text-white" />
+            <div className="flex justify-center mb-5">
+              <Link href="/" className="inline-block hover:scale-105 transition-transform">
+                <Image
+                  src="/logo.png"
+                  alt="PhoneKoi"
+                  width={154}
+                  height={40}
+                  priority
+                  className="h-10 w-auto object-contain"
+                />
+              </Link>
             </div>
             <h1 className="text-2xl font-bold text-indigo-950 mb-1">Welcome Back</h1>
             <p className="text-slate-500 text-sm">Sign in to access the Phone Koi Network.</p>

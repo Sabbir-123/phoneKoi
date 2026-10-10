@@ -1,0 +1,22 @@
+# PhoneKoi (phonekoi.com)
+
+> Community-Driven IMEI Verification, Stolen Phone Blacklist & Device Fraud Prevention Network in Bangladesh.
+
+## Overview
+PhoneKoi is Bangladesh's primary consumer protection platform for mobile devices. Before purchasing second-hand or imported smartphones, buyers verify IMEI numbers against official Police GD (General Diary) records, community theft blacklists, and algorithmic integrity checks.
+
+## Key Services
+- **Instant IMEI Search**: https://phonekoi.com/check or https://phonekoi.com/result/{imei}
+- **Report Stolen or Lost Phone**: https://phonekoi.com/report (requires Police GD number and device verification)
+- **Supported Brands**: Apple iPhone (iPhone 16 Pro Max, iPhone 15 Pro, iPhone 14, iPhone 13, iPhone 12, iPhone 11, etc.), Samsung (Galaxy S24, S23, Ultra, A-series, Z Fold/Flip), Xiaomi (Redmi Note, Poco, Mi series), Vivo, Oppo, Realme, OnePlus, Google Pixel.
+- **Verification Engine**:
+  - Luhn checksum algorithmic validation.
+  - Multi-tier risk engine scoring (Clean, Caution, High Risk, Stolen).
+  - Geolocation-tagged theft activity patterns.
+  - 1-Number-per-Account policy ensuring authentic user identity.
+
+## Location & Jurisdiction
+- Region: Bangladesh (BD)
+- Headquarters: Dhaka, Bangladesh
+- Primary Languages: English (en-BD), Bengali / Banglish (bn-BD)
+- Official Website: https://phonekoi.com

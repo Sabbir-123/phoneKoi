@@ -45,8 +45,12 @@ export default function ReportPage() {
 
         const res = await fetch(`${API_URL}/users/profile?email=${session.user.email}`);
         if (res.ok) {
-          const data = await res.json();
-          setIsPro(data.isPro && data.plan === "PRO");
+          const isProPlan = Boolean(
+            data.isPro || 
+            data.role === "ADMIN" || 
+            (typeof data.plan === "string" && data.plan.toLowerCase().includes("pro"))
+          );
+          setIsPro(isProPlan);
           setReportsLeft(data.reportsLeft ?? 0);
         }
       } catch (err) {

@@ -39,12 +39,20 @@ function DashboardHomeContent() {
           setName(userEmail.split('@')[0]);
         }
 
-        // Check if redirect query param or user-specific localStorage says incomplete
-        const showWarning = searchParams.get('showProfileWarning') === 'true';
-        const profileCompleted = localStorage.getItem(`profile_completed_${userEmail}`) === 'true';
-        
-        if (showWarning || !profileCompleted) {
-          setProfileWarning(true);
+        // Check profile completeness from backend or localStorage
+        try {
+          const profileRes = await fetch(`${API_URL}/users/profile?email=${encodeURIComponent(userEmail)}`);
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            const isComplete = Boolean(profileData.isProfileComplete || (profileData.phone && profileData.address));
+            setProfileWarning(!isComplete);
+          } else {
+            const profileCompleted = localStorage.getItem(`profile_completed_${userEmail}`) === 'true';
+            setProfileWarning(!profileCompleted);
+          }
+        } catch (e) {
+          const profileCompleted = localStorage.getItem(`profile_completed_${userEmail}`) === 'true';
+          setProfileWarning(!profileCompleted);
         }
 
         // Load local search history

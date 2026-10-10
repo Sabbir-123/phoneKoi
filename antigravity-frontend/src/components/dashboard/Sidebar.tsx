@@ -4,6 +4,7 @@ import { API_URL } from '@/utils/api';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X, CreditCard, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
@@ -33,11 +34,15 @@ export default function Sidebar() {
       const email = session?.user?.email;
       
       if (email) {
+        const isAdminEmail = email.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
+        if (isAdminEmail) {
+          setIsAdmin(true);
+        }
         try {
           const res = await fetch(`${API_URL}/users/profile?email=${email}`);
           if (res.ok) {
             const profile = await res.json();
-            if (profile?.role === 'ADMIN') {
+            if (profile?.role === 'ADMIN' || isAdminEmail) {
               setIsAdmin(true);
             }
             if (profile?.searchesLeft !== undefined) {
@@ -90,14 +95,16 @@ export default function Sidebar() {
         transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
         className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-white/80 border-r border-slate-100 backdrop-blur-md z-50 flex flex-col`}
       >
-        <div className="h-16 lg:h-20 flex items-center justify-between px-8 border-b border-slate-100">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
-              <span className="text-white font-extrabold text-xl">P</span>
-            </div>
-            <span className="font-extrabold tracking-widest text-indigo-950 uppercase text-sm">
-              Phone Koi
-            </span>
+        <div className="h-16 lg:h-20 flex items-center justify-between px-6 border-b border-slate-100">
+          <Link href="/" className="flex items-center py-1 group">
+            <Image
+              src="/logo.png"
+              alt="PhoneKoi Logo"
+              width={142}
+              height={38}
+              priority
+              className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
+            />
           </Link>
           <button onClick={toggleSidebar} className="lg:hidden p-2 text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />

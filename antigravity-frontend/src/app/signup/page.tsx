@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, Lock, User, AlertCircle, UserPlus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
@@ -102,8 +103,17 @@ function SignupContent() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 via-indigo-400 to-sky-400" />
 
           <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-gradient-to-tr from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
-              <UserPlus className="w-7 h-7 text-white" />
+            <div className="flex justify-center mb-5">
+              <Link href="/" className="inline-block hover:scale-105 transition-transform">
+                <Image
+                  src="/logo.png"
+                  alt="PhoneKoi"
+                  width={154}
+                  height={40}
+                  priority
+                  className="h-10 w-auto object-contain"
+                />
+              </Link>
             </div>
             <h1 className="text-2xl font-bold text-indigo-950 mb-1">Create Account</h1>
             <p className="text-slate-500 text-sm">Join the community to track verifications.</p>

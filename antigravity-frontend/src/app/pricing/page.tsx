@@ -70,7 +70,9 @@ const subscriptionPlans = [
 
 export default function PricingPage() {
   const [email, setEmail] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState<typeof subscriptionPlans[0] | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<typeof subscriptionPlans[0] | null>(null);
+  const [selectedPlanName, setSelectedPlanName] = useState<string>('3 Months Pro');
+  const [hoveredPlanName, setHoveredPlanName] = useState<string | null>(null);
   const [trxCode, setTrxCode] = useState('');
   const [lastFour, setLastFour] = useState('');
   const [copied, setCopied] = useState(false);
@@ -97,18 +99,19 @@ export default function PricingPage() {
   };
 
   const handleChoosePlan = (plan: typeof subscriptionPlans[0]) => {
+    setSelectedPlanName(plan.name);
     if (!email) {
       router.push(`/login?redirectTo=/pricing`);
       return;
     }
-    setSelectedPlan(plan);
+    setCheckoutPlan(plan);
     setSuccess(false);
     setError(null);
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlan) return;
+    if (!checkoutPlan) return;
     setLoading(true);
     setError(null);
 
@@ -117,8 +120,8 @@ export default function PricingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planName: selectedPlan.name,
-          price: selectedPlan.price,
+          planName: checkoutPlan.name,
+          price: checkoutPlan.price,
           trxCode,
           bkashLastFour: lastFour,
         }),
@@ -171,69 +174,102 @@ export default function PricingPage() {
         >
           Upgrade your plan to run queries, protect purchases in real-time, and get unlimited device track alerts.
         </motion.p>
+
+        {/* Promo announcement */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200/80 text-emerald-900 text-xs font-bold shadow-sm"
+        >
+          <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>
+            🎉 <strong>Early Adopter Special:</strong> Sign up until <strong>January 31, 2027</strong> to receive the <strong>6 Months Pro Package for FREE</strong>!
+          </span>
+        </motion.div>
       </div>
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {subscriptionPlans.map((plan, idx) => (
-          <motion.div
-            key={plan.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + idx * 0.08 }}
-            className="flex"
-          >
-            <GlassCard
-              glowColor={plan.glow}
-              className={`p-7 flex flex-col justify-between w-full relative bg-white/70 border transition-all ${
-                plan.popular
-                  ? 'border-indigo-500/35 ring-4 ring-indigo-500/5 shadow-md shadow-indigo-100/35 bg-white/90 scale-[1.02]'
-                  : 'border-slate-100 hover:border-indigo-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]'
-              }`}
+        {subscriptionPlans.map((plan, idx) => {
+          const isHighlighted = hoveredPlanName ? (hoveredPlanName === plan.name) : (selectedPlanName === plan.name);
+          const isSelected = selectedPlanName === plan.name;
+
+          return (
+            <motion.div
+              key={plan.name}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + idx * 0.08 }}
+              className="flex"
             >
-              <div className="space-y-6">
-                <div>
-                  {plan.popular && (
-                    <div className="mb-3">
-                      <span className="bg-indigo-600 text-white text-[9px] uppercase font-extrabold tracking-widest px-2.5 py-1 rounded-full shadow-sm">
-                        Popular
-                      </span>
+              <GlassCard
+                glowColor={plan.glow}
+                onMouseEnter={() => setHoveredPlanName(plan.name)}
+                onMouseLeave={() => setHoveredPlanName(null)}
+                onClick={() => setSelectedPlanName(plan.name)}
+                className={`p-7 flex flex-col justify-between w-full relative transition-all duration-300 cursor-pointer ${
+                  isHighlighted
+                    ? 'border-indigo-600 ring-4 ring-indigo-500/20 shadow-2xl shadow-indigo-500/20 bg-white scale-[1.03] z-10'
+                    : 'border-slate-100 hover:border-indigo-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)] bg-white/70 scale-100'
+                }`}
+              >
+                <div className="space-y-6">
+                  <div>
+                    <div className="min-h-[26px] mb-3 flex items-center">
+                      {plan.popular ? (
+                        <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full shadow-md">
+                          Popular
+                        </span>
+                      ) : isHighlighted ? (
+                        <span className="bg-indigo-600 text-white text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full shadow-md animate-in fade-in duration-200">
+                          {isSelected ? 'Selected' : 'Active Choice'}
+                        </span>
+                      ) : null}
                     </div>
-                  )}
-                  <h3 className="text-lg font-bold text-indigo-950">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-3xl font-extrabold text-indigo-950">৳{plan.price}</span>
-                    <span className="text-xs font-bold text-slate-400">/ {plan.duration}</span>
+
+                    <h3 className="text-lg font-bold text-indigo-950">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-3xl font-extrabold text-indigo-950">৳{plan.price}</span>
+                      <span className="text-xs font-bold text-slate-400">/ {plan.duration}</span>
+                    </div>
                   </div>
+
+                  <ul className="space-y-3">
+                    {plan.features.map((feature, fIdx) => (
+                      <li key={fIdx} className="flex gap-2.5 items-start text-xs text-slate-600 font-medium">
+                        <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <ul className="space-y-3">
-                  {plan.features.map((feature, fIdx) => (
-                    <li key={fIdx} className="flex gap-2.5 items-start text-xs text-slate-600 font-medium">
-                      <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pt-8">
-                <MotionButton
-                  variant={plan.popular ? 'primary' : 'secondary'}
-                  onClick={() => handleChoosePlan(plan)}
-                  className="w-full font-bold py-3 rounded-xl border border-indigo-500/10 whitespace-nowrap"
-                >
-                  Choose Plan
-                </MotionButton>
-              </div>
-            </GlassCard>
-          </motion.div>
-        ))}
+                <div className="pt-8">
+                  <MotionButton
+                    variant={isHighlighted ? 'primary' : 'secondary'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleChoosePlan(plan);
+                    }}
+                    className={`w-full font-bold py-3 rounded-xl transition-all whitespace-nowrap ${
+                      isHighlighted
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 border-transparent'
+                        : 'border border-slate-200 text-slate-600 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    Choose Plan
+                  </MotionButton>
+                </div>
+              </GlassCard>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Payment Modals */}
       <AnimatePresence>
-        {selectedPlan && (
+        {checkoutPlan && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -251,10 +287,10 @@ export default function PricingPage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-indigo-950">bKash Subscription Payment</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Plan: {selectedPlan.name} • ৳{selectedPlan.price}</p>
+                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Plan: {checkoutPlan.name} • ৳{checkoutPlan.price}</p>
                 </div>
                 <button
-                  onClick={() => setSelectedPlan(null)}
+                  onClick={() => setCheckoutPlan(null)}
                   className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   ✕
@@ -270,7 +306,7 @@ export default function PricingPage() {
                       <span className="text-xs font-bold text-[#e2125d] uppercase tracking-wider">bKash Send Money</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                      Please send exactly <strong className="text-indigo-950">৳{selectedPlan.price}</strong> from your bKash app to the personal number below:
+                      Please send exactly <strong className="text-indigo-950">৳{checkoutPlan.price}</strong> from your bKash app to the personal number below:
                     </p>
                     <div className="flex items-center justify-between bg-white border border-pink-100 rounded-xl p-3 shadow-inner">
                       <span className="text-sm font-extrabold text-indigo-950">01626693505</span>
@@ -350,13 +386,13 @@ export default function PricingPage() {
                   <div>
                     <h4 className="text-lg font-bold text-indigo-950">Transaction Submitted!</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed font-semibold mt-2">
-                      Your bKash transaction was successfully recorded. The system administrator will verify the payment and initialize your **{selectedPlan.name}** active plan shortly!
+                      Your bKash transaction was successfully recorded. The system administrator will verify the payment and initialize your **{checkoutPlan.name}** active plan shortly!
                     </p>
                   </div>
                   <div className="pt-4">
                     <MotionButton
                       variant="primary"
-                      onClick={() => setSelectedPlan(null)}
+                      onClick={() => setCheckoutPlan(null)}
                       className="px-8 py-2.5 rounded-xl text-white font-bold"
                     >
                       Awesome, thank you!

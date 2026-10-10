@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, ShieldAlert, ShieldCheck, Activity, User, LogOut, Sparkles, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
@@ -68,18 +69,22 @@ export default function Navbar() {
               : "bg-transparent"
           }`}
         >
-          {/* Logo */}
-          <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2 group">
+          {/* Official PhoneKoi Logo */}
+          <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center group py-0.5">
             <motion.div
-              whileHover={{ rotate: 180 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
-              className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-md"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="relative flex items-center"
             >
-              <ShieldCheck className="w-4 h-4 text-white" />
+              <Image
+                src="/logo.png"
+                alt="PhoneKoi - IMEI Verification Network"
+                width={136}
+                height={36}
+                priority
+                className="h-8 md:h-9 w-auto object-contain transition-transform"
+              />
             </motion.div>
-            <span className="font-bold tracking-widest uppercase text-sm text-indigo-700 group-hover:text-indigo-500 transition-colors">
-              Phone Koi
-            </span>
           </Link>
 
           {/* Nav links (Desktop) */}
