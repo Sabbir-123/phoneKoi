@@ -50,6 +50,7 @@ export default function Home() {
   // Interactive Live Demo State (Default to authentic valid 15-digit IMEI)
   const [demoImei, setDemoImei] = useState("354892110283746");
   const [demoValid, setDemoValid] = useState(true);
+  const [videoError, setVideoError] = useState(false);
 
   // Handle hero input changes
   useEffect(() => {
@@ -225,16 +226,28 @@ export default function Home() {
 
               {/* Video Screen Container */}
               <div className="relative w-full h-full rounded-[38px] overflow-hidden bg-black">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  src="https://www.youtube.com/embed/RzTucEPowrg?autoplay=1&mute=1&loop=1&playlist=RzTucEPowrg&controls=0&rel=0&modestbranding=1"
-                  title="Phone Koi Preview"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full object-cover scale-105"
-                />
+                {!videoError ? (
+                  <video
+                    src="/hero-video.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={() => setVideoError(true)}
+                    className="w-full h-full object-cover scale-105"
+                  />
+                ) : (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src="https://www.youtube.com/embed/RzTucEPowrg?autoplay=1&mute=1&loop=1&playlist=RzTucEPowrg&controls=0&rel=0&modestbranding=1"
+                    title="Phone Koi Preview"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full object-cover scale-105"
+                  />
+                )}
 
                 {/* Floating In-App Glass Badge Overlay */}
                 <div className="absolute bottom-5 left-3 right-3 bg-slate-950/80 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-left text-white shadow-xl pointer-events-none z-20">
