@@ -89,10 +89,10 @@ export default function Footer() {
             <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">Supported Devices</h4>
             <ul className="space-y-2.5 text-sm text-slate-600 font-medium">
               <li className="flex items-center gap-2">
-                <span>🍎</span> Apple iPhone (11-16 Pro Max)
+                <span>🍎</span> Apple iPhone (11 – 18 Pro Max)
               </li>
               <li className="flex items-center gap-2">
-                <span>📱</span> Samsung Galaxy (S24, S23, A-series)
+                <span>📱</span> Samsung Galaxy (S26 ultra, S26, A-series, all series)
               </li>
               <li className="flex items-center gap-2">
                 <span>⚡</span> Xiaomi, Redmi &amp; Poco

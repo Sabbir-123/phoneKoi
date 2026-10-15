@@ -251,7 +251,7 @@ const structuredData = {
           "name": "Can I check Samsung and Xiaomi phone IMEI on PhoneKoi?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, PhoneKoi supports all Samsung Galaxy devices (S24, S23, A series), Xiaomi/Redmi phones, and Apple iPhones across all models."
+            "text": "Yes, PhoneKoi supports all Samsung Galaxy devices (S26 ultra, S26, A-series, all series), Xiaomi/Redmi phones, and Apple iPhones (11 – 18 Pro Max)."
           }
         },
         {

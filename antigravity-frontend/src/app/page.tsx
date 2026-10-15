@@ -185,10 +185,10 @@ export default function Home() {
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="px-3 py-1.5 rounded-xl bg-white/80 border border-slate-200 shadow-xs text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <span>🍎</span> Apple iPhone (11 – 16 Pro Max)
+                  <span>🍎</span> Apple iPhone (11 – 18 Pro Max)
                 </div>
                 <div className="px-3 py-1.5 rounded-xl bg-white/80 border border-slate-200 shadow-xs text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <span>📱</span> Samsung Galaxy (S24, S23, A-series)
+                  <span>📱</span> Samsung Galaxy (S26 ultra, S26, A-series, all series)
                 </div>
                 <div className="px-3 py-1.5 rounded-xl bg-white/80 border border-slate-200 shadow-xs text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <span>⚡</span> Xiaomi, Redmi &amp; Poco
