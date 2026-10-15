@@ -578,12 +578,12 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-bold text-indigo-950">Apple iPhone Series</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Verify models from iPhone 11 up to iPhone 16 Pro Max. Check against IMEI blacklists and stolen serials before buying used devices on social groups.
+              Verify models from iPhone 11 up to iPhone 18 Pro Max. Check against IMEI blacklists and stolen serials before buying used devices on social groups.
             </p>
             <div className="pt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-600">
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">iPhone 16 Pro Max</span>
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">iPhone 15 Pro</span>
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">iPhone 14 / 13</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">iPhone 18 Pro Max</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">iPhone 17 Pro</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">iPhone 16 / 15</span>
             </div>
           </div>
 
@@ -594,12 +594,12 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-bold text-indigo-950">Samsung Galaxy Series</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Verify Galaxy S-series, A-series, and Z Fold/Flip models. Protect against Knox bypasses, carrier locks, and blacklisted second-hand imports.
+              Verify Galaxy S-series (S26 Ultra, S26, S25), A-series, and Z Fold/Flip models. Protect against Knox bypasses, carrier locks, and blacklisted second-hand imports.
             </p>
             <div className="pt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-600">
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Galaxy S24 Ultra</span>
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Galaxy S23 / S22</span>
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Galaxy A54 / A34</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Galaxy S26 Ultra</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Galaxy S26 / S25</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Galaxy A-Series (All)</span>
             </div>
           </div>
 
@@ -613,9 +613,9 @@ export default function Home() {
               Verify Redmi Note series and Poco smartphones. Prevent buying devices with swapped motherboards or unauthorized serial modifications.
             </p>
             <div className="pt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-600">
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Redmi Note 13 Pro</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Redmi Note 15 / 14</span>
               <span className="px-2.5 py-1 bg-slate-100 rounded-md">Poco X / F Series</span>
-              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Xiaomi 14 / 13</span>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-md">Xiaomi 16 / 15</span>
             </div>
           </div>
 
