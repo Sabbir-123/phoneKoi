@@ -12,14 +12,28 @@ export class ImeiController {
     @Query('email') email: string,
     @Query('clientIp') clientIp: string,
     @Query('clientLocation') clientLocation: string,
-    @Req() req: any
+    @Req() req: any,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('accuracy') accuracy?: string,
+    @Query('locationSource') locationSource?: string
   ) {
     if (!imei) throw new BadRequestException('IMEI is required');
     
     // Get IP address for search logging (favor clientIp query param for localhost dev environment testing)
-    const ip = clientIp || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ip = clientIp || req.headers['x-forwarded-for'] || req.connection?.remoteAddress;
     const language = lang === 'banglish' ? 'banglish' : 'english';
     
-    return this.imeiService.checkImei(imei, ip, language, email, clientLocation);
+    return this.imeiService.checkImei(
+      imei, 
+      ip, 
+      language, 
+      email, 
+      clientLocation,
+      lat ? parseFloat(lat) : undefined,
+      lng ? parseFloat(lng) : undefined,
+      accuracy ? parseFloat(accuracy) : undefined,
+      locationSource as any
+    );
   }
 }

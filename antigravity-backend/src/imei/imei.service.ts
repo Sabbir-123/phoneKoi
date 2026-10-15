@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchLogsService } from '../search-logs/search-logs.service';
+import { SearchEventsService } from '../search-events/search-events.service';
 import { DeviceStatus, RiskLevel } from '@prisma/client';
 import { AiService } from '../ai/ai.service';
 import * as fs from 'fs';
@@ -15,6 +16,7 @@ export class ImeiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly searchLogsService: SearchLogsService,
+    private readonly searchEventsService: SearchEventsService,
     private readonly aiService: AiService
   ) {}
 
@@ -50,7 +52,17 @@ export class ImeiService {
     return sum % 10 === 0;
   }
 
-  async checkImei(imei: string, ip: string = '127.0.0.1', language: 'english' | 'banglish' = 'english', email?: string, clientLocation?: string) {
+  async checkImei(
+    imei: string, 
+    ip: string = '127.0.0.1', 
+    language: 'english' | 'banglish' = 'english', 
+    email?: string, 
+    clientLocation?: string,
+    lat?: number,
+    lng?: number,
+    accuracy?: number,
+    locationSource?: 'BROWSER_GPS' | 'IP_APPROXIMATE' | 'UNAVAILABLE'
+  ) {
     // Attempt to find the device from database with fallback
     let device: any = null;
     try {
@@ -70,9 +82,11 @@ export class ImeiService {
     const localDevices = this.getLocalDevices();
     const localReports = this.getLocalReports();
     const localDev = localDevices.find(d => d.imei === imei);
-    const approvedReport = localReports.find(r => r.imei === imei && r.status === 'APPROVED');
+    const approvedReport = localReports.find(r => r.imei === imei && (r.status === 'APPROVED' || r.status === 'PENDING'));
 
-    if (approvedReport || (localDev && localDev.status === 'STOLEN')) {
+    const isStolenReport = approvedReport && (approvedReport.status === 'APPROVED' || approvedReport.status === 'PENDING');
+
+    if (isStolenReport || (localDev && localDev.status === 'STOLEN')) {
       device = {
         imei,
         status: DeviceStatus.STOLEN,
@@ -131,11 +145,24 @@ export class ImeiService {
       }
     }
 
-    // Trigger Search Log Event asynchronously (fire and forget)
+    // Trigger Search Event & Real-Time Owner Notification (fire and forget / async)
+    this.searchEventsService.recordSearchEvent({
+      imei,
+      ip,
+      clientLocation,
+      latitude: lat,
+      longitude: lng,
+      accuracy,
+      locationSource
+    }).catch(err => console.warn('Search event recording warning:', err?.message || err));
+
+    // Also trigger legacy Search Log Event asynchronously
     this.searchLogsService.logSearch(imei, ip, clientLocation).catch(err => console.warn('Search log non-critical error:', err?.message || err));
 
+    const maskedImei = imei.length === 15 ? `${imei.slice(0, 6)}*****${imei.slice(11)}` : `***********${imei.slice(-4)}`;
+
     if (!device) {
-      // Return a clean default state if not found
+      // Return clean default state with strict advisory
       let explanation = language === 'banglish' 
         ? 'Eti ekta clean device. Kono churi ba GD report paowa jayni.' 
         : 'No theft reports, active police GD complaints, or suspicious patterns detected for this IMEI. Format is authentic and safe to proceed.';
@@ -147,10 +174,13 @@ export class ImeiService {
 
       return {
         imei,
+        maskedImei,
         risk_score: 0,
         risk_level: RiskLevel.LOW,
         status: DeviceStatus.CLEAN,
         explanation,
+        advisory: 'No theft or loss reports currently registered for this IMEI. However, this does not guarantee the device is genuine, free of debt, or legally owned. Always verify the original physical invoice, box serial, and seller credentials.',
+        ownerAlertDispatched: false,
       };
     }
 
@@ -161,7 +191,7 @@ export class ImeiService {
       console.warn('AI risk explanation fallback:', aiErr?.message || aiErr);
     }
 
-    // Fetch the verified owner's contact number if the device is reported stolen
+    // Fetch verified owner details safely
     let contactNumber: string | null = null;
     if (device.status === DeviceStatus.STOLEN) {
       try {
@@ -179,13 +209,32 @@ export class ImeiService {
       }
     }
 
+    const isStolen = device.status === DeviceStatus.STOLEN;
+    const reportType = approvedReport?.reportType || (isStolen ? 'STOLEN' : 'CLEAN');
+
     return {
       imei: device.imei,
+      maskedImei,
       risk_score: device.riskScore,
       risk_level: device.riskLevel,
       status: device.status,
+      reportType,
       explanation,
       contactNumber,
+      warningMessage: isStolen
+        ? 'WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.'
+        : undefined,
+      ownerAlertDispatched: isStolen,
+      brand: approvedReport?.brand || approvedReport?.deviceName?.split(' ')[0] || 'Mobile Device',
+      model: approvedReport?.model || approvedReport?.deviceName || 'Standard Model',
+      deviceName: approvedReport?.deviceName || 'Reported Handset',
+      lossDate: approvedReport?.lossDate || approvedReport?.date || null,
+      policeGdNumber: approvedReport?.policeGdNumber || null,
+      policeStation: approvedReport?.policeStation || null,
+      allowContact: isStolen,
+      safetyGuidance: isStolen
+        ? 'Law Enforcement Advice: Do not confront the seller directly. Note down their phone number or shop location and immediately inform your local police station.'
+        : undefined,
     };
   }
 }

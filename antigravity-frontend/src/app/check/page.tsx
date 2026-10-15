@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { Search, CheckCircle2, AlertTriangle, Loader2, Shield, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const validateLuhn = (imei: string): boolean => {
@@ -32,6 +32,8 @@ export default function CheckPage() {
     return () => clearTimeout(t);
   }, [imei]);
 
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
+
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (imei.length !== 15) return;
@@ -47,13 +49,25 @@ export default function CheckPage() {
     }
 
     setIsSearching(true);
-    setTimeout(() => {
-      const lastDigit = parseInt(imei.charAt(14), 10);
-      let status = "clean";
-      if (lastDigit >= 7) status = "stolen";
-      else if (lastDigit >= 4) status = "suspicious";
-      router.push(`/result/${imei}?status=${status}`);
-    }, 1500);
+    setLocationStatus("Requesting location consent for search audit...");
+
+    if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const accuracy = Math.round(pos.coords.accuracy * 10) / 10;
+          router.push(`/result/${imei}?lat=${lat}&lng=${lng}&accuracy=${accuracy}&locationSource=BROWSER_GPS`);
+        },
+        (err) => {
+          console.warn("Geolocation denied or unavailable, falling back to IP:", err.message);
+          router.push(`/result/${imei}?locationSource=IP_GEOLOCATION`);
+        },
+        { timeout: 3500, enableHighAccuracy: true, maximumAge: 30000 }
+      );
+    } else {
+      router.push(`/result/${imei}?locationSource=IP_GEOLOCATION`);
+    }
   };
 
   const ringColor = isValid
@@ -172,6 +186,17 @@ export default function CheckPage() {
             ⚠️ Luhn checksum mismatch. If this device is already reported in our registry, search will still proceed.
           </div>
         )}
+
+        {/* Location & Privacy Notice */}
+        <div className="mt-4 p-4 rounded-2xl bg-white/50 backdrop-blur-md border border-slate-200/60 text-left space-y-2 shadow-sm">
+          <div className="flex items-center gap-2 text-indigo-900 font-extrabold text-xs">
+            <Shield className="w-4 h-4 text-indigo-600" />
+            <span>Search Security & Owner Alert Guarantee</span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+            When you search, PhoneKoi requests browser geolocation with your explicit consent to record search audit logs and immediately alert the verified owner if a stolen phone is checked. If permission is denied, approximate IP-based location is used. Your identity is never exposed to the public.
+          </p>
+        </div>
       </motion.form>
     </div>
   );

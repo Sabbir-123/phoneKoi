@@ -449,6 +449,34 @@ export class UsersService {
       }
     }
 
+    // Real-time IMEI Search Alerts from search-events.json
+    const searchEventsFile = path.join(this.dataDir, 'search-events.json');
+    if (fs.existsSync(searchEventsFile)) {
+      try {
+        const events: any[] = JSON.parse(fs.readFileSync(searchEventsFile, 'utf-8')) || [];
+        const cleanEmail = email.toLowerCase().trim();
+        for (const ev of events) {
+          if (
+            ev.ownerEmail?.toLowerCase().trim() === cleanEmail ||
+            (cleanEmail === 'ahmedsabbir2013@gmail.com' && (!ev.ownerEmail || ev.ownerEmail === 'admin-sabbir-id'))
+          ) {
+            alerts.push({
+              id: `search-alert-${ev.id}`,
+              type: 'danger',
+              title: '🚨 Stolen Device Searched',
+              desc: `Your registered ${ev.deviceBrand || ''} ${ev.deviceModel || ev.deviceName} (IMEI ${ev.maskedImei}) was checked from ${ev.locationName}.`,
+              time: ev.timestamp,
+              searchEventId: ev.id,
+              locationSource: ev.locationSource,
+              accuracyRadius: ev.accuracyRadius,
+              latitude: ev.latitude,
+              longitude: ev.longitude,
+            });
+          }
+        }
+      } catch (err) {}
+    }
+
     if (alerts.length === 0) {
       alerts.push({
         id: 'system-welcome',

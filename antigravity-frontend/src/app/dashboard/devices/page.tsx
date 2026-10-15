@@ -186,16 +186,24 @@ export default function ReportedDevicesPage() {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100">
+                  <div className="pt-4 border-t border-slate-100 space-y-3">
+                    <Link
+                      href="/dashboard/alerts"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-all"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      View Live Search Alerts
+                    </Link>
+
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Next Recovery Steps</h4>
                     <ul className="text-sm text-slate-500 space-y-2 font-medium">
                       <li className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        Wait for further verification signals
+                        Real-time alerts active across WhatsApp & In-App
                       </li>
                       <li className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        Keep your purchase receipt handy
+                        Report credible search logs directly to police
                       </li>
                     </ul>
                   </div>

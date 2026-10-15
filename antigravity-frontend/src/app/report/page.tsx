@@ -3,7 +3,7 @@ import { API_URL } from '@/utils/api';
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldAlert, Send, Loader2, Info, ArrowRight, CheckCircle2, FileText } from "lucide-react";
+import { ShieldAlert, Send, Loader2, Info, ArrowRight, CheckCircle2, FileText, AlertTriangle, Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import GDUpload from "@/components/report/GDUpload";
 import { useDashboardStore } from "@/store/useDashboardStore";
@@ -27,6 +27,19 @@ export default function ReportPage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
   const [reportsLeft, setReportsLeft] = useState(0);
+
+  const [reportType, setReportType] = useState<"STOLEN" | "LOST">("STOLEN");
+  const [brand, setBrand] = useState("Apple");
+  const [model, setModel] = useState("");
+  const [lossDate, setLossDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [policeGdNumber, setPoliceGdNumber] = useState("");
+  const [policeStation, setPoliceStation] = useState("");
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    inApp: true,
+    whatsapp: true,
+    email: true,
+    sms: true,
+  });
 
   const router = useRouter();
 
@@ -90,8 +103,13 @@ export default function ReportPage() {
       
       // Auto-populate the form fields with extracted details if they exist
       if (data.imei) setImei(data.imei);
-      if (data.deviceName) setDeviceName(data.deviceName);
+      if (data.deviceName) {
+        setDeviceName(data.deviceName);
+        setModel(data.deviceName);
+      }
       if (data.description) setDescription(data.description);
+      if (data.policeGdNumber) setPoliceGdNumber(data.policeGdNumber);
+      if (data.policeStation) setPoliceStation(data.policeStation);
       
       setAiConfidence(data.confidence || 0.85);
       setExtractedFromGd(true);
@@ -107,8 +125,6 @@ export default function ReportPage() {
       }
     } catch (error) {
       console.error("GD copy upload/extraction failed:", error);
-      // Even if API fails, they have successfully uploaded a file, so we mark it as uploaded
-      // but they must fill in the details manually.
       setGdUploaded(true);
       setExtractedFromGd(true);
       setErrorMessage(
@@ -131,7 +147,7 @@ export default function ReportPage() {
       );
       return;
     }
-    if (imei.length !== 15 || description.length < 10 || deviceName.trim().length === 0 || contactNumber.trim().length === 0) {
+    if (imei.length !== 15 || description.length < 10 || (deviceName.trim().length === 0 && model.trim().length === 0) || contactNumber.trim().length === 0) {
       alert("Please fill all mandatory fields correctly.");
       return;
     }
@@ -144,23 +160,32 @@ export default function ReportPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const userEmail = session?.user?.email || "";
 
+      const finalDeviceName = model.trim() ? (model.toLowerCase().includes(brand.toLowerCase()) ? model.trim() : `${brand} ${model.trim()}`) : deviceName;
+
       const response = await fetch(`${API_URL}/reports/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imei,
           description,
-          deviceName,
+          deviceName: finalDeviceName,
+          brand,
+          model: model.trim() || finalDeviceName,
+          reportType,
+          lossDate,
+          policeGdNumber: policeGdNumber.trim() || undefined,
+          policeStation: policeStation.trim() || undefined,
+          notificationPreferences,
           contactNumber,
           extractedFromGd,
           aiExtractionConfidence: aiConfidence,
-          email: userEmail, // Send email to link userId on the backend
-          gdImage, // Send the base64 GD copy image!
+          email: userEmail,
+          gdImage,
         }),
       });
 
       if (response.ok) {
-        router.push("/dashboard?reportSuccess=true");
+        router.push("/dashboard/devices?reportSuccess=true");
       } else {
         const errorData = await response.json();
         alert(errorData?.message || "Submission failed. Please try again.");
@@ -366,55 +391,176 @@ export default function ReportPage() {
                 </div>
               </div>
 
-              <div className="space-y-5">
-                {/* Device Name */}
+              <div className="space-y-6">
+                {/* 1. Report Status: Lost vs Stolen */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                    {language === 'banglish' ? 'Device er Name / Model' : 'Device Name / Model'}
+                    Report Classification
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={deviceName}
-                    onChange={(e) => setDeviceName(e.target.value)}
-                    placeholder="e.g. iPhone 15 Pro Max"
-                    className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-5 py-4 outline-none text-slate-800 transition-all font-semibold shadow-inner text-sm"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReportType("STOLEN")}
+                      className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                        reportType === "STOLEN"
+                          ? "bg-red-50/80 border-red-300 text-red-900 shadow-sm ring-2 ring-red-400/20"
+                          : "bg-slate-50/50 border-slate-200/70 text-slate-600 hover:bg-slate-100/50"
+                      }`}
+                    >
+                      <div>
+                        <span className="text-xs font-extrabold flex items-center gap-1.5 uppercase tracking-wide">
+                          <ShieldAlert className="w-4 h-4 text-red-600" /> Stolen (চুরি হয়েছে)
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-1 font-medium">Theft, snatching, burglary</p>
+                      </div>
+                      <span className={`w-3.5 h-3.5 rounded-full border-2 ${reportType === "STOLEN" ? "border-red-600 bg-red-600" : "border-slate-300"}`} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setReportType("LOST")}
+                      className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                        reportType === "LOST"
+                          ? "bg-amber-50/80 border-amber-300 text-amber-900 shadow-sm ring-2 ring-amber-400/20"
+                          : "bg-slate-50/50 border-slate-200/70 text-slate-600 hover:bg-slate-100/50"
+                      }`}
+                    >
+                      <div>
+                        <span className="text-xs font-extrabold flex items-center gap-1.5 uppercase tracking-wide">
+                          <AlertTriangle className="w-4 h-4 text-amber-600" /> Lost (হারিয়ে গেছে)
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-1 font-medium">Misplaced, forgotten, dropped</p>
+                      </div>
+                      <span className={`w-3.5 h-3.5 rounded-full border-2 ${reportType === "LOST" ? "border-amber-600 bg-amber-600" : "border-slate-300"}`} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Device IMEI */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                    {language === 'banglish' ? 'Device er IMEI (15 Digits)' : 'Device IMEI (15 Digits)'}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={imei}
-                    onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))}
-                    placeholder="Enter 15-digit IMEI"
-                    className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-5 py-4 outline-none font-mono tracking-[0.2em] text-slate-800 transition-all text-base shadow-inner"
-                  />
+                {/* 2. Brand & Model */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                      Brand
+                    </label>
+                    <select
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none text-slate-800 font-semibold text-sm shadow-inner"
+                    >
+                      <option value="Apple">Apple iPhone</option>
+                      <option value="Samsung">Samsung</option>
+                      <option value="Xiaomi">Xiaomi / Redmi</option>
+                      <option value="Vivo">Vivo</option>
+                      <option value="Oppo">Oppo</option>
+                      <option value="Realme">Realme</option>
+                      <option value="Google">Google Pixel</option>
+                      <option value="OnePlus">OnePlus</option>
+                      <option value="Honor">Honor</option>
+                      <option value="Motorola">Motorola</option>
+                      <option value="Other">Other Brand</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                      Model Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={model || deviceName}
+                      onChange={(e) => {
+                        setModel(e.target.value);
+                        setDeviceName(e.target.value);
+                      }}
+                      placeholder="e.g. 15 Pro Max 256GB"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none text-slate-800 font-semibold text-sm shadow-inner"
+                    />
+                  </div>
                 </div>
 
-                {/* Incident Details */}
-                <div className="space-y-2">
+                {/* 3. Device IMEI & Date of Loss */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center px-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Device IMEI (15 Digits)
+                      </label>
+                      <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                        {imei.length}/15
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={imei}
+                      onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                      placeholder="358066149534298"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none font-mono tracking-[0.15em] text-slate-900 text-sm shadow-inner font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                      Date of Loss or Theft
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={lossDate}
+                      onChange={(e) => setLossDate(e.target.value)}
+                      className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none text-slate-800 font-semibold text-sm shadow-inner"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Police GD & Station Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                      Police GD Number (থানার জিডি নং)
+                    </label>
+                    <input
+                      type="text"
+                      value={policeGdNumber}
+                      onChange={(e) => setPoliceGdNumber(e.target.value)}
+                      placeholder="e.g. GD-10294/2026"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none text-slate-800 font-semibold text-sm shadow-inner"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                      Police Station (থানা / জেলা)
+                    </label>
+                    <input
+                      type="text"
+                      value={policeStation}
+                      onChange={(e) => setPoliceStation(e.target.value)}
+                      placeholder="e.g. Uttara West Thana, DMP"
+                      className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none text-slate-800 font-semibold text-sm shadow-inner"
+                    />
+                  </div>
+                </div>
+
+                {/* 5. Incident Details */}
+                <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                    {language === 'banglish' ? 'Incident Details (Kivabe haralo)' : 'Incident Details'}
+                    Incident Summary (ঘটনার বিবরণ)
                   </label>
                   <textarea
                     required
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe where and how the device was stolen..."
-                    className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-5 py-4 outline-none text-slate-800 transition-all min-h-[100px] resize-none shadow-inner text-sm font-semibold"
+                    placeholder="Describe where and how the device was stolen or lost..."
+                    className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3 outline-none text-slate-800 min-h-[85px] resize-none shadow-inner text-sm font-semibold"
                   />
                 </div>
 
-                {/* Contact Number */}
-                <div className="space-y-2">
+                {/* 6. Contact Number */}
+                <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
-                    {language === 'banglish' ? 'Contact / WhatsApp Number' : 'Contact / WhatsApp Number'}
+                    Contact / WhatsApp Number
                   </label>
                   <input
                     type="text"
@@ -422,11 +568,68 @@ export default function ReportPage() {
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}
                     placeholder="e.g. 017XXXXXXXX"
-                    className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-5 py-4 outline-none text-slate-800 transition-all shadow-inner text-sm font-semibold"
+                    className="w-full bg-slate-50/50 border border-slate-200/60 focus:bg-white focus:border-red-500/30 rounded-2xl px-4 py-3.5 outline-none text-slate-800 shadow-inner text-sm font-semibold"
                   />
-                  <p className="text-[10px] text-slate-400 font-semibold pl-1">
-                    {language === 'banglish' ? 'Verification er jonno phone kora hote pare.' : 'Used for verification communication.'}
+                  <p className="text-[11px] text-slate-400 font-medium pl-1">
+                    Used for verified contact relay and instant search alerts.
                   </p>
+                </div>
+
+                {/* 7. Real-Time Search Alert Preferences */}
+                <div className="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100/70 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-indigo-600" /> Real-Time Search Alert Channels
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                      Instant Dispatch Active
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Select how you want to be notified the exact instant someone queries this IMEI on PhoneKoi:
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.inApp}
+                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, inApp: e.target.checked })}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-slate-700">In-App Dashboard</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.whatsapp}
+                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, whatsapp: e.target.checked })}
+                        className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-slate-700">WhatsApp Alert</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.email}
+                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, email: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-slate-700">Email Notification</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={notificationPreferences.sms}
+                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, sms: e.target.checked })}
+                        className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-slate-700">Emergency SMS</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 

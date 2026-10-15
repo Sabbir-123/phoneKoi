@@ -16,6 +16,13 @@ export class ReportsController {
       description: body.description,
       contactNumber: body.contactNumber,
       deviceName: body.deviceName,
+      brand: body.brand,
+      model: body.model,
+      reportType: body.reportType || 'STOLEN',
+      lossDate: body.lossDate,
+      policeGdNumber: body.policeGdNumber,
+      policeStation: body.policeStation,
+      notificationPreferences: body.notificationPreferences,
       extractedFromGd: body.extractedFromGd,
       aiExtractionConfidence: body.aiExtractionConfidence,
       userId: req.user?.id, // Optional user from auth middleware (if implemented)

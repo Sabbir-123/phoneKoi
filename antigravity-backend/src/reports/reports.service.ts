@@ -13,6 +13,13 @@ export interface DeviceReportItem {
   description?: string;
   contactNumber?: string;
   deviceName?: string;
+  brand?: string;
+  model?: string;
+  reportType?: 'LOST' | 'STOLEN';
+  lossDate?: string;
+  policeGdNumber?: string;
+  policeStation?: string;
+  notificationPreferences?: string[];
   extractedFromGd?: boolean;
   aiExtractionConfidence?: number;
   userId?: string;
@@ -105,6 +112,13 @@ export class ReportsService {
     description?: string, 
     contactNumber?: string,
     deviceName?: string,
+    brand?: string,
+    model?: string,
+    reportType?: 'LOST' | 'STOLEN',
+    lossDate?: string,
+    policeGdNumber?: string,
+    policeStation?: string,
+    notificationPreferences?: string[],
     extractedFromGd?: boolean,
     aiExtractionConfidence?: number,
     userId?: string, 
@@ -214,6 +228,13 @@ export class ReportsService {
         description: data.description || '',
         contactNumber: data.contactNumber || '',
         deviceName: data.deviceName || '',
+        brand: data.brand || data.deviceName?.split(' ')[0] || 'Unknown Brand',
+        model: data.model || data.deviceName || 'Mobile Device',
+        reportType: data.reportType || 'STOLEN',
+        lossDate: data.lossDate || nowStr,
+        policeGdNumber: data.policeGdNumber || '',
+        policeStation: data.policeStation || '',
+        notificationPreferences: data.notificationPreferences || ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'],
         extractedFromGd: data.extractedFromGd || false,
         aiExtractionConfidence: data.aiExtractionConfidence || 0.85,
         userId: finalUserId,
@@ -238,6 +259,13 @@ export class ReportsService {
       description: savedReport.description || data.description || '',
       contactNumber: savedReport.contactNumber || data.contactNumber || '',
       deviceName: savedReport.deviceName || data.deviceName || '',
+      brand: savedReport.brand || data.brand || data.deviceName?.split(' ')[0] || 'Unknown Brand',
+      model: savedReport.model || data.model || data.deviceName || 'Mobile Device',
+      reportType: savedReport.reportType || data.reportType || 'STOLEN',
+      lossDate: savedReport.lossDate || data.lossDate || nowStr,
+      policeGdNumber: savedReport.policeGdNumber || data.policeGdNumber || '',
+      policeStation: savedReport.policeStation || data.policeStation || '',
+      notificationPreferences: savedReport.notificationPreferences || data.notificationPreferences || ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'],
       extractedFromGd: Boolean(savedReport.extractedFromGd),
       aiExtractionConfidence: savedReport.aiExtractionConfidence || data.aiExtractionConfidence || 0.85,
       userId: savedReport.userId || finalUserId,

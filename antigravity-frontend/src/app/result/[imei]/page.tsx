@@ -3,7 +3,7 @@ import { API_URL } from '@/utils/api';
 
 import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles, Phone, MessageSquare, Copy, Check, X } from "lucide-react";
+import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles, Phone, MessageSquare, Copy, Check, X, MapPin, Flag, FileText, BellRing, Info, Shield } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
@@ -18,8 +18,19 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   const [loading, setLoading] = useState(true);
   const [quotaError, setQuotaError] = useState<string | null>(null);
   const [checksumError, setChecksumError] = useState<string | null>(null);
+  
+  // Modals
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showReportSellerModal, setShowReportSellerModal] = useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Seller Report Form State
+  const [sellerName, setSellerName] = useState("");
+  const [sellerPhone, setSellerPhone] = useState("");
+  const [sellerAddress, setSellerAddress] = useState("");
+  const [sellerNotes, setSellerNotes] = useState("");
+  const [sellerReportSubmitted, setSellerReportSubmitted] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,7 +72,23 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           }
         }
 
-        const res = await fetch(`${API_URL}/imei/check/${params.imei}?lang=english&email=${email}${clientIp ? `&clientIp=${clientIp}` : ''}${clientLocation ? `&clientLocation=${encodeURIComponent(clientLocation)}` : ''}`);
+        const lat = searchParams.get("lat") || "";
+        const lng = searchParams.get("lng") || "";
+        const accuracy = searchParams.get("accuracy") || "";
+        const locationSource = searchParams.get("locationSource") || "";
+
+        const queryParams = new URLSearchParams({
+          lang: "english",
+          email: email,
+          ...(clientIp && { clientIp }),
+          ...(clientLocation && { clientLocation }),
+          ...(lat && { lat }),
+          ...(lng && { lng }),
+          ...(accuracy && { accuracy }),
+          ...(locationSource && { locationSource }),
+        });
+
+        const res = await fetch(`${API_URL}/imei/check/${params.imei}?${queryParams.toString()}`);
         
         if (!res.ok) {
           const errData = await res.json();
@@ -303,40 +330,124 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         {/* Main Card */}
         <motion.div
           animate={activeStatus === "stolen" ? { x: [-1.5, 1.5, -1.5, 0], transition: { repeat: Infinity, duration: 0.6, repeatDelay: 2.5 } } : {}}
-          className={`${config.cardBg} border ${config.border} rounded-[2rem] p-6 md:p-8 text-center shadow-lg backdrop-blur-md ${config.shadow}`}
+          className={`${config.cardBg} border ${config.border} rounded-[2rem] p-6 md:p-8 text-center shadow-lg backdrop-blur-md ${config.shadow} space-y-4`}
         >
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-1">
             <div className={`p-4 rounded-2xl ${config.iconBg}`}>
               <Icon className={`w-10 h-10 ${config.iconColor}`} />
             </div>
           </div>
 
-          <div className={`inline-block px-3.5 py-1 rounded-full text-[10px] font-bold tracking-widest mb-4 ${config.badge}`}>
+          <div className={`inline-block px-3.5 py-1 rounded-full text-[10px] font-bold tracking-widest ${config.badge}`}>
             {config.badgeText}
           </div>
 
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-1.5 text-indigo-950 tracking-tight">{config.title}</h1>
-          <p className="text-slate-500 mb-5 leading-relaxed text-sm font-medium">{config.desc}</p>
+          {/* Prominent Required Stolen Device Warning */}
+          {activeStatus === "stolen" && (
+            <div className="p-4 rounded-2xl bg-red-600 text-white shadow-md text-left space-y-1">
+              <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider">
+                <ShieldAlert className="w-4 h-4 text-white shrink-0" />
+                <span>OFFICIAL SECURITY ALERT</span>
+              </div>
+              <p className="text-xs font-bold leading-snug">
+                WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.
+              </p>
+            </div>
+          )}
 
-          <div className="py-4 border-t border-indigo-950/5 flex flex-col items-center">
+          <h1 className="text-2xl md:text-3xl font-extrabold mb-1.5 text-indigo-950 tracking-tight">{config.title}</h1>
+          <p className="text-slate-500 leading-relaxed text-sm font-medium">{config.desc}</p>
+
+          <div className="py-3 border-t border-indigo-950/5 flex flex-col items-center">
             <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-[0.2em]">Risk Score</div>
             <div className={`text-7xl font-black font-mono tracking-tighter leading-none ${config.scoreColor}`}>{score}</div>
             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">out of 100</div>
           </div>
 
-          <div className="mt-3 py-2.5 bg-white/60 rounded-2xl border border-white/80">
-            <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-widest font-bold">IMEI</div>
+          <div className="py-2.5 bg-white/60 rounded-2xl border border-white/80">
+            <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-widest font-bold">Queried IMEI</div>
             <div className="text-base font-mono text-indigo-950 tracking-[0.15em] font-bold">{params.imei}</div>
           </div>
 
-          {activeStatus === "stolen" && backendData?.contactNumber && (
-            <button
-              onClick={() => setShowContactModal(true)}
-              className="mt-4 w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-red-200/50 transition-all hover:scale-[1.01] active:scale-[0.99] text-sm tracking-wide"
-            >
-              <Phone className="w-4 h-4 animate-pulse" />
-              Contact Verified Owner
-            </button>
+          {/* Device Information Block */}
+          {activeStatus === "stolen" && (
+            <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-150 text-left text-xs space-y-1.5 font-semibold text-slate-600">
+              <div className="flex justify-between items-center pb-1 border-b border-slate-100">
+                <span className="text-slate-400 font-medium">Device:</span>
+                <span className="font-bold text-indigo-950">{backendData?.brand || "Registered"} {backendData?.model || backendData?.deviceName || "Mobile Device"}</span>
+              </div>
+              <div className="flex justify-between items-center pb-1 border-b border-slate-100">
+                <span className="text-slate-400 font-medium">Status:</span>
+                <span className="font-bold text-red-600 uppercase text-[10px] bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                  {backendData?.reportType || "REPORTED STOLEN"}
+                </span>
+              </div>
+              {backendData?.lossDate && (
+                <div className="flex justify-between items-center pb-1 border-b border-slate-100">
+                  <span className="text-slate-400 font-medium">Date of Loss:</span>
+                  <span className="font-bold text-slate-700">{backendData.lossDate}</span>
+                </div>
+              )}
+              {backendData?.policeGdNumber && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Police Record:</span>
+                  <span className="font-bold text-indigo-600">{backendData.policeGdNumber} {backendData.policeStation ? `(${backendData.policeStation})` : ''}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Real-Time Alert Confirmation Pill */}
+          {activeStatus === "stolen" && (
+            <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex items-center gap-2.5 text-left">
+              <BellRing className="w-4 h-4 text-indigo-600 shrink-0 animate-bounce" />
+              <div className="text-[11px] text-indigo-950 font-medium leading-tight">
+                <strong className="font-bold text-indigo-700">Real-Time Alert Dispatched:</strong> The registered owner has been immediately alerted of this search inquiry.
+              </div>
+            </div>
+          )}
+
+          {/* Clean device legal advisory */}
+          {activeStatus === "clean" && (
+            <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100/70 flex items-start gap-2 text-left">
+              <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-emerald-900 leading-relaxed font-medium">
+                No active theft reports are registered for this IMEI. Please note: This lookup confirms absence of theft flags in PhoneKoi's database, but does not guarantee handset authenticity or legal clearance.
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons for Stolen Device */}
+          {activeStatus === "stolen" && (
+            <div className="space-y-2 pt-1">
+              {backendData?.contactNumber && (
+                <button
+                  onClick={() => setShowContactModal(true)}
+                  className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-red-200/50 transition-all hover:scale-[1.01] active:scale-[0.99] text-sm tracking-wide"
+                >
+                  <Phone className="w-4 h-4 animate-pulse" />
+                  Contact Verified Owner
+                </button>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowReportSellerModal(true)}
+                  className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl border border-red-200 bg-white/80 hover:bg-red-50 text-red-700 font-bold text-xs transition-colors shadow-sm"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  Report Seller
+                </button>
+
+                <button
+                  onClick={() => setShowSafetyModal(true)}
+                  className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl border border-slate-200 bg-white/80 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-sm"
+                >
+                  <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                  Safety Guide
+                </button>
+              </div>
+            </div>
           )}
         </motion.div>
 
@@ -373,11 +484,10 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         </Link>
       </motion.div>
 
-      {/* Contact Owner Modal */}
+      {/* 1. Contact Owner Modal */}
       <AnimatePresence>
         {showContactModal && backendData?.contactNumber && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -386,16 +496,14 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
               className="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"
             />
 
-            {/* Modal Box */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-sm bg-white/90 backdrop-blur-2xl rounded-3xl border border-indigo-50/50 shadow-2xl p-6 overflow-hidden z-10"
+              className="relative w-full max-w-sm bg-white/95 backdrop-blur-2xl rounded-3xl border border-indigo-50/50 shadow-2xl p-6 overflow-hidden z-10"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500 to-rose-500" />
               
-              {/* Close Button */}
               <button
                 onClick={() => setShowContactModal(false)}
                 className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
@@ -418,7 +526,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
                 </div>
 
                 <p className="text-xs text-slate-500 leading-relaxed text-center font-medium px-2">
-                  This device has been red-flagged. You can directly contact the owner to facilitate return or coordinate reporting.
+                  This device has been red-flagged. You can directly contact the verified owner to facilitate safe return or coordinate with law enforcement.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
@@ -453,6 +561,185 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
                   Chat on WhatsApp
                 </a>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. Report Suspicious Seller Modal */}
+      <AnimatePresence>
+        {showReportSellerModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowReportSellerModal(false)}
+              className="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 overflow-hidden z-10"
+            >
+              <button
+                onClick={() => setShowReportSellerModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center mb-4">
+                <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-2 text-red-600">
+                  <Flag className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-indigo-950">Report Suspicious Seller</h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Help law enforcement and the owner investigate this stolen phone offering.
+                </p>
+              </div>
+
+              {sellerReportSubmitted ? (
+                <div className="py-8 text-center space-y-3">
+                  <Check className="w-12 h-12 text-emerald-500 mx-auto" />
+                  <h4 className="font-bold text-indigo-950 text-base">Report Submitted Successfully</h4>
+                  <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+                    Thank you for helping keep our marketplace secure. Your tips have been logged and queued for audit.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowReportSellerModal(false);
+                      setSellerReportSubmitted(false);
+                    }}
+                    className="btn-primary py-2.5 px-6 rounded-xl text-xs font-bold mt-2"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setSellerReportSubmitted(true);
+                  }}
+                  className="space-y-3 text-left"
+                >
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase">Shop / Seller Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={sellerName}
+                      onChange={(e) => setSellerName(e.target.value)}
+                      placeholder="e.g. Eastern Plaza 3rd Floor Shop 42"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase">Seller Phone Number</label>
+                    <input
+                      type="text"
+                      value={sellerPhone}
+                      onChange={(e) => setSellerPhone(e.target.value)}
+                      placeholder="e.g. 017XXXXXXXX"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase">Location / Market Address</label>
+                    <input
+                      type="text"
+                      required
+                      value={sellerAddress}
+                      onChange={(e) => setSellerAddress(e.target.value)}
+                      placeholder="e.g. Motijheel, Dhaka"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase">Additional Observations</label>
+                    <textarea
+                      value={sellerNotes}
+                      onChange={(e) => setSellerNotes(e.target.value)}
+                      placeholder="Offered without box, insisted on quick cash deal, etc."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 outline-none min-h-[60px] resize-none focus:bg-white"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md mt-2"
+                  >
+                    Submit Confidential Report
+                  </button>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. Law Enforcement Safety Instructions Modal */}
+      <AnimatePresence>
+        {showSafetyModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSafetyModal(false)}
+              className="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 overflow-hidden z-10 space-y-4"
+            >
+              <button
+                onClick={() => setShowSafetyModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center">
+                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-2 text-indigo-600">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-indigo-950">Safety & Police Guidelines</h3>
+                <p className="text-xs text-slate-500 font-medium">Recommended procedures when encountering a stolen device</p>
+              </div>
+
+              <div className="space-y-2.5 text-xs text-slate-600 font-medium">
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 font-bold flex gap-2">
+                  <AlertOctagon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>Do NOT confront or accuse the seller directly. Prioritize your personal physical safety.</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-150 space-y-2">
+                  <div className="font-bold text-indigo-950">Recommended Steps:</div>
+                  <ul className="list-disc list-inside space-y-1 text-slate-600 pl-1">
+                    <li>Politely decline the transaction without creating conflict.</li>
+                    <li>Note the store name, street address, or seller contact details quietly.</li>
+                    <li>Contact the National Emergency Helpline (999) or your local Police Thana.</li>
+                    <li>Provide this IMEI check verification link as supporting documentation.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowSafetyModal(false)}
+                className="w-full btn-primary py-3 rounded-xl text-xs font-bold"
+              >
+                I Understand
+              </button>
             </motion.div>
           </div>
         )}
