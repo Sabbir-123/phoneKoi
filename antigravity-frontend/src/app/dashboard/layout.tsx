@@ -1,5 +1,5 @@
 'use client';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 import AuthGuard from '@/components/layout/AuthGuard';
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -29,7 +29,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             setPlan('PRO');
             setIsPro(true);
           }
-          const res = await fetch(`${API_URL}/users/profile?email=${session.user.email}`);
+          const res = await authFetch(`${API_URL}/users/profile?email=${session.user.email}`);
+
           if (res.ok) {
             const data = await res.json();
             setPlan(data.plan || (isAdminEmail ? 'PRO' : 'FREE'));

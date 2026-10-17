@@ -61,8 +61,10 @@ export class ImeiService {
     lat?: number,
     lng?: number,
     accuracy?: number,
-    locationSource?: 'BROWSER_GPS' | 'IP_APPROXIMATE' | 'UNAVAILABLE'
+    locationSource?: 'BROWSER_GPS' | 'IP_APPROXIMATE' | 'UNAVAILABLE',
+    currentUser?: { id: string; email: string; role: string }
   ) {
+
     // Attempt to find the device from database with fallback
     let device: any = null;
     try {
@@ -212,6 +214,28 @@ export class ImeiService {
     const isStolen = device.status === DeviceStatus.STOLEN;
     const reportType = approvedReport?.reportType || (isStolen ? 'STOLEN' : 'CLEAN');
 
+    const isOwnerOrAdmin =
+      currentUser &&
+      (currentUser.role === 'ADMIN' ||
+        (approvedReport?.userEmail &&
+          currentUser.email?.toLowerCase().trim() ===
+            approvedReport.userEmail.toLowerCase().trim()));
+
+    // Mask phone number for public users (prevent scraping & harassment)
+    let displayContactNumber = contactNumber;
+    if (!isOwnerOrAdmin && contactNumber) {
+      displayContactNumber =
+        contactNumber.length >= 7
+          ? `${contactNumber.slice(0, 4)}****${contactNumber.slice(-3)}`
+          : '***********';
+    }
+
+    // Mask Police GD number for public users
+    let displayPoliceGd = approvedReport?.policeGdNumber || null;
+    if (!isOwnerOrAdmin && displayPoliceGd && displayPoliceGd.length > 4) {
+      displayPoliceGd = `${displayPoliceGd.slice(0, 2)}****${displayPoliceGd.slice(-2)}`;
+    }
+
     return {
       imei: device.imei,
       maskedImei,
@@ -220,7 +244,7 @@ export class ImeiService {
       status: device.status,
       reportType,
       explanation,
-      contactNumber,
+      contactNumber: displayContactNumber,
       warningMessage: isStolen
         ? 'WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.'
         : undefined,
@@ -229,12 +253,13 @@ export class ImeiService {
       model: approvedReport?.model || approvedReport?.deviceName || 'Standard Model',
       deviceName: approvedReport?.deviceName || 'Reported Handset',
       lossDate: approvedReport?.lossDate || approvedReport?.date || null,
-      policeGdNumber: approvedReport?.policeGdNumber || null,
+      policeGdNumber: displayPoliceGd,
       policeStation: approvedReport?.policeStation || null,
       allowContact: isStolen,
       safetyGuidance: isStolen
         ? 'Law Enforcement Advice: Do not confront the seller directly. Note down their phone number or shop location and immediately inform your local police station.'
         : undefined,
     };
+
   }
 }

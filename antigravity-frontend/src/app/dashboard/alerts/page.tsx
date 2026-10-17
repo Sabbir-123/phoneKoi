@@ -1,6 +1,6 @@
 'use client';
 
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -100,7 +100,7 @@ export default function AlertsPage() {
       if (!silent) setLoading(true);
 
       // Fetch IMEI search alerts
-      const searchRes = await fetch(`${API_URL}/search-events/owner?email=${encodeURIComponent(email)}`);
+      const searchRes = await authFetch(`${API_URL}/search-events/owner?email=${encodeURIComponent(email)}`);
       if (searchRes.ok) {
         const eventsData = await searchRes.json();
         const normalized = eventsData.map((e: any) => ({
@@ -116,11 +116,12 @@ export default function AlertsPage() {
       }
 
       // Fetch general alerts
-      const genRes = await fetch(`${API_URL}/users/alerts?email=${encodeURIComponent(email)}`);
+      const genRes = await authFetch(`${API_URL}/users/alerts?email=${encodeURIComponent(email)}`);
       if (genRes.ok) {
         const genData = await genRes.json();
         setGeneralAlerts(genData);
       }
+
     } catch (err) {
       console.error('Error fetching alerts:', err);
     } finally {
@@ -168,11 +169,10 @@ export default function AlertsPage() {
       setSearchEvents((prev) =>
         prev.map((item) => (item.id === event.id ? { ...item, isRead: newReadState } : item))
       );
-      await fetch(`${API_URL}/search-events/${event.id}/read`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isRead: newReadState }),
+      await authFetch(`${API_URL}/search-events/${event.id}/mark-read`, {
+        method: 'POST',
       });
+
     } catch (err) {
       console.error('Failed to toggle read state:', err);
     }

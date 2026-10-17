@@ -20,6 +20,18 @@ function SignupContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/dashboard?showProfileWarning=true";
 
+  // If user is already authenticated, immediately forward them
+  useState(() => {
+    if (typeof window !== "undefined") {
+      const supabase = createClient();
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          window.location.href = redirectTo;
+        }
+      });
+    }
+  });
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -27,7 +39,7 @@ function SignupContent() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -36,13 +48,38 @@ function SignupContent() {
           },
         },
       });
-      if (error) throw error;
-      window.location.href = redirectTo;
+
+      if (error) {
+        if (
+          error.message?.toLowerCase().includes("already registered") ||
+          error.message?.toLowerCase().includes("already exists")
+        ) {
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (!signInErr) {
+            window.location.href = redirectTo;
+            return;
+          }
+          throw new Error("Account exists! Please sign in with your password.");
+        }
+        throw error;
+      }
+
+      if (data?.session) {
+        window.location.href = redirectTo;
+      } else if (data?.user && !data.session) {
+        setSuccess(true);
+      } else {
+        window.location.href = redirectTo;
+      }
     } catch (err: any) {
       setError(err.message || "Sign up failed");
     }
     setLoading(false);
   };
+
 
   const handleGoogleSignup = async () => {
     setGoogleLoading(true);

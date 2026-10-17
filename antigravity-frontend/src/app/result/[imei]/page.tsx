@@ -1,5 +1,6 @@
 "use client";
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
+
 
 import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -88,7 +89,8 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
           ...(locationSource && { locationSource }),
         });
 
-        const res = await fetch(`${API_URL}/imei/check/${params.imei}?${queryParams.toString()}`);
+        const res = await authFetch(`${API_URL}/imei/check/${params.imei}?${queryParams.toString()}`);
+
         
         if (!res.ok) {
           const errData = await res.json();

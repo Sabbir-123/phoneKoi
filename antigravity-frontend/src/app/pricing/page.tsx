@@ -1,5 +1,5 @@
 'use client';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,7 @@ const subscriptionPlans = [
   {
     name: '1 Month Pro',
     price: 49,
+    originalPrice: null,
     duration: '1 Month',
     features: [
       'Report up to 2 mobile devices',
@@ -22,11 +23,13 @@ const subscriptionPlans = [
       '24/7 dedicated device recovery support',
     ],
     popular: false,
+    isPromoFree: false,
     glow: 'rgba(99,102,241,0.02)',
   },
   {
     name: '3 Months Pro',
     price: 99,
+    originalPrice: null,
     duration: '3 Months',
     features: [
       'Report up to 4 mobile devices',
@@ -35,26 +38,32 @@ const subscriptionPlans = [
       'Priority safety reporting database access',
       '24/7 dedicated device recovery support',
     ],
-    popular: true,
+    popular: false,
+    isPromoFree: false,
     glow: 'rgba(139,92,246,0.05)',
   },
   {
     name: '6 Months Pro',
-    price: 259,
+    price: 0,
+    originalPrice: 259,
     duration: '6 Months',
     features: [
       'Report up to 10 mobile devices',
       '30 IMEI searches total',
       'Unlimited real-time theft alerts',
-      'Priority safety reporting database access',
+      'Full Risk Breakdown & Police GD Matches',
+      'Priority Community Trust Badge',
       '24/7 dedicated device recovery support',
     ],
-    popular: false,
-    glow: 'rgba(6,182,212,0.02)',
+    popular: true,
+    isPromoFree: true,
+    promoBadge: 'Special Launch Offer (Free)',
+    glow: 'rgba(6,182,212,0.08)',
   },
   {
     name: '12 Months Pro',
     price: 999,
+    originalPrice: null,
     duration: '12 Months',
     features: [
       'Report up to 50 mobile devices',
@@ -64,6 +73,7 @@ const subscriptionPlans = [
       '24/7 dedicated device recovery support',
     ],
     popular: false,
+    isPromoFree: false,
     glow: 'rgba(236,72,153,0.02)',
   },
 ];
@@ -71,7 +81,7 @@ const subscriptionPlans = [
 export default function PricingPage() {
   const [email, setEmail] = useState('');
   const [checkoutPlan, setCheckoutPlan] = useState<typeof subscriptionPlans[0] | null>(null);
-  const [selectedPlanName, setSelectedPlanName] = useState<string>('3 Months Pro');
+  const [selectedPlanName, setSelectedPlanName] = useState<string>('6 Months Pro');
   const [hoveredPlanName, setHoveredPlanName] = useState<string | null>(null);
   const [trxCode, setTrxCode] = useState('');
   const [lastFour, setLastFour] = useState('');
@@ -79,6 +89,7 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [promoClaimedModal, setPromoClaimedModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -100,6 +111,17 @@ export default function PricingPage() {
 
   const handleChoosePlan = (plan: typeof subscriptionPlans[0]) => {
     setSelectedPlanName(plan.name);
+
+    // If it's the 6-Month Free Pro Launch Offer
+    if (plan.isPromoFree) {
+      if (!email) {
+        router.push('/signup?redirectTo=/dashboard?claimed=true');
+        return;
+      }
+      setPromoClaimedModal(true);
+      return;
+    }
+
     if (!email) {
       router.push(`/login?redirectTo=/pricing`);
       return;
@@ -109,6 +131,7 @@ export default function PricingPage() {
     setError(null);
   };
 
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkoutPlan) return;
@@ -116,7 +139,7 @@ export default function PricingPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_URL}/users/subscription-request?email=${email}`, {
+      const res = await authFetch(`${API_URL}/users/subscription-request?email=${email}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,6 +149,7 @@ export default function PricingPage() {
           bkashLastFour: lastFour,
         }),
       });
+
 
       const data = await res.json();
 
@@ -217,7 +241,11 @@ export default function PricingPage() {
                 <div className="space-y-6">
                   <div>
                     <div className="min-h-[26px] mb-3 flex items-center">
-                      {plan.popular ? (
+                      {plan.isPromoFree ? (
+                        <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full shadow-md animate-pulse">
+                          {plan.promoBadge || 'Launch Special'}
+                        </span>
+                      ) : plan.popular ? (
                         <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full shadow-md">
                           Popular
                         </span>
@@ -229,9 +257,19 @@ export default function PricingPage() {
                     </div>
 
                     <h3 className="text-lg font-bold text-indigo-950">{plan.name}</h3>
-                    <div className="flex items-baseline gap-1 mt-2">
+                    <div className="flex items-baseline gap-1.5 mt-2 flex-wrap">
                       <span className="text-3xl font-extrabold text-indigo-950">৳{plan.price}</span>
+                      {plan.originalPrice && (
+                        <span className="text-base font-semibold text-slate-400 line-through">
+                          ৳{plan.originalPrice}
+                        </span>
+                      )}
                       <span className="text-xs font-bold text-slate-400">/ {plan.duration}</span>
+                      {plan.isPromoFree && (
+                        <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
+                          100% Free
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -247,20 +285,23 @@ export default function PricingPage() {
 
                 <div className="pt-8">
                   <MotionButton
-                    variant={isHighlighted ? 'primary' : 'secondary'}
+                    variant={isHighlighted || plan.isPromoFree ? 'primary' : 'secondary'}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleChoosePlan(plan);
                     }}
                     className={`w-full font-bold py-3 rounded-xl transition-all whitespace-nowrap ${
-                      isHighlighted
+                      plan.isPromoFree
+                        ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/20 hover:brightness-105 border-transparent'
+                        : isHighlighted
                         ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 border-transparent'
                         : 'border border-slate-200 text-slate-600 bg-white hover:bg-slate-50'
                     }`}
                   >
-                    Choose Plan
+                    {plan.isPromoFree ? 'Claim 6 Months Free Pro' : 'Choose Plan'}
                   </MotionButton>
                 </div>
+
               </GlassCard>
             </motion.div>
           );
@@ -403,7 +444,75 @@ export default function PricingPage() {
             </motion.div>
           </motion.div>
         )}
+
+        {/* 6 Months Free Pro Claim Confirmation Modal */}
+        {promoClaimedModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-indigo-950/40 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-indigo-100 text-center space-y-6 relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-emerald-400 to-indigo-500" />
+              
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-emerald-100 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto shadow-md">
+                <Sparkles className="w-8 h-8 text-amber-600 animate-pulse" />
+              </div>
+
+              <div>
+                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 uppercase tracking-wider">
+                  Launch Special Promo Active
+                </span>
+                <h3 className="text-2xl font-black text-indigo-950 mt-3">
+                  6 Months Free Pro Claimed!
+                </h3>
+                <p className="text-slate-500 text-sm mt-2 leading-relaxed">
+                  Congratulations! As an early adopter, your account is immediately enrolled in the <strong>6 Months Pro Plan (100% Free)</strong>.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-2 border border-slate-100 text-xs text-slate-700">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span><strong>30 Verified Queries</strong> loaded in your balance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span><strong>10 Stolen Phone Report</strong> quotas active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Unlimited real-time theft alerts &amp; tracking</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <MotionButton
+                  variant="primary"
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25"
+                >
+                  Go to Dashboard
+                </MotionButton>
+                <button
+                  type="button"
+                  onClick={() => setPromoClaimedModal(false)}
+                  className="w-full py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
+
   );
 }

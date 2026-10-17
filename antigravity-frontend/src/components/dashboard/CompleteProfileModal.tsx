@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserCheck, ShieldAlert, Smartphone, MapPin, ArrowRight, Camera, User } from 'lucide-react';
 import { MotionButton } from '@/components/ui/MotionButton';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -25,7 +25,8 @@ export default function CompleteProfileModal() {
         setUserEmail(email);
 
         // Fetch user profile from backend
-        const res = await fetch(`${API_URL}/users/profile?email=${encodeURIComponent(email)}`);
+        const res = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(email)}`);
+
         if (res.ok) {
           const profile = await res.json();
           const localCompleted = localStorage.getItem(`profile_completed_${email}`) === 'true';

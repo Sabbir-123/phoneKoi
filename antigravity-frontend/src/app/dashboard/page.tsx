@@ -1,5 +1,5 @@
 'use client';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +41,7 @@ function DashboardHomeContent() {
 
         // Check profile completeness from backend or localStorage
         try {
-          const profileRes = await fetch(`${API_URL}/users/profile?email=${encodeURIComponent(userEmail)}`);
+          const profileRes = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(userEmail)}`);
           if (profileRes.ok) {
             const profileData = await profileRes.json();
             const isComplete = Boolean(profileData.isProfileComplete || (profileData.phone && profileData.address));
@@ -70,7 +70,7 @@ function DashboardHomeContent() {
 
         // Fetch real alerts and danger alerts count
         try {
-          const alertsRes = await fetch(`${API_URL}/users/alerts?email=${userEmail}`);
+          const alertsRes = await authFetch(`${API_URL}/users/alerts?email=${userEmail}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
             setRealAlerts(alertsData);
@@ -91,12 +91,13 @@ function DashboardHomeContent() {
   const { data: reports } = useQuery({
     queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/reports?email=${email}`);
+      const res = await authFetch(`${API_URL}/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
     },
     enabled: !!email
   });
+
 
   const greeting = language === 'banglish' ? 'Welcome back 👋' : 'Welcome back 👋';
   const devicesCount = reports ? reports.length : 0;

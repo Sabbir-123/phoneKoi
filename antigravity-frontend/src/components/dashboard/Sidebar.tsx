@@ -1,5 +1,6 @@
 'use client';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
+
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
@@ -39,7 +40,8 @@ export default function Sidebar() {
           setIsAdmin(true);
         }
         try {
-          const res = await fetch(`${API_URL}/users/profile?email=${email}`);
+          const res = await authFetch(`${API_URL}/users/profile?email=${email}`);
+
           if (res.ok) {
             const profile = await res.json();
             if (profile?.role === 'ADMIN' || isAdminEmail) {

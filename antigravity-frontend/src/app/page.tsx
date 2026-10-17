@@ -26,6 +26,7 @@ import {
   Award
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 // Luhn check algorithm
 const validateLuhn = (imei: string): boolean => {
@@ -44,13 +45,27 @@ const validateLuhn = (imei: string): boolean => {
 
 export default function Home() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [heroImei, setHeroImei] = useState("");
   const [heroLuhnValid, setHeroLuhnValid] = useState<boolean | null>(null);
+
+  // Check active user session
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user || null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Interactive Live Demo State (Default to authentic valid 15-digit IMEI)
   const [demoImei, setDemoImei] = useState("354892110283746");
   const [demoValid, setDemoValid] = useState(true);
   const [videoError, setVideoError] = useState(false);
+
 
   // Handle hero input changes
   useEffect(() => {
@@ -685,94 +700,212 @@ export default function Home() {
             Protection Plans For Every Buyer
           </h2>
           <p className="text-slate-500 text-base mt-2">
-            Start completely free or enjoy our launch promotion with full Pro benefits.
+            Choose the package that fits your device security needs, or enjoy our early adopter launch promotion with full Pro benefits for free.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        {/* 4 Official Plans Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           
-          {/* Free Tier */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
+          {/* Plan 1: 1 Month Pro */}
+          <div className="bg-white rounded-3xl p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Basic Access</span>
-                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">Standard</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Starter</span>
+                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">1 Month</span>
               </div>
-              <h3 className="text-2xl font-black text-indigo-950 mb-2">Free Plan</h3>
-              <div className="text-3xl font-extrabold text-slate-900 mb-6">৳0 <span className="text-xs font-medium text-slate-400">/ forever</span></div>
-              
-              <ul className="space-y-3 text-sm text-slate-600">
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span>Standard 15-Digit Format Validation</span>
+              <h3 className="text-xl font-bold text-indigo-950 mb-2">1 Month Pro</h3>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-3xl font-extrabold text-slate-900">৳49</span>
+                <span className="text-xs font-medium text-slate-400">/ 1 Month</span>
+              </div>
+
+              <ul className="space-y-3 text-xs text-slate-600">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Report up to 2 mobile devices</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span>Basic Luhn Checksum Verification</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>3 IMEI searches total</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span>1 Free Community Database Query</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Unlimited real-time theft alerts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Priority reporting database access</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>24/7 device recovery support</span>
                 </li>
               </ul>
             </div>
 
-            <div className="pt-8">
+            <div className="pt-6">
               <Link
-                href="/signup"
-                className="w-full py-3 px-4 rounded-xl font-bold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                href="/pricing"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
               >
-                Get Started Free
+                Choose Plan
               </Link>
             </div>
           </div>
 
-          {/* 6 Months Pro Promotional Card */}
-          <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-8 text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between relative overflow-hidden border border-indigo-500/30">
-            <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-              Special Launch Offer
-            </div>
-
+          {/* Plan 2: 3 Months Pro */}
+          <div className="bg-white rounded-3xl p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">Early Adopter Promotion</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Quarterly</span>
+                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">3 Months</span>
               </div>
-              <h3 className="text-2xl font-black text-white mb-2">6 Months Pro Member</h3>
-              <div className="text-3xl font-extrabold text-white mb-6">Free Promo <span className="text-xs font-normal text-indigo-300">(until Jan 2027)</span></div>
+              <h3 className="text-xl font-bold text-indigo-950 mb-2">3 Months Pro</h3>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-3xl font-extrabold text-slate-900">৳99</span>
+                <span className="text-xs font-medium text-slate-400">/ 3 Months</span>
+              </div>
 
-              <ul className="space-y-3 text-sm text-indigo-100">
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-amber-300" />
-                  <span><strong>30 Verified Queries</strong> Included</span>
+              <ul className="space-y-3 text-xs text-slate-600">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Report up to 4 mobile devices</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-amber-300" />
-                  <span><strong>10 Stolen Phone Report</strong> Quotas</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>15 IMEI searches total</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-amber-300" />
-                  <span>Full Risk Breakdown &amp; GD Matches</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Unlimited real-time theft alerts</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-amber-300" />
-                  <span>Priority Community Trust Badge</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Priority reporting database access</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>24/7 device recovery support</span>
                 </li>
               </ul>
             </div>
 
-            <div className="pt-8">
+            <div className="pt-6">
               <Link
-                href="/signup"
-                className="w-full py-3 px-4 rounded-xl font-bold text-sm text-slate-950 bg-gradient-to-r from-amber-400 to-amber-300 hover:brightness-105 transition-all flex items-center justify-center gap-2 shadow-lg"
+                href="/pricing"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
-                Claim 6 Months Free Pro Now
+                Choose Plan
+              </Link>
+            </div>
+          </div>
+
+          {/* Plan 3: 6 Months Pro (Featured Launch Promo Card) */}
+          <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-purple-950 rounded-3xl p-7 text-white shadow-xl shadow-indigo-500/25 flex flex-col justify-between relative overflow-hidden border-2 border-amber-400/60 scale-[1.02] z-10">
+            <div className="absolute top-3.5 right-3.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md animate-pulse">
+              Launch Special
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">Early Adopter Offer</span>
+              </div>
+              <h3 className="text-xl font-black text-white mb-1">6 Months Pro</h3>
+              <div className="flex items-baseline gap-1.5 mb-6 flex-wrap">
+                <span className="text-3xl font-extrabold text-white">৳0</span>
+                <span className="text-sm font-semibold text-indigo-300 line-through">৳259</span>
+                <span className="text-xs font-normal text-indigo-200">/ 6 Months</span>
+                <span className="text-[10px] font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/40">
+                  100% Free
+                </span>
+              </div>
+
+              <ul className="space-y-3 text-xs text-indigo-100">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <span><strong>30 Verified Queries</strong> Included</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <span><strong>10 Stolen Phone Report</strong> Quotas</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <span>Full Risk Breakdown &amp; Police GD Matches</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <span>Priority Community Trust Badge</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <span>24/7 dedicated device recovery support</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6">
+              <Link
+                href={user ? "/dashboard?claimed=true" : "/signup?redirectTo=/dashboard?claimed=true"}
+                className="w-full py-3.5 px-4 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:brightness-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+              >
+                <Sparkles className="w-4 h-4 text-slate-950" />
+                {user ? "Go to Dashboard (Claimed)" : "Claim 6 Months Free Pro"}
+              </Link>
+            </div>
+          </div>
+
+          {/* Plan 4: 12 Months Pro */}
+          <div className="bg-white rounded-3xl p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Annual</span>
+                <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">12 Months</span>
+              </div>
+              <h3 className="text-xl font-bold text-indigo-950 mb-2">12 Months Pro</h3>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-3xl font-extrabold text-slate-900">৳999</span>
+                <span className="text-xs font-medium text-slate-400">/ 12 Months</span>
+              </div>
+
+              <ul className="space-y-3 text-xs text-slate-600">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Report up to 50 mobile devices</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>99 IMEI searches total</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Unlimited real-time theft alerts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Priority reporting database access</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>24/7 dedicated recovery support</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6">
+              <Link
+                href="/pricing"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+              >
+                Choose Plan
               </Link>
             </div>
           </div>
 
         </div>
       </section>
+
 
       {/* ─── SECTION 8: FINAL CINEMATIC CALL-TO-ACTION ───────────── */}
       <section className="py-24 px-6 relative max-w-7xl mx-auto">

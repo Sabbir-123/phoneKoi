@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ShieldCheck, Search, Smartphone, Bell, X, ArrowRight, Gift } from 'lucide-react';
 import { MotionButton } from '@/components/ui/MotionButton';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
 
 export default function PromoModal() {
@@ -26,7 +26,8 @@ export default function PromoModal() {
         if (hasSeen === 'true') return;
 
         // Fetch user profile to verify promo qualification
-        const res = await fetch(`${API_URL}/users/profile?email=${encodeURIComponent(email)}`);
+        const res = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(email)}`);
+
         if (res.ok) {
           const profile = await res.json();
           // Check if user is promoted to 6 Months Pro or promo rewarded

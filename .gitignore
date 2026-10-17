@@ -33,3 +33,9 @@ yarn-error.log*
 # IDE
 .vscode/
 .idea/
+
+# Sensitive data
+data/
+antigravity-backend/data/
+antigravity-backend/data/*.json
+

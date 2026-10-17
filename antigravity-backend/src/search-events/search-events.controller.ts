@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Param, Query, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, Req, ForbiddenException } from '@nestjs/common';
 import { SearchEventsService } from './search-events.service';
+import { Public } from '../auth/public.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('search-events')
 export class SearchEventsController {
@@ -7,44 +9,60 @@ export class SearchEventsController {
 
   @Get('owner')
   async getOwnerEvents(
-    @Query('email') email: string,
+    @Req() req: any,
     @Query('imei') imei?: string,
     @Query('read') read?: string,
     @Query('locationType') locationType?: string,
   ) {
-    if (!email) {
-      throw new BadRequestException('Owner email is required');
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
     }
-    return this.searchEventsService.getOwnerEvents(email, { imei, read, locationType });
+    return this.searchEventsService.getOwnerEvents(caller.email, { imei, read, locationType });
   }
 
   @Get('summary')
-  async getOwnerSummary(@Query('email') email: string) {
-    if (!email) {
-      throw new BadRequestException('Owner email is required');
+  async getOwnerSummary(@Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
     }
-    return this.searchEventsService.getOwnerSummary(email);
+    return this.searchEventsService.getOwnerSummary(caller.email);
   }
 
   @Get(':id')
-  async getEventById(@Param('id') id: string, @Query('email') email?: string) {
-    return this.searchEventsService.getEventById(id, email);
+  async getEventById(@Param('id') id: string, @Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.searchEventsService.getEventById(id, caller.email);
   }
 
   @Post(':id/mark-read')
-  async markRead(@Param('id') id: string, @Query('email') email?: string) {
-    return this.searchEventsService.markEventAsRead(id, email);
+  async markRead(@Param('id') id: string, @Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.searchEventsService.markEventAsRead(id, caller.email);
   }
 
   @Post('mark-all-read')
-  async markAllRead(@Body('email') email: string) {
-    if (!email) throw new BadRequestException('Email is required');
-    return this.searchEventsService.markAllAsRead(email);
+  async markAllRead(@Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.searchEventsService.markAllAsRead(caller.email);
   }
 
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('report-seller')
   async reportSeller(
-    @Body() body: {
+    @Body()
+    body: {
       imei: string;
       sellerContact: string;
       sellerLocation?: string;
@@ -55,9 +73,12 @@ export class SearchEventsController {
     return this.searchEventsService.saveSellerReport(body);
   }
 
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('contact-owner')
   async contactOwner(
-    @Body() body: {
+    @Body()
+    body: {
       imei: string;
       senderContact: string;
       message: string;

@@ -16,9 +16,22 @@ function LoginContent() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/";
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+
+  // If already authenticated, redirect immediately
+  useState(() => {
+    if (typeof window !== "undefined") {
+      const supabase = createClient();
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          window.location.href = redirectTo;
+        }
+      });
+    }
+  });
 
   const handleEmailLogin = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setLoading(true);
     setError(null);

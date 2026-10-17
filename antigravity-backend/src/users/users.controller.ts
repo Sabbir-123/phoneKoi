@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Req, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Req, Body, Query, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { Public } from '../auth/public.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('users')
 export class UsersController {
@@ -7,19 +9,28 @@ export class UsersController {
 
   @Get('me/insights')
   async getInsights(@Req() req: any) {
-    // Mock user ID for now
-    const userId = 'mock-user-id';
+    const userId = req.user?.id || 'mock-user-id';
     return this.usersService.getUserInsights(userId);
   }
 
   @Get('profile')
-  async getProfile(@Query('email') email: string) {
-    if (!email) {
-      return null;
+  async getProfile(@Query('email') email: string, @Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
     }
-    return this.usersService.getUserProfile(email);
+
+    // Allow admin to view any user profile, otherwise strictly enforce own profile
+    const targetEmail =
+      caller.role === 'ADMIN' && email
+        ? email.toLowerCase().trim()
+        : caller.email;
+
+    return this.usersService.getUserProfile(targetEmail);
   }
 
+  @Public()
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   @Get('check-phone')
   async checkPhone(@Query('phone') phone: string, @Query('email') email: string) {
     if (!phone) {
@@ -30,27 +41,37 @@ export class UsersController {
 
   @Post('profile')
   async updateProfile(
-    @Body() dto: { email: string; phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string }
+    @Body() dto: { phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string },
+    @Req() req: any,
   ) {
-    return this.usersService.updateUserProfile(dto.email, dto);
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+
+    // Strictly enforce updating caller's own profile
+    return this.usersService.updateUserProfile(caller.email, dto);
   }
+
 
   @Post('subscription-request')
   async createRequest(
-    @Query('email') email: string,
-    @Body() dto: { planName: string, price: number, trxCode: string, bkashLastFour: string }
+    @Body() dto: { planName: string; price: number; trxCode: string; bkashLastFour: string },
+    @Req() req: any,
   ) {
-    if (!email) {
-      return null;
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
     }
-    return this.usersService.createSubscriptionRequest(email, dto);
+    return this.usersService.createSubscriptionRequest(caller.email, dto);
   }
 
   @Get('alerts')
-  async getAlerts(@Query('email') email: string) {
-    if (!email) {
-      return [];
+  async getAlerts(@Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
     }
-    return this.usersService.getUserAlerts(email);
+    return this.usersService.getUserAlerts(caller.email);
   }
 }

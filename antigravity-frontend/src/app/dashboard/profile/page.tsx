@@ -1,5 +1,6 @@
 'use client';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
+
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
@@ -69,7 +70,7 @@ export default function ProfilePage() {
         }
 
         try {
-          const res = await fetch(`${API_URL}/users/profile?email=${encodeURIComponent(emailAddress)}`);
+          const res = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(emailAddress)}`);
           if (res.ok) {
             const data = await res.json();
             const isAdminEmail = emailAddress.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
@@ -85,7 +86,7 @@ export default function ProfilePage() {
           }
 
           // Fetch real dynamic alerts count
-          const alertsRes = await fetch(`${API_URL}/users/alerts?email=${encodeURIComponent(emailAddress)}`);
+          const alertsRes = await authFetch(`${API_URL}/users/alerts?email=${encodeURIComponent(emailAddress)}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
             setAlertsCount(alertsData.length);
@@ -93,6 +94,7 @@ export default function ProfilePage() {
         } catch (e) {
           console.error(e);
         }
+
 
         // Fetch local search history count
         try {
@@ -204,7 +206,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/users/profile`, {
+      const res = await authFetch(`${API_URL}/users/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,6 +220,7 @@ export default function ProfilePage() {
       });
 
       const data = await res.json();
+
 
       if (!res.ok) {
         if (data.message && (data.message.toLowerCase().includes('duplicate') || data.message.toLowerCase().includes('phone'))) {
@@ -266,10 +269,11 @@ export default function ProfilePage() {
   const { data: reports } = useQuery({
     queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/reports?email=${email}`);
+      const res = await authFetch(`${API_URL}/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
     },
+
     enabled: !!email
   });
 

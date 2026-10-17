@@ -1,5 +1,5 @@
 "use client";
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -56,7 +56,7 @@ export default function ReportPage() {
           return;
         }
 
-        const res = await fetch(`${API_URL}/users/profile?email=${session.user.email}`);
+        const res = await authFetch(`${API_URL}/users/profile?email=${session.user.email}`);
         if (res.ok) {
           const data = await res.json();
           const isProPlan = Boolean(
@@ -81,11 +81,12 @@ export default function ReportPage() {
     setErrorMessage(null);
     setGdImage(base64);
     try {
-      const response = await fetch(`${API_URL}/reports/extract-gd`, {
+      const response = await authFetch(`${API_URL}/reports/extract-gd`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ base64Image: base64 }),
       });
+
       
       if (!response.ok) {
         console.warn("GD extraction server endpoint returned a non-OK response.");
@@ -162,10 +163,11 @@ export default function ReportPage() {
 
       const finalDeviceName = model.trim() ? (model.toLowerCase().includes(brand.toLowerCase()) ? model.trim() : `${brand} ${model.trim()}`) : deviceName;
 
-      const response = await fetch(`${API_URL}/reports/submit`, {
+      const response = await authFetch(`${API_URL}/reports/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+
           imei,
           description,
           deviceName: finalDeviceName,

@@ -1,5 +1,5 @@
 'use client';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { motion } from 'framer-motion';
@@ -31,10 +31,11 @@ export default function ReportedDevicesPage() {
   const { data: reports, isLoading } = useQuery({
     queryKey: ['user-reports', email],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/reports?email=${email}`);
+      const res = await authFetch(`${API_URL}/reports?email=${email}`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
     },
+
     enabled: !!email
   });
 
