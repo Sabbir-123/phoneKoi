@@ -35,8 +35,8 @@ export class ImeiController {
     const isDev = process.env.NODE_ENV !== 'production';
     const ip = isDev && clientIp ? clientIp : realIp;
 
-    // Use authenticated email if available from verified Supabase token
-    const verifiedEmail = req.user?.email || email;
+    // Strictly rely on verified authenticated token for quota-associated user accounts
+    const verifiedEmail = req.user?.email || undefined;
     const language = lang === 'banglish' ? 'banglish' : 'english';
 
     return this.imeiService.checkImei(

@@ -6,7 +6,13 @@ import * as geoip from 'geoip-lite';
 export class SearchLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async logSearch(imei: string, ip: string, clientLocation?: string) {
+  async logSearch(
+    imei: string,
+    ip: string,
+    clientLocation?: string,
+    userId?: string,
+    userEmail?: string,
+  ) {
     let clientIp = ip || '';
 
     // Handle comma-separated list from x-forwarded-for
@@ -18,7 +24,7 @@ export class SearchLogsService {
     if (clientIp.startsWith('::ffff:')) {
       clientIp = clientIp.substring(7);
     }
-    
+
     // Normalize localhost / loopback / private subnets for nice dev/demo presentation
     if (
       clientIp === '::1' ||
@@ -35,10 +41,10 @@ export class SearchLogsService {
     let location = clientLocation || '';
     if (!location) {
       const geo = geoip.lookup(clientIp);
-      location = 'Tejgaon, Dhaka'; // Premium default fallback for Dhaka Metro
+      location = 'Tejgaon, Dhaka'; // Default fallback for Dhaka Metro
       if (geo) {
         const city = geo.city || 'Dhaka';
-        const country = geo.country === 'BD' ? 'Bangladesh' : (geo.country || 'Bangladesh');
+        const country = geo.country === 'BD' ? 'Bangladesh' : geo.country || 'Bangladesh';
         if (city.toLowerCase() === 'dhaka') {
           location = `Tejgaon, Dhaka`;
         } else {
@@ -51,15 +57,17 @@ export class SearchLogsService {
     await this.prisma.device.upsert({
       where: { imei },
       update: {},
-      create: { imei }
+      create: { imei },
     });
 
     await this.prisma.searchLog.create({
       data: {
         imei,
+        userId: userId || null,
+        userEmail: userEmail ? userEmail.toLowerCase().trim() : null,
         ip: clientIp,
         location,
-      }
+      },
     });
   }
 }

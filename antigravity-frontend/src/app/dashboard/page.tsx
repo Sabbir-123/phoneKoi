@@ -39,33 +39,28 @@ function DashboardHomeContent() {
           setName(userEmail.split('@')[0]);
         }
 
-        // Check profile completeness from backend or localStorage
+        // Check profile completeness from PostgreSQL database
         try {
           const profileRes = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(userEmail)}`);
           if (profileRes.ok) {
             const profileData = await profileRes.json();
-            const isComplete = Boolean(profileData.isProfileComplete || (profileData.phone && profileData.address));
+            const isComplete = Boolean(profileData.isProfileComplete && profileData.phone && profileData.address);
             setProfileWarning(!isComplete);
-          } else {
-            const profileCompleted = localStorage.getItem(`profile_completed_${userEmail}`) === 'true';
-            setProfileWarning(!profileCompleted);
           }
         } catch (e) {
-          const profileCompleted = localStorage.getItem(`profile_completed_${userEmail}`) === 'true';
-          setProfileWarning(!profileCompleted);
+          console.error('Error fetching profile from database:', e);
         }
 
-        // Load local search history
+        // Load authoritative search history from PostgreSQL database
         try {
-          const historyKey = `search_history_${userEmail}`;
-          const savedHistory = localStorage.getItem(historyKey);
-          if (savedHistory) {
-            const parsedHistory = JSON.parse(savedHistory);
-            setRealSearchHistory(parsedHistory);
-            setSearchesCount(parsedHistory.length);
+          const historyRes = await authFetch(`${API_URL}/users/me/search-history?email=${encodeURIComponent(userEmail)}`);
+          if (historyRes.ok) {
+            const historyData = await historyRes.json();
+            setRealSearchHistory(Array.isArray(historyData) ? historyData : []);
+            setSearchesCount(Array.isArray(historyData) ? historyData.length : 0);
           }
         } catch (e) {
-          console.error(e);
+          console.error('Error fetching search history from database:', e);
         }
 
         // Fetch real alerts and danger alerts count

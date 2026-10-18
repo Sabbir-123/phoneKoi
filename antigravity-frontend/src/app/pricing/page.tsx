@@ -8,8 +8,21 @@ import { MotionButton } from '@/components/ui/MotionButton';
 import { ShieldCheck, Sparkles, AlertCircle, Copy, Check, Send } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useDashboardStore } from '@/store/useDashboardStore';
 
-const subscriptionPlans = [
+export interface SubscriptionPlan {
+  name: string;
+  price: number;
+  originalPrice: number | null;
+  duration: string;
+  features: string[];
+  popular: boolean;
+  isPromoFree: boolean;
+  promoBadge?: string;
+  glow: string;
+}
+
+const subscriptionPlans: SubscriptionPlan[] = [
   {
     name: '1 Month Pro',
     price: 49,
@@ -80,7 +93,7 @@ const subscriptionPlans = [
 
 export default function PricingPage() {
   const [email, setEmail] = useState('');
-  const [checkoutPlan, setCheckoutPlan] = useState<typeof subscriptionPlans[0] | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
   const [selectedPlanName, setSelectedPlanName] = useState<string>('6 Months Pro');
   const [hoveredPlanName, setHoveredPlanName] = useState<string | null>(null);
   const [trxCode, setTrxCode] = useState('');
@@ -92,7 +105,10 @@ export default function PricingPage() {
   const [promoClaimedModal, setPromoClaimedModal] = useState(false);
   const router = useRouter();
 
+  const { profile, fetchProfile } = useDashboardStore();
+
   useEffect(() => {
+    fetchProfile();
     const fetchEmail = async () => {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -101,7 +117,22 @@ export default function PricingPage() {
       }
     };
     fetchEmail();
-  }, []);
+  }, [fetchProfile]);
+
+  const hasClaimed = Boolean(profile?.hasClaimedPromo || profile?.plan === '6 Months Pro');
+
+  const computedPlans = subscriptionPlans.map((plan) => {
+    if (plan.name === '6 Months Pro' && hasClaimed) {
+      return {
+        ...plan,
+        price: 259,
+        originalPrice: null,
+        isPromoFree: false,
+        promoBadge: 'Regular Package (Promo Claimed)',
+      };
+    }
+    return plan;
+  });
 
   const handleCopyNumber = () => {
     navigator.clipboard.writeText('01626693505');
@@ -109,11 +140,11 @@ export default function PricingPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleChoosePlan = (plan: typeof subscriptionPlans[0]) => {
+  const handleChoosePlan = (plan: SubscriptionPlan) => {
     setSelectedPlanName(plan.name);
 
-    // If it's the 6-Month Free Pro Launch Offer
-    if (plan.isPromoFree) {
+    // If it's the 6-Month Free Pro Launch Offer and not yet claimed
+    if (plan.isPromoFree && !hasClaimed) {
       if (!email) {
         router.push('/signup?redirectTo=/dashboard?claimed=true');
         return;
@@ -215,7 +246,7 @@ export default function PricingPage() {
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {subscriptionPlans.map((plan, idx) => {
+        {computedPlans.map((plan, idx) => {
           const isHighlighted = hoveredPlanName ? (hoveredPlanName === plan.name) : (selectedPlanName === plan.name);
           const isSelected = selectedPlanName === plan.name;
 

@@ -108,40 +108,10 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         if (res.ok) {
           const data = await res.json();
           setBackendData(data);
-
-          // Save to localStorage search history isolated by user email
-          if (email) {
-            try {
-              const historyKey = `search_history_${email}`;
-              const existingHistoryStr = localStorage.getItem(historyKey);
-              const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
-              
-              // Prevent duplicates in search history
-              if (!existingHistory.some((item: any) => item.imei === params.imei)) {
-                const newEntry = {
-                  id: Date.now(),
-                  imei: params.imei,
-                  result: data.status === 'PENDING' ? 'Pending' : (data.status === 'STOLEN' ? 'Stolen' : (data.status === 'SUSPICIOUS' ? 'Suspicious' : 'Clean')),
-                  score: data.risk_score,
-                  date: new Date().toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })
-                };
-                
-                const updatedHistory = [newEntry, ...existingHistory].slice(0, 10);
-                localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-              }
-            } catch (historyErr) {
-              console.error('Error saving search history:', historyErr);
-            }
-          }
         }
       } catch (err: any) {
-        console.warn("Backend request failed, using simulation.", err);
+        console.error("Database request failed:", err);
+        setChecksumError('Unable to connect to the Phone Koi database. Please check your connection and try again.');
       } finally {
         setLoading(false);
       }

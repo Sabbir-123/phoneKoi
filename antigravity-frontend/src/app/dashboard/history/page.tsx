@@ -7,6 +7,9 @@ import { MotionButton } from '@/components/ui/MotionButton';
 import { History, Search, ShieldAlert, CheckCircle2, ShieldCheck, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { API_URL, authFetch } from '@/utils/api';
+import { createClient } from '@/utils/supabase/client';
+import { InteractiveLoader } from '@/components/ui/InteractiveLoader';
 
 export default function HistoryPage() {
   const { language } = useDashboardStore();
@@ -16,19 +19,18 @@ export default function HistoryPage() {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const { createClient } = require("@/utils/supabase/client");
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user?.email) {
-          const historyKey = `search_history_${session.user.email}`;
-          const savedHistory = localStorage.getItem(historyKey);
-          if (savedHistory) {
-            setHistory(JSON.parse(savedHistory));
+          const res = await authFetch(`${API_URL}/users/me/search-history?email=${encodeURIComponent(session.user.email)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setHistory(Array.isArray(data) ? data : []);
           }
         }
       } catch (err) {
-        console.error('Error loading search history:', err);
+        console.error('Error loading search history from database:', err);
       } finally {
         setLoading(false);
       }
@@ -52,9 +54,11 @@ export default function HistoryPage() {
         {/* Left Column (2 Cols) - History List */}
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
-            <div className="h-48 flex items-center justify-center bg-transparent">
-              <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
-            </div>
+            <InteractiveLoader
+              title="Querying Search Ledger Audit Logs"
+              subtitle="Verifying your previous IMEI security inquiries"
+              skeletonType="table"
+            />
           ) : history.length === 0 ? (
             <GlassCard className="p-8 text-center bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)] flex flex-col items-center justify-center min-h-[300px]">
               <div className="p-4 bg-indigo-50/50 border border-indigo-100/50 rounded-2xl mb-4">

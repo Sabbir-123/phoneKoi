@@ -12,11 +12,8 @@ import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
-  const { sidebarOpen, toggleSidebar, language } = useDashboardStore();
+  const { sidebarOpen, toggleSidebar, language, profile, fetchProfile } = useDashboardStore();
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [searchesLeft, setSearchesLeft] = useState<number | null>(null);
-
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -29,37 +26,11 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    const checkRole = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-      
-      if (email) {
-        const isAdminEmail = email.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
-        if (isAdminEmail) {
-          setIsAdmin(true);
-        }
-        try {
-          const res = await authFetch(`${API_URL}/users/profile?email=${email}`);
+    fetchProfile();
+  }, [fetchProfile]);
 
-          if (res.ok) {
-            const profile = await res.json();
-            if (profile?.role === 'ADMIN' || isAdminEmail) {
-              setIsAdmin(true);
-            }
-            if (profile?.searchesLeft !== undefined) {
-              setSearchesLeft(profile.searchesLeft);
-            }
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-    checkRole();
-    const interval = setInterval(checkRole, 6000);
-    return () => clearInterval(interval);
-  }, []);
+  const isAdmin = profile?.role === 'ADMIN';
+  const searchesLeft = profile?.searchesLeft !== undefined ? profile.searchesLeft : null;
 
   const pricingLabel = language === 'banglish' ? 'Check Quota' : 'Check Quota';
 

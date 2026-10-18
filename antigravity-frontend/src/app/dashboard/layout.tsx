@@ -14,36 +14,14 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { toggleSidebar } = useDashboardStore();
-  const [plan, setPlan] = useState('FREE');
-  const [isPro, setIsPro] = useState(false);
+  const { toggleSidebar, fetchProfile, profile } = useDashboardStore();
 
   useEffect(() => {
-    const fetchPlan = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.email) {
-          const isAdminEmail = session.user.email.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
-          if (isAdminEmail) {
-            setPlan('PRO');
-            setIsPro(true);
-          }
-          const res = await authFetch(`${API_URL}/users/profile?email=${session.user.email}`);
+    fetchProfile();
+  }, [fetchProfile]);
 
-          if (res.ok) {
-            const data = await res.json();
-            setPlan(data.plan || (isAdminEmail ? 'PRO' : 'FREE'));
-            setIsPro(Boolean(data.isPro || isAdminEmail || (data.plan && data.plan.includes('Pro'))));
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching plan for dashboard layout:', err);
-      }
-    };
-    fetchPlan();
-  }, []);
-
+  const plan = profile?.plan || 'FREE';
+  const isPro = Boolean(profile?.isPro || (profile?.plan && profile.plan.includes('Pro')));
   const isProMember = isPro || plan === 'PRO' || (typeof plan === 'string' && plan.includes('Pro'));
 
   return (

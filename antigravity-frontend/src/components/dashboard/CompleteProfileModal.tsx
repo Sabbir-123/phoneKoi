@@ -29,11 +29,8 @@ export default function CompleteProfileModal() {
 
         if (res.ok) {
           const profile = await res.json();
-          const localCompleted = localStorage.getItem(`profile_completed_${email}`) === 'true';
           const isComplete = Boolean(
-            profile.isProfileComplete || 
-            (profile.phone && profile.address && profile.displayName && profile.avatar) || 
-            localCompleted
+            profile.isProfileComplete && profile.phone && profile.address
           );
 
           // If profile is not complete, show the mandatory complete profile modal

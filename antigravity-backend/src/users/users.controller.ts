@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Req, Body, Query, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { Public } from '../auth/public.decorator';
 import { Throttle } from '@nestjs/throttler';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CreateSubscriptionRequestDto } from './dto/subscription-request.dto';
 
 @Controller('users')
 export class UsersController {
@@ -9,8 +10,20 @@ export class UsersController {
 
   @Get('me/insights')
   async getInsights(@Req() req: any) {
-    const userId = req.user?.id || 'mock-user-id';
-    return this.usersService.getUserInsights(userId);
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required to access insights');
+    }
+    return this.usersService.getUserInsights(caller.id, caller.email);
+  }
+
+  @Get('me/search-history')
+  async getSearchHistory(@Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required to access search history');
+    }
+    return this.usersService.getUserSearchHistory(caller.email);
   }
 
   @Get('profile')
@@ -29,19 +42,25 @@ export class UsersController {
     return this.usersService.getUserProfile(targetEmail);
   }
 
-  @Public()
-  @Throttle({ default: { limit: 15, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('check-phone')
-  async checkPhone(@Query('phone') phone: string, @Query('email') email: string) {
+  async checkPhone(
+    @Query('phone') phone: string,
+    @Req() req: any,
+  ) {
     if (!phone) {
       return { available: false, message: 'Phone number is required' };
     }
-    return this.usersService.checkPhoneAvailability(phone, email);
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.usersService.checkPhoneAvailability(phone, caller.email);
   }
 
   @Post('profile')
   async updateProfile(
-    @Body() dto: { phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string },
+    @Body() dto: UpdateProfileDto,
     @Req() req: any,
   ) {
     const caller = req.user;
@@ -53,10 +72,9 @@ export class UsersController {
     return this.usersService.updateUserProfile(caller.email, dto);
   }
 
-
   @Post('subscription-request')
   async createRequest(
-    @Body() dto: { planName: string; price: number; trxCode: string; bkashLastFour: string },
+    @Body() dto: CreateSubscriptionRequestDto,
     @Req() req: any,
   ) {
     const caller = req.user;

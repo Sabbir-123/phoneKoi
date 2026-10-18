@@ -1,12 +1,14 @@
 'use client';
 import { API_URL, authFetch } from '@/utils/api';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
 import { ShieldCheck, UserCheck, Search, Filter, RefreshCw, XCircle, Clock, Smartphone, ShieldAlert, AlertTriangle, FileText, Check } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useDashboardStore } from '@/store/useDashboardStore';
+import { InteractiveLoader } from '@/components/ui/InteractiveLoader';
 
 interface SubscriptionRequest {
   id: string;
@@ -36,6 +38,7 @@ interface DeviceReport {
 }
 
 export default function AdminDashboard() {
+  const { profile, fetchProfile } = useDashboardStore();
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
   const [deviceReports, setDeviceReports] = useState<DeviceReport[]>([]);
   const [activeTab, setActiveTab] = useState<'SUBSCRIPTIONS' | 'REPORTS'>('SUBSCRIPTIONS');
@@ -53,7 +56,7 @@ export default function AdminDashboard() {
     rect: DOMRect;
   } | null>(null);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const res = await authFetch(`${API_URL}/admin/subscription-requests`);
@@ -66,9 +69,9 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchDeviceReports = async () => {
+  const fetchDeviceReports = useCallback(async () => {
     try {
       setReportsLoading(true);
       const res = await authFetch(`${API_URL}/admin/reports`);
@@ -81,47 +84,59 @@ export default function AdminDashboard() {
     } finally {
       setReportsLoading(false);
     }
-  };
+  }, []);
+
+  const loadAllData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setReportsLoading(true);
+      const [subRes, repRes] = await Promise.all([
+        authFetch(`${API_URL}/admin/subscription-requests`),
+        authFetch(`${API_URL}/admin/reports`),
+      ]);
+      if (subRes.ok) {
+        setRequests(await subRes.json());
+      }
+      if (repRes.ok) {
+        setDeviceReports(await repRes.json());
+      }
+    } catch (e) {
+      console.error('Error fetching admin data:', e);
+    } finally {
+      setLoading(false);
+      setReportsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const authorize = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-
-      if (email) {
-        const isAdminEmail = email.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
-        if (isAdminEmail) {
+    const init = async () => {
+      // 1. Fast path: check current store profile
+      if (profile) {
+        if (profile.role === 'ADMIN') {
           setAuthorized(true);
-          fetchRequests();
-          fetchDeviceReports();
+          loadAllData();
+          return;
+        } else {
+          setAuthorized(false);
+          setLoading(false);
+          setReportsLoading(false);
           return;
         }
+      }
 
-        try {
-          const res = await authFetch(`${API_URL}/users/profile?email=${email}`);
-          if (res.ok) {
-            const profile = await res.json();
-            if (profile?.role === 'ADMIN') {
-              setAuthorized(true);
-              fetchRequests();
-              fetchDeviceReports();
-            } else {
-              setAuthorized(false);
-            }
-          } else {
-            setAuthorized(false);
-          }
-        } catch (e) {
-          console.error(e);
-          setAuthorized(false);
-        }
+      // 2. Fetch profile from store or server
+      const p = await fetchProfile();
+      if (p?.role === 'ADMIN') {
+        setAuthorized(true);
+        loadAllData();
       } else {
         setAuthorized(false);
+        setLoading(false);
+        setReportsLoading(false);
       }
     };
-    authorize();
-  }, []);
+    init();
+  }, [profile, fetchProfile, loadAllData]);
 
   const handleRequestAction = async (id: string, action: 'approve' | 'reject') => {
     setActionLoadingId(id);
@@ -256,10 +271,18 @@ export default function AdminDashboard() {
               </div>
 
               {loading ? (
-                <div className="py-24 text-center">
-                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Querying active requests...</span>
-                </div>
+                <InteractiveLoader
+                  title="Querying Active Subscription Vault"
+                  subtitle="Verifying payment tokens & synchronizing transaction signatures with Supabase"
+                  skeletonType="table"
+                  onRefresh={fetchRequests}
+                  stages={[
+                    'Connecting to Supabase PostgreSQL ledger...',
+                    'Fetching pending subscription verification logs...',
+                    'Validating bKash payment signatures...',
+                    'Aggregating user quota entitlements...',
+                  ]}
+                />
               ) : filteredRequests.length === 0 ? (
                 <div className="py-24 text-center space-y-3">
                   <UserCheck className="w-12 h-12 text-slate-300 mx-auto animate-bounce" />
@@ -385,10 +408,18 @@ export default function AdminDashboard() {
               </div>
 
               {reportsLoading ? (
-                <div className="py-24 text-center">
-                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Querying threat registry...</span>
-                </div>
+                <InteractiveLoader
+                  title="Scanning Real-Time Device Risk Vault"
+                  subtitle="Verifying GD citations, police jurisdiction registries, and IMEI threat weights"
+                  skeletonType="table"
+                  onRefresh={fetchDeviceReports}
+                  stages={[
+                    'Scanning Supabase device incident tables...',
+                    'Verifying Police GD documentation hashes...',
+                    'Cross-referencing IMEI blacklist telemetry...',
+                    'Generating admin authorization digest...',
+                  ]}
+                />
               ) : filteredReports.length === 0 ? (
                 <div className="py-24 text-center space-y-3">
                   <Smartphone className="w-12 h-12 text-slate-300 mx-auto animate-bounce" />
@@ -686,24 +717,33 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })()
-                ) : viewingGdImage.startsWith("data:application/pdf") ? (
+                ) : viewingGdImage.startsWith("data:application/pdf;base64,") ? (
                   <div className="py-24 text-center space-y-2">
                     <FileText className="w-16 h-16 text-red-500 mx-auto animate-bounce" />
                     <p className="text-sm font-bold text-slate-700">PDF Document Evidence</p>
                     <a 
                       href={viewingGdImage} 
                       download="police_gd_evidence.pdf" 
+                      rel="noopener noreferrer"
                       className="inline-block px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all mt-2"
                     >
                       Download PDF File
                     </a>
                   </div>
-                ) : (
+                ) : viewingGdImage.startsWith("data:image/jpeg;base64,") ||
+                    viewingGdImage.startsWith("data:image/png;base64,") ||
+                    viewingGdImage.startsWith("data:image/webp;base64,") ? (
                   <img 
                     src={viewingGdImage} 
                     alt="Uploaded GD Copy Evidence" 
                     className="max-w-full h-auto object-contain rounded-xl shadow-lg border border-slate-100" 
                   />
+                ) : (
+                  <div className="py-16 text-center space-y-2">
+                    <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
+                    <p className="text-sm font-bold text-slate-800">Unsupported or Untrusted Evidence File</p>
+                    <p className="text-xs text-slate-400">The uploaded file format does not match verified image or PDF specifications.</p>
+                  </div>
                 )}
               </div>
             </motion.div>

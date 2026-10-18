@@ -2,7 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// NOTE: using .env for DB URL
 datasource db {
   provider = "postgresql"
 }
@@ -29,6 +28,7 @@ enum ReportStatus {
   PENDING
   APPROVED
   REJECTED
+  RECOVERED
 }
 
 model User {
@@ -36,64 +36,128 @@ model User {
   email                 String?               @unique
   password              String?
   role                  Role                  @default(USER)
-  plan                  String                @default("FREE") // "FREE", "PRO"
+  displayName           String?
+  phone                 String?               @unique
+  normalizedPhone       String?
+  whatsapp              String?
+  address               String?
+  avatarUrl             String?
+  isProfileComplete     Boolean               @default(false)
+  plan                  String                @default("FREE") // "FREE", "PRO", "6 Months Pro", etc.
   searchLimit           Int                   @default(1)
   searchesLeft          Int                   @default(1)
   reportLimit           Int                   @default(0)
   reportsLeft           Int                   @default(0)
   isPro                 Boolean               @default(false)
   subscriptionExpiresAt DateTime?
+  hasDismissedPromo     Boolean               @default(false)
+  hasClaimedPromo       Boolean               @default(false)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
+
   reports               Report[]
+  searchLogs            SearchLog[]
   SubscriptionRequest   SubscriptionRequest[]
+  searchEvents          SearchEvent[]         @relation("UserSearchEvents")
+  sellerReports         SellerReport[]
+  ownerMessages         OwnerMessage[]
 }
 
 model Device {
-  imei       String       @id
-  status     DeviceStatus @default(CLEAN)
-  riskScore  Int          @default(0) // 0-100
-  riskLevel  RiskLevel    @default(LOW)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  reports    Report[]
-  searchLogs SearchLog[]
+  imei         String         @id
+  brand        String?
+  model        String?
+  deviceName   String?
+  status       DeviceStatus   @default(CLEAN)
+  riskScore    Int            @default(0) // 0-100
+  riskLevel    RiskLevel      @default(LOW)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  reports      Report[]
+  searchLogs   SearchLog[]
+  searchEvents SearchEvent[]
 }
 
 model Report {
   id                     String       @id @default(uuid())
   imei                   String
-  device                 Device       @relation(fields: [imei], references: [imei])
+  device                 Device       @relation(fields: [imei], references: [imei], onDelete: Cascade)
   reporterIp             String?
   userId                 String?
-  user                   User?        @relation(fields: [userId], references: [id])
+  user                   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail              String?
   date                   DateTime     @default(now())
   location               String?
   description            String?
   contactNumber          String?
   deviceName             String?
+  brand                  String?
+  model                  String?
+  reportType             String       @default("STOLEN") // "LOST" | "STOLEN"
+  lossDate               DateTime?
+  policeGdNumber         String?
+  policeStation          String?
+  notificationPreferences String[]    @default(["IN_APP", "EMAIL", "WHATSAPP", "SMS"])
   extractedFromGd        Boolean      @default(false)
   aiExtractionConfidence Float?
   status                 ReportStatus @default(PENDING)
-  trustWeight            Int          @default(1) // e.g. 1 (anonymous), 2 (verified email), 5 (evidence)
+  trustWeight            Int          @default(1)
   gdImage                String?
+  gdStoragePath          String?
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
+
+  @@index([imei])
+  @@index([userId])
 }
 
 model SearchLog {
   id        String   @id @default(uuid())
   imei      String
-  device    Device   @relation(fields: [imei], references: [imei])
+  device    Device   @relation(fields: [imei], references: [imei], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail String?
   ip        String?
   location  String?
   timestamp DateTime @default(now())
+
+  @@index([imei])
+  @@index([userId])
+}
+
+model SearchEvent {
+  id              String       @id @default(uuid())
+  imei            String
+  device          Device       @relation(fields: [imei], references: [imei], onDelete: Cascade)
+  ownerId         String?
+  owner           User?        @relation("UserSearchEvents", fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerEmail      String
+  maskedImei      String
+  deviceBrand     String?
+  deviceModel     String?
+  deviceName      String?
+  searchResult    String       @default("STOLEN")
+  ip              String?
+  latitude        Float?
+  longitude       Float?
+  accuracyRadius  Float?
+  locationSource  String?
+  locationName    String?
+  policeGdNumber  String?
+  isRead          Boolean      @default(false)
+  notifications   Json?
+  timestamp       DateTime     @default(now())
+
+  @@index([ownerEmail])
+  @@index([imei])
 }
 
 model SubscriptionRequest {
   id            String   @id @default(uuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userEmail     String
   planName      String   // "1 Month", "3 Months", "6 Months", "12 Months"
   price         Int      // 49, 99, 259, 999
@@ -102,4 +166,27 @@ model SubscriptionRequest {
   status        String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model SellerReport {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  imei       String
+  sellerInfo String?
+  details    String?
+  createdAt  DateTime @default(now())
+}
+
+model OwnerMessage {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  imei       String
+  ownerEmail String
+  message    String
+  contact    String?
+  createdAt  DateTime @default(now())
 }

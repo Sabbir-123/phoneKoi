@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Mail, Lock, AlertCircle, LogIn } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
+import { sanitizeRedirectUrl } from "@/utils/security";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -16,7 +17,8 @@ function LoginContent() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  const rawRedirectTo = searchParams.get("redirectTo");
+  const redirectTo = sanitizeRedirectUrl(rawRedirectTo, "/dashboard");
 
   // If already authenticated, redirect immediately
   useState(() => {

@@ -1,25 +1,11 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import * as fs from 'fs';
-import * as path from 'path';
-
-export interface UserProfileData {
-  email: string;
-  phone: string;
-  normalizedPhone: string;
-  whatsapp?: string;
-  address?: string;
-  displayName?: string;
-  avatar?: string;
-  isProfileComplete: boolean;
-  updatedAt: string;
-}
+import { SupabaseService } from '../auth/supabase.service';
+import { PLAN_PRICING_CATALOG } from './dto/subscription-request.dto';
 
 export function normalizePhoneNumber(phone: string): string {
   if (!phone) return '';
-  // Remove non-digit characters
   let cleaned = phone.replace(/\D/g, '');
-  // If starts with 880 (e.g. Bangladesh country code 88017...), strip 88 to match 017...
   if (cleaned.startsWith('880')) {
     cleaned = cleaned.substring(2);
   }
@@ -28,69 +14,49 @@ export function normalizePhoneNumber(phone: string): string {
 
 @Injectable()
 export class UsersService {
-  private dataDir = path.join(process.cwd(), 'data');
-  private dataFile = path.join(process.cwd(), 'data', 'user-profiles.json');
-  private profilesStore: Map<string, UserProfileData> = new Map();
+  private readonly profileCache = new Map<string, { profile: any; expiresAt: number }>();
 
-  constructor(private prisma: PrismaService) {
-    this.loadProfilesFromFile();
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
-  private loadProfilesFromFile() {
-    try {
-      this.profilesStore.clear();
-      if (!fs.existsSync(this.dataDir)) {
-        fs.mkdirSync(this.dataDir, { recursive: true });
-      }
-      if (fs.existsSync(this.dataFile)) {
-        const raw = fs.readFileSync(this.dataFile, 'utf-8');
-        const list: UserProfileData[] = JSON.parse(raw);
-        for (const item of list) {
-          if (item && item.email) {
-            this.profilesStore.set(item.email.toLowerCase().trim(), item);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Could not load user profiles from file:', e);
+  invalidateProfileCache(email?: string) {
+    if (email) {
+      this.profileCache.delete(email.toLowerCase().trim());
+    } else {
+      this.profileCache.clear();
     }
   }
 
-  private saveProfilesToFile() {
-    try {
-      if (!fs.existsSync(this.dataDir)) {
-        fs.mkdirSync(this.dataDir, { recursive: true });
-      }
-      const list = Array.from(this.profilesStore.values());
-      fs.writeFileSync(this.dataFile, JSON.stringify(list, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('Could not save user profiles to file:', e);
-    }
-  }
-
-  checkPhoneAvailability(phone: string, email?: string) {
-    this.loadProfilesFromFile();
+  async checkPhoneAvailability(phone: string, email?: string) {
     const normalized = normalizePhoneNumber(phone);
     if (!normalized || normalized.length < 10) {
       return { available: false, message: 'Invalid phone number format' };
     }
 
-    const currentEmailNorm = email?.toLowerCase().trim();
+    const currentEmail = email?.toLowerCase().trim();
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        normalizedPhone: normalized,
+        NOT: currentEmail ? { email: currentEmail } : undefined,
+      },
+    });
 
-    for (const [existingEmail, profile] of this.profilesStore.entries()) {
-      if (existingEmail !== currentEmailNorm && profile.normalizedPhone === normalized) {
-        return {
-          available: false,
-          message: 'Duplicate number: another user has already used this phone number. Please use a different number.'
-        };
-      }
+    if (existing) {
+      return {
+        available: false,
+        message: 'Duplicate number: another user has already registered this phone number. Please use a different number.',
+      };
     }
 
     return { available: true, message: 'Phone number is available' };
   }
 
-  async updateUserProfile(email: string, dto: { phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string }) {
-    this.loadProfilesFromFile();
+  async updateUserProfile(
+    email: string,
+    dto: { phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string },
+  ) {
     if (!email) {
       throw new BadRequestException('Email is required');
     }
@@ -99,15 +65,12 @@ export class UsersService {
     if (!dto.displayName || !dto.displayName.trim()) {
       throw new BadRequestException('Full Name is mandatory to complete your profile.');
     }
-
     if (!dto.avatar || !dto.avatar.trim()) {
       throw new BadRequestException('Profile picture is mandatory to complete your profile.');
     }
-
     if (!dto.phone || !dto.phone.trim()) {
       throw new BadRequestException('Phone number is mandatory to complete your profile.');
     }
-
     if (!dto.address || !dto.address.trim()) {
       throw new BadRequestException('Physical address is mandatory to complete your profile.');
     }
@@ -117,250 +80,274 @@ export class UsersService {
       throw new BadRequestException('Please provide a valid phone number (at least 10-11 digits).');
     }
 
-    // Check duplicate phone number across all users
-    for (const [existingEmail, existingProfile] of this.profilesStore.entries()) {
-      if (existingEmail !== cleanEmail && existingProfile.normalizedPhone === normalizedPhone) {
-        throw new BadRequestException(
-          'Duplicate number: another user has already used this phone number. Please use a different number.'
-        );
+    // Verify uniqueness in PostgreSQL
+    const existingPhone = await this.prisma.user.findFirst({
+      where: {
+        normalizedPhone,
+        NOT: { email: cleanEmail },
+      },
+    });
+
+    if (existingPhone) {
+      throw new BadRequestException(
+        'Duplicate number: another user has already registered this phone number. Please use a different number.',
+      );
+    }
+
+    let avatarUrl = dto.avatar.trim();
+    if (avatarUrl.startsWith('data:image/')) {
+      const parts = avatarUrl.split(',');
+      if (parts.length > 1) {
+        const buffer = Buffer.from(parts[1], 'base64');
+        const storagePath = `avatars/${Buffer.from(cleanEmail).toString('hex').slice(0, 16)}.png`;
+        const uploaded = await this.supabaseService.uploadFile('avatars', storagePath, buffer, 'image/png');
+        if (uploaded) {
+          avatarUrl = this.supabaseService.getPublicUrl('avatars', storagePath) || storagePath;
+        }
       }
     }
 
-    // Save profile to store
-    const profileData: UserProfileData = {
-      email: cleanEmail,
-      phone: dto.phone.trim(),
-      normalizedPhone,
-      whatsapp: (dto.whatsapp || dto.phone).trim(),
-      address: dto.address.trim(),
-      displayName: dto.displayName.trim(),
-      avatar: dto.avatar.trim(),
-      isProfileComplete: true,
-      updatedAt: new Date().toISOString()
-    };
+    const updatedUser = await this.prisma.user.upsert({
+      where: { email: cleanEmail },
+      update: {
+        displayName: dto.displayName.trim(),
+        phone: dto.phone.trim(),
+        normalizedPhone,
+        whatsapp: (dto.whatsapp || dto.phone).trim(),
+        address: dto.address.trim(),
+        avatarUrl,
+        isProfileComplete: true,
+      },
+      create: {
+        email: cleanEmail,
+        role: 'USER',
+        displayName: dto.displayName.trim(),
+        phone: dto.phone.trim(),
+        normalizedPhone,
+        whatsapp: (dto.whatsapp || dto.phone).trim(),
+        address: dto.address.trim(),
+        avatarUrl,
+        isProfileComplete: true,
+        plan: '6 Months Pro',
+        isPro: true,
+        searchLimit: 30,
+        searchesLeft: 30,
+        reportLimit: 10,
+        reportsLeft: 10,
+        subscriptionExpiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+      },
+      include: { SubscriptionRequest: true },
+    });
 
-    this.profilesStore.set(cleanEmail, profileData);
-    this.saveProfilesToFile();
-
-    // Fetch base user profile info (plan, quota, etc.)
-    const baseProfile = await this.getUserProfile(email);
+    this.invalidateProfileCache(cleanEmail);
 
     return {
       success: true,
       message: 'Profile completed successfully!',
       user: {
-        ...baseProfile,
-        ...profileData
-      }
-    };
-  }
-
-  async getUserInsights(userId: string) {
-    // In a real scenario, we would filter by userId.
-    // For this prototype, we'll fetch general system trends as "insights"
-    // to simulate personalization without requiring full auth setup first.
-    
-    const recentSearches = await this.prisma.searchLog.findMany({
-      take: 5,
-      orderBy: { timestamp: 'desc' },
-      select: { imei: true, location: true, timestamp: true }
-    });
-
-    const recentReports = await this.prisma.report.findMany({
-      take: 3,
-      orderBy: { date: 'desc' },
-      select: { status: true, date: true }
-    });
-
-    return {
-      userId,
-      message: "Personalized insights generated",
-      recentChecks: recentSearches,
-      localRiskTrends: {
-        trend: "Rising",
-        reportsInArea: recentReports.length,
-        advice: "Be extra cautious when buying devices in your current area this week."
-      }
+        ...updatedUser,
+        avatar: updatedUser.avatarUrl || '',
+      },
     };
   }
 
   async getUserProfile(email: string) {
-    const isAdminEmail = email?.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
+    if (!email) throw new BadRequestException('Email is required');
+    const cleanEmail = email.toLowerCase().trim();
+
+    const now = Date.now();
+    const cached = this.profileCache.get(cleanEmail);
+    if (cached && cached.expiresAt > now) {
+      return cached.profile;
+    }
+
     const isPromoActive = new Date() <= new Date('2027-01-31T23:59:59.999Z');
 
-    try {
-      let user = await this.prisma.user.findUnique({
-        where: { email },
-        include: { SubscriptionRequest: true }
+    let user = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: { SubscriptionRequest: true },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: cleanEmail,
+          role: 'USER',
+          plan: isPromoActive ? '6 Months Pro' : 'FREE',
+          isPro: isPromoActive,
+          searchLimit: isPromoActive ? 30 : 1,
+          searchesLeft: isPromoActive ? 30 : 1,
+          reportLimit: isPromoActive ? 10 : 0,
+          reportsLeft: isPromoActive ? 10 : 0,
+          hasClaimedPromo: isPromoActive,
+          subscriptionExpiresAt: isPromoActive ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) : null,
+        },
+        include: { SubscriptionRequest: true },
       });
-
-      if (!user) {
-        user = await this.prisma.user.create({
-          data: {
-            email,
-            role: isAdminEmail ? 'ADMIN' : 'USER',
-            plan: isAdminEmail ? 'PRO' : (isPromoActive ? '6 Months Pro' : 'FREE'),
-            isPro: isAdminEmail ? true : isPromoActive,
-            searchLimit: isAdminEmail ? 99999 : (isPromoActive ? 30 : 1),
-            searchesLeft: isAdminEmail ? 99999 : (isPromoActive ? 30 : 1),
-            reportLimit: isAdminEmail ? 9999 : (isPromoActive ? 10 : 0),
-            reportsLeft: isAdminEmail ? 9999 : (isPromoActive ? 10 : 0),
-            subscriptionExpiresAt: isAdminEmail ? null : (isPromoActive ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) : null),
-          },
-          include: { SubscriptionRequest: true }
-        });
-      } else {
-        let needsUpdate = false;
-        const updateData: any = {};
-
-        if (isAdminEmail) {
-          if (user.role !== 'ADMIN') {
-            updateData.role = 'ADMIN';
-            needsUpdate = true;
-          }
-          if (!user.isPro || user.plan !== 'PRO') {
-            updateData.plan = 'PRO';
-            updateData.isPro = true;
-            needsUpdate = true;
-          }
-        } else {
-          if (user.role === 'ADMIN') {
-            updateData.role = 'USER';
-            needsUpdate = true;
-          }
-          // Promote free / new users signing up before Jan 31 2027 to 6 Months Pro
-          if (isPromoActive && (user.plan === 'FREE' || !user.isPro)) {
-            updateData.plan = '6 Months Pro';
-            updateData.isPro = true;
-            updateData.searchLimit = 30;
-            updateData.searchesLeft = Math.max(user.searchesLeft, 30);
-            updateData.reportLimit = 10;
-            updateData.reportsLeft = Math.max(user.reportsLeft, 10);
-            if (!user.subscriptionExpiresAt) {
-              updateData.subscriptionExpiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-            }
-            needsUpdate = true;
-          }
-        }
-
-        if (needsUpdate) {
-          user = await this.prisma.user.update({
-            where: { email },
-            data: updateData,
-            include: { SubscriptionRequest: true }
-          });
-        }
-      }
-
-      const storedProfile = this.profilesStore.get(email?.toLowerCase().trim());
-
-      return {
-        ...user,
-        phone: storedProfile?.phone || '',
-        whatsapp: storedProfile?.whatsapp || '',
-        address: storedProfile?.address || '',
-        displayName: storedProfile?.displayName || email?.split('@')[0] || '',
-        avatar: storedProfile?.avatar || '',
-        isProfileComplete: Boolean(storedProfile?.isProfileComplete && storedProfile?.phone && storedProfile?.address && storedProfile?.displayName && storedProfile?.avatar),
-        promoRewarded: isPromoActive && !isAdminEmail,
-      };
-    } catch (err: any) {
-      console.warn('Database query failed in getUserProfile, using dynamic profile:', err?.message || err);
-      const storedProfile = this.profilesStore.get(email?.toLowerCase().trim());
-
-      return {
-        id: isAdminEmail ? 'admin-sabbir-id' : 'offline-user-id',
-        email,
-        phone: storedProfile?.phone || '',
-        whatsapp: storedProfile?.whatsapp || '',
-        address: storedProfile?.address || '',
-        displayName: storedProfile?.displayName || email?.split('@')[0] || '',
-        avatar: storedProfile?.avatar || '',
-        isProfileComplete: Boolean(storedProfile?.isProfileComplete && storedProfile?.phone && storedProfile?.address && storedProfile?.displayName && storedProfile?.avatar),
-        role: isAdminEmail ? 'ADMIN' : 'USER',
-        plan: isAdminEmail ? 'PRO' : (isPromoActive ? '6 Months Pro' : 'FREE'),
-        isPro: isAdminEmail ? true : isPromoActive,
-        searchLimit: isAdminEmail ? 99999 : (isPromoActive ? 30 : 1),
-        searchesLeft: isAdminEmail ? 99999 : (isPromoActive ? 30 : 1),
-        reportLimit: isAdminEmail ? 9999 : (isPromoActive ? 10 : 0),
-        reportsLeft: isAdminEmail ? 9999 : (isPromoActive ? 10 : 0),
-        subscriptionExpiresAt: isAdminEmail ? null : (isPromoActive ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) : null),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        SubscriptionRequest: [],
-        promoRewarded: isPromoActive && !isAdminEmail,
-      };
     }
+
+    const hasClaimedPromo = Boolean(user.hasClaimedPromo || user.plan === '6 Months Pro');
+
+    const profile = {
+      ...user,
+      phone: user.phone || '',
+      whatsapp: user.whatsapp || '',
+      address: user.address || '',
+      displayName: user.displayName || user.email?.split('@')[0] || '',
+      avatar: user.avatarUrl || '',
+      isProfileComplete: Boolean(user.isProfileComplete && user.phone && user.address),
+      promoRewarded: isPromoActive && user.role !== 'ADMIN',
+      hasClaimedPromo,
+    };
+
+    this.profileCache.set(cleanEmail, { profile, expiresAt: now + 15000 });
+    return profile;
   }
 
-  async createSubscriptionRequest(email: string, dto: { planName: string, price: number, trxCode: string, bkashLastFour: string }) {
-    // Ensure user exists
+  async getUserSearchHistory(email: string) {
+    const cleanEmail = email.toLowerCase().trim();
+    const searches = await this.prisma.searchLog.findMany({
+      where: {
+        OR: [
+          { userEmail: cleanEmail },
+          { user: { email: cleanEmail } },
+        ],
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 20,
+      include: {
+        device: {
+          select: {
+            status: true,
+            riskScore: true,
+            riskLevel: true,
+            deviceName: true,
+            brand: true,
+            model: true,
+          },
+        },
+      },
+    });
+
+    return searches.map((s) => ({
+      id: s.id,
+      imei: s.imei,
+      result: s.device?.status === 'STOLEN' ? 'Stolen' : s.device?.status === 'SUSPICIOUS' ? 'Suspicious' : 'Clean',
+      score: s.device?.riskScore ?? 0,
+      location: s.location || 'Dhaka, Bangladesh',
+      date: s.timestamp.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    }));
+  }
+
+  async getUserInsights(userId: string, email?: string) {
+    const userReports = await this.prisma.report.findMany({
+      where: {
+        OR: [
+          ...(userId && userId !== 'mock-user-id' ? [{ userId }] : []),
+          ...(email ? [{ userEmail: email.toLowerCase().trim() }] : []),
+        ],
+      },
+      select: { imei: true, deviceName: true, status: true, date: true },
+    });
+
+    const userImeis = userReports.map((r) => r.imei).filter(Boolean);
+    let userChecks: any[] = [];
+
+    if (userImeis.length > 0) {
+      const rawSearches = await this.prisma.searchLog.findMany({
+        where: { imei: { in: userImeis } },
+        take: 5,
+        orderBy: { timestamp: 'desc' },
+        select: { imei: true, location: true, timestamp: true },
+      });
+
+      userChecks = rawSearches.map((s) => ({
+        ...s,
+        imei:
+          s.imei && s.imei.length === 15
+            ? `${s.imei.slice(0, 6)}*****${s.imei.slice(11)}`
+            : '***************',
+      }));
+    }
+
+    const totalVerifiedReports = await this.prisma.report.count({
+      where: { status: 'APPROVED' },
+    });
+
+    return {
+      userId,
+      message: 'Personalized device protection insights generated',
+      recentChecks: userChecks,
+      localRiskTrends: {
+        trend: totalVerifiedReports > 10 ? 'Elevated' : 'Moderate',
+        verifiedTheftIncidents: totalVerifiedReports,
+        advice:
+          'Always verify 15-digit IMEI with Phone Koi and demand original purchase receipt before completing second-hand phone purchases.',
+      },
+    };
+  }
+
+  async createSubscriptionRequest(
+    email: string,
+    dto: { planName: string; price?: number; trxCode: string; bkashLastFour: string },
+  ) {
     const user = await this.getUserProfile(email);
 
-    try {
-      return await this.prisma.subscriptionRequest.create({
-        data: {
-          userId: user.id,
-          userEmail: email,
-          planName: dto.planName,
-          price: Number(dto.price),
-          trxCode: dto.trxCode,
-          bkashLastFour: dto.bkashLastFour,
-          status: 'PENDING'
-        }
-      });
-    } catch (e: any) {
-      console.warn('Prisma createSubscriptionRequest error, storing locally:', e?.message || e);
-      const subFile = path.join(this.dataDir, 'subscriptions.json');
-      let subs: any[] = [];
-      if (fs.existsSync(subFile)) {
-        try { subs = JSON.parse(fs.readFileSync(subFile, 'utf-8')) || []; } catch {}
+    if (dto.planName === '6 Months Pro' || dto.planName.toLowerCase().includes('free')) {
+      if (user.hasClaimedPromo || user.plan === '6 Months Pro') {
+        throw new BadRequestException(
+          'You have already claimed your one-time 6-Month Free Pro promotional offer. Once your promo quota is exhausted, please choose one of our standard packages to recharge your search and report tokens.',
+        );
       }
-      const now = new Date().toISOString();
-      const newSub = {
-        id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    }
+
+    const authoritativePrice =
+      PLAN_PRICING_CATALOG[dto.planName] ?? (dto.price !== undefined ? Number(dto.price) : 49);
+
+    const result = await this.prisma.subscriptionRequest.create({
+      data: {
         userId: user.id,
         userEmail: email,
         planName: dto.planName,
-        price: Number(dto.price),
+        price: authoritativePrice,
         trxCode: dto.trxCode,
         bkashLastFour: dto.bkashLastFour,
         status: 'PENDING',
-        createdAt: now,
-        updatedAt: now
-      };
-      subs.unshift(newSub);
-      fs.writeFileSync(subFile, JSON.stringify(subs, null, 2), 'utf-8');
-      return newSub;
-    }
+      },
+    });
+
+    this.invalidateProfileCache(email);
+    return result;
   }
 
   async getUserAlerts(email: string) {
-    let user: any = null;
-    try {
-      user = await this.prisma.user.findUnique({
-        where: { email },
-        include: {
-          reports: {
-            include: {
-              device: {
-                include: {
-                  searchLogs: {
-                    orderBy: { timestamp: 'desc' }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-    } catch (err: any) {
-      console.warn('Prisma getUserAlerts error, using local fallback:', err?.message || err);
-    }
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: {
+        reports: {
+          include: {
+            device: {
+              include: {
+                searchLogs: {
+                  orderBy: { timestamp: 'desc' },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
     const alerts: any[] = [];
 
-    if (user && user.reports && user.reports.length > 0) {
+    if (user?.reports && user.reports.length > 0) {
       for (const report of user.reports) {
         if (report.status === 'APPROVED') {
           alerts.push({
@@ -368,7 +355,7 @@ export class UsersService {
             type: 'success',
             title: 'Report Verified',
             desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} has been verified and red-flagged.`,
-            time: report.updatedAt.toISOString()
+            time: report.updatedAt.toISOString(),
           });
         } else if (report.status === 'REJECTED') {
           alerts.push({
@@ -376,7 +363,7 @@ export class UsersService {
             type: 'info',
             title: 'Report Rejected',
             desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} was rejected during admin review.`,
-            time: report.updatedAt.toISOString()
+            time: report.updatedAt.toISOString(),
           });
         } else {
           alerts.push({
@@ -384,7 +371,7 @@ export class UsersService {
             type: 'info',
             title: 'Report Under Review',
             desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} is currently under verification.`,
-            time: report.createdAt.toISOString()
+            time: report.createdAt.toISOString(),
           });
         }
 
@@ -395,7 +382,6 @@ export class UsersService {
             let displayIp = log.ip || '103.112.55.10';
             if (displayIp === '::1' || displayIp === '127.0.0.1') displayIp = '103.112.55.10';
             let displayLocation = log.location || 'Tejgaon, Dhaka';
-            if (displayLocation === 'Unknown' || !displayLocation) displayLocation = 'Tejgaon, Dhaka';
 
             if (!seenIps.has(displayIp)) {
               seenIps.add(displayIp);
@@ -404,77 +390,34 @@ export class UsersService {
                 type: 'danger',
                 title: 'Suspicious Activity',
                 desc: `Your reported device (${report.deviceName || 'IMEI ' + report.imei}) was searched from IP ${displayIp}.`,
-                time: log.timestamp.toISOString()
+                time: log.timestamp.toISOString(),
               });
             }
           }
         }
       }
-    } else {
-      // Local reports fallback
-      const reportsFile = path.join(this.dataDir, 'reports.json');
-      let localReports: any[] = [];
-      if (fs.existsSync(reportsFile)) {
-        try { localReports = JSON.parse(fs.readFileSync(reportsFile, 'utf-8')) || []; } catch {}
-      }
-      const cleanEmail = email.toLowerCase().trim();
-      const userReports = localReports.filter(r => (r.userEmail && r.userEmail.toLowerCase().trim() === cleanEmail) || (cleanEmail === 'ahmedsabbir2013@gmail.com' && r.userId === 'admin-sabbir-id'));
-
-      for (const report of userReports) {
-        if (report.status === 'APPROVED') {
-          alerts.push({
-            id: `report-approved-${report.id}`,
-            type: 'success',
-            title: 'Report Verified',
-            desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} has been verified and red-flagged.`,
-            time: report.updatedAt || report.createdAt || new Date().toISOString()
-          });
-        } else if (report.status === 'REJECTED') {
-          alerts.push({
-            id: `report-rejected-${report.id}`,
-            type: 'info',
-            title: 'Report Rejected',
-            desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} was rejected during admin review.`,
-            time: report.updatedAt || report.createdAt || new Date().toISOString()
-          });
-        } else {
-          alerts.push({
-            id: `report-pending-${report.id}`,
-            type: 'info',
-            title: 'Report Under Review',
-            desc: `Your stolen device report for ${report.deviceName || 'IMEI ' + report.imei} is currently under verification.`,
-            time: report.createdAt || new Date().toISOString()
-          });
-        }
-      }
     }
 
-    // Real-time IMEI Search Alerts from search-events.json
-    const searchEventsFile = path.join(this.dataDir, 'search-events.json');
-    if (fs.existsSync(searchEventsFile)) {
-      try {
-        const events: any[] = JSON.parse(fs.readFileSync(searchEventsFile, 'utf-8')) || [];
-        const cleanEmail = email.toLowerCase().trim();
-        for (const ev of events) {
-          if (
-            ev.ownerEmail?.toLowerCase().trim() === cleanEmail ||
-            (cleanEmail === 'ahmedsabbir2013@gmail.com' && (!ev.ownerEmail || ev.ownerEmail === 'admin-sabbir-id'))
-          ) {
-            alerts.push({
-              id: `search-alert-${ev.id}`,
-              type: 'danger',
-              title: '🚨 Stolen Device Searched',
-              desc: `Your registered ${ev.deviceBrand || ''} ${ev.deviceModel || ev.deviceName} (IMEI ${ev.maskedImei}) was checked from ${ev.locationName}.`,
-              time: ev.timestamp,
-              searchEventId: ev.id,
-              locationSource: ev.locationSource,
-              accuracyRadius: ev.accuracyRadius,
-              latitude: ev.latitude,
-              longitude: ev.longitude,
-            });
-          }
-        }
-      } catch (err) {}
+    // Live search events from database
+    const dbEvents = await this.prisma.searchEvent.findMany({
+      where: { ownerEmail: cleanEmail },
+      orderBy: { timestamp: 'desc' },
+      take: 20,
+    });
+
+    for (const ev of dbEvents) {
+      alerts.push({
+        id: `search-alert-${ev.id}`,
+        type: 'danger',
+        title: '🚨 Stolen Device Searched',
+        desc: `Your registered ${ev.deviceBrand || ''} ${ev.deviceModel || ev.deviceName} (IMEI ${ev.maskedImei}) was checked from ${ev.locationName}.`,
+        time: ev.timestamp.toISOString(),
+        searchEventId: ev.id,
+        locationSource: ev.locationSource,
+        accuracyRadius: ev.accuracyRadius,
+        latitude: ev.latitude,
+        longitude: ev.longitude,
+      });
     }
 
     if (alerts.length === 0) {
@@ -483,11 +426,10 @@ export class UsersService {
         type: 'info',
         title: 'System Tracking Active',
         desc: 'Welcome to Phone Koi Safety watchlist. Your account registry is live and scanning for risk vectors.',
-        time: user?.createdAt ? user.createdAt.toISOString() : new Date().toISOString()
+        time: user?.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
       });
     }
 
     return alerts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
   }
 }
-

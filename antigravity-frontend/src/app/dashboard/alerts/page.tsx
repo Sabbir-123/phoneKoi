@@ -33,6 +33,7 @@ import {
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/utils/supabase/client';
+import { InteractiveLoader } from '@/components/ui/InteractiveLoader';
 
 // Dynamically load the Leaflet map with SSR disabled
 const SearchEventsMap = dynamic(() => import('@/components/dashboard/SearchEventsMap'), {
@@ -436,12 +437,18 @@ export default function AlertsPage() {
           {/* Search Events List */}
           <div className="space-y-4">
             {loading ? (
-              <div className="py-20 text-center">
-                <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Loading Search Audit Records...
-                </span>
-              </div>
+              <InteractiveLoader
+                title="Scanning Stolen Device Search Telemetry"
+                subtitle="Querying real-time geo-coordinates, IP logs, and carrier alerts from Supabase"
+                skeletonType="table"
+                onRefresh={handleRefresh}
+                stages={[
+                  'Connecting to Phone Koi real-time event pipeline...',
+                  'Querying telemetry logs for your registered devices...',
+                  'Resolving cell-tower & IP reverse geolocations...',
+                  'Verifying encrypted alert dispatch records...',
+                ]}
+              />
             ) : filteredEvents.length === 0 ? (
               <GlassCard className="py-16 text-center space-y-3 bg-white border border-slate-200">
                 <Radio className="w-12 h-12 text-slate-300 mx-auto" />

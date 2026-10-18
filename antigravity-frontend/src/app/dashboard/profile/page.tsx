@@ -42,69 +42,48 @@ export default function ProfilePage() {
       
       if (session?.user) {
         emailAddress = session.user.email || '';
-        setEmail(session.user.email || localStorage.getItem('profile_email') || '');
+        setEmail(session.user.email || '');
         const metaName = session.user.user_metadata?.displayName || session.user.user_metadata?.full_name || '';
-        setDisplayName(metaName || localStorage.getItem(`profile_displayName_${emailAddress}`) || '');
+        if (metaName) setDisplayName(metaName);
         const metaAvatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '';
         if (metaAvatar) setAvatar(metaAvatar);
       }
 
       if (emailAddress) {
-        // Load user-specific profile details from localStorage fallback
-        const savedPhone = localStorage.getItem(`profile_phone_${emailAddress}`) || '';
-        const savedWhatsapp = localStorage.getItem(`profile_whatsapp_${emailAddress}`) || '';
-        const savedAddress = localStorage.getItem(`profile_address_${emailAddress}`) || '';
-        const savedAvatar = localStorage.getItem(`profile_avatar_${emailAddress}`) || '';
-        const savedName = localStorage.getItem(`profile_displayName_${emailAddress}`) || '';
-        const savedIsSame = localStorage.getItem(`profile_whatsapp_same_as_phone_${emailAddress}`) === 'true';
-
-        if (savedPhone) setPhone(savedPhone);
-        if (savedAddress) setAddress(savedAddress);
-        if (savedAvatar) setAvatar(savedAvatar);
-        if (savedName && !displayName) setDisplayName(savedName);
-        setIsSameAsPhone(savedIsSame);
-        if (savedIsSame) {
-          setWhatsapp(savedPhone);
-        } else {
-          setWhatsapp(savedWhatsapp);
-        }
-
         try {
           const res = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(emailAddress)}`);
           if (res.ok) {
             const data = await res.json();
-            const isAdminEmail = emailAddress.toLowerCase().trim() === 'ahmedsabbir2013@gmail.com';
-            setPlan(data.plan || (isAdminEmail ? 'PRO' : 'FREE'));
-            setIsPro(Boolean(data.isPro || isAdminEmail || (data.plan && data.plan.includes('Pro'))));
+            const isAdminRole = data.role === 'ADMIN';
+            setPlan(data.plan || (isAdminRole ? 'PRO' : 'FREE'));
+            setIsPro(Boolean(data.isPro || isAdminRole || (data.plan && data.plan.includes('Pro'))));
             setSearchesLeft(data.searchesLeft ?? 1);
             setSearchLimit(data.searchLimit ?? 1);
             if (data.phone) setPhone(data.phone);
-            if (data.whatsapp) setWhatsapp(data.whatsapp);
+            if (data.whatsapp) {
+              setWhatsapp(data.whatsapp);
+              setIsSameAsPhone(data.phone === data.whatsapp);
+            }
             if (data.address) setAddress(data.address);
             if (data.displayName) setDisplayName(data.displayName);
             if (data.avatar) setAvatar(data.avatar);
           }
 
-          // Fetch real dynamic alerts count
+          // Fetch real dynamic alerts count from PostgreSQL
           const alertsRes = await authFetch(`${API_URL}/users/alerts?email=${encodeURIComponent(emailAddress)}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
-            setAlertsCount(alertsData.length);
+            setAlertsCount(Array.isArray(alertsData) ? alertsData.length : 0);
+          }
+
+          // Fetch authoritative search history count from PostgreSQL
+          const historyRes = await authFetch(`${API_URL}/users/me/search-history?email=${encodeURIComponent(emailAddress)}`);
+          if (historyRes.ok) {
+            const historyData = await historyRes.json();
+            setSearchesCount(Array.isArray(historyData) ? historyData.length : 0);
           }
         } catch (e) {
-          console.error(e);
-        }
-
-
-        // Fetch local search history count
-        try {
-          const historyKey = `search_history_${emailAddress}`;
-          const savedHistory = localStorage.getItem(historyKey);
-          if (savedHistory) {
-            setSearchesCount(JSON.parse(savedHistory).length);
-          }
-        } catch (e) {
-          console.error(e);
+          console.error('Error loading profile from database:', e);
         }
       }
     };
@@ -146,8 +125,8 @@ export default function ProfilePage() {
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `${API_URL}/users/check-phone?phone=${encodeURIComponent(phone.trim())}&email=${encodeURIComponent(email.trim())}`
+        const res = await authFetch(
+          `${API_URL}/users/check-phone?phone=${encodeURIComponent(phone.trim())}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -232,25 +211,13 @@ export default function ProfilePage() {
         return;
       }
 
-      // Save locally for fallback
-      if (email) {
-        localStorage.setItem(`profile_displayName_${email}`, displayName.trim());
-        localStorage.setItem(`profile_avatar_${email}`, avatar);
-        localStorage.setItem(`profile_phone_${email}`, phone);
-        localStorage.setItem(`profile_whatsapp_${email}`, isSameAsPhone ? phone : whatsapp);
-        localStorage.setItem(`profile_whatsapp_same_as_phone_${email}`, String(isSameAsPhone));
-        localStorage.setItem(`profile_address_${email}`, address);
-        localStorage.setItem(`profile_completed_${email}`, 'true');
+      if (data.user) {
+        if (data.user.displayName) setDisplayName(data.user.displayName);
+        if (data.user.phone) setPhone(data.user.phone);
+        if (data.user.whatsapp) setWhatsapp(data.user.whatsapp);
+        if (data.user.address) setAddress(data.user.address);
+        if (data.user.avatar || data.user.avatarUrl) setAvatar(data.user.avatar || data.user.avatarUrl);
       }
-
-      localStorage.setItem('profile_email', email);
-      localStorage.setItem('profile_displayName', displayName.trim());
-      localStorage.setItem('profile_avatar', avatar);
-      localStorage.setItem('profile_phone', phone);
-      localStorage.setItem('profile_whatsapp', isSameAsPhone ? phone : whatsapp);
-      localStorage.setItem('profile_whatsapp_same_as_phone', String(isSameAsPhone));
-      localStorage.setItem('profile_address', address);
-      localStorage.setItem('profile_completed', 'true');
 
       // Dispatch event to automatically dismiss mandatory modal
       window.dispatchEvent(new Event('phonekoi_profile_completed'));

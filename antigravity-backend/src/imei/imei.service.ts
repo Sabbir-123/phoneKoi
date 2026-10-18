@@ -1,17 +1,13 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchLogsService } from '../search-logs/search-logs.service';
 import { SearchEventsService } from '../search-events/search-events.service';
 import { DeviceStatus, RiskLevel } from '@prisma/client';
 import { AiService } from '../ai/ai.service';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Injectable()
 export class ImeiService {
-  private dataDir = path.join(process.cwd(), 'data');
-  private devicesFile = path.join(process.cwd(), 'data', 'devices.json');
-  private reportsFile = path.join(process.cwd(), 'data', 'reports.json');
+  private readonly logger = new Logger(ImeiService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -19,24 +15,6 @@ export class ImeiService {
     private readonly searchEventsService: SearchEventsService,
     private readonly aiService: AiService
   ) {}
-
-  private getLocalDevices(): any[] {
-    try {
-      if (fs.existsSync(this.devicesFile)) {
-        return JSON.parse(fs.readFileSync(this.devicesFile, 'utf-8')) || [];
-      }
-    } catch {}
-    return [];
-  }
-
-  private getLocalReports(): any[] {
-    try {
-      if (fs.existsSync(this.reportsFile)) {
-        return JSON.parse(fs.readFileSync(this.reportsFile, 'utf-8')) || [];
-      }
-    } catch {}
-    return [];
-  }
 
   validateLuhn(imei: string): boolean {
     if (!/^\d{15}$/.test(imei)) return false;
@@ -64,52 +42,47 @@ export class ImeiService {
     locationSource?: 'BROWSER_GPS' | 'IP_APPROXIMATE' | 'UNAVAILABLE',
     currentUser?: { id: string; email: string; role: string }
   ) {
+    if (!this.validateLuhn(imei)) {
+      throw new BadRequestException('Invalid IMEI format or checksum failed');
+    }
 
-    // Attempt to find the device from database with fallback
+    // Query authoritative PostgreSQL database through Prisma
     let device: any = null;
     try {
       device = await this.prisma.device.findUnique({
         where: { imei },
         include: {
           reports: {
-            select: { status: true, trustWeight: true, date: true }
+            where: { status: { in: ['APPROVED', 'PENDING'] } },
+            orderBy: { createdAt: 'desc' }
           }
         }
       });
     } catch (dbErr: any) {
-      console.warn('Database query failed for device check, falling back to algorithmic evaluation:', dbErr?.message || dbErr);
+      this.logger.error(`Database query failed for device ${imei}: ${dbErr?.message || dbErr}`);
+      throw dbErr;
     }
 
-    // Check local fallback store
-    const localDevices = this.getLocalDevices();
-    const localReports = this.getLocalReports();
-    const localDev = localDevices.find(d => d.imei === imei);
-    const approvedReport = localReports.find(r => r.imei === imei && (r.status === 'APPROVED' || r.status === 'PENDING'));
+    // Also check for any standalone reports matching this IMEI
+    let activeReport: any = device?.reports?.find((r: any) => r.status === 'APPROVED') 
+      || device?.reports?.[0] 
+      || null;
 
-    const isStolenReport = approvedReport && (approvedReport.status === 'APPROVED' || approvedReport.status === 'PENDING');
-
-    if (isStolenReport || (localDev && localDev.status === 'STOLEN')) {
-      device = {
-        imei,
-        status: DeviceStatus.STOLEN,
-        riskScore: localDev?.riskScore || 98,
-        riskLevel: localDev?.riskLevel || RiskLevel.HIGH,
-        reports: [{ status: 'APPROVED', trustWeight: 5, date: approvedReport?.date || new Date() }]
-      };
-    } else if (!device && localDev) {
-      device = {
-        imei,
-        status: localDev.status,
-        riskScore: localDev.riskScore,
-        riskLevel: localDev.riskLevel,
-        reports: []
-      };
+    if (!activeReport) {
+      try {
+        activeReport = await this.prisma.report.findFirst({
+          where: { imei, status: { in: ['APPROVED', 'PENDING'] } },
+          orderBy: { createdAt: 'desc' }
+        });
+      } catch (err: any) {
+        this.logger.error(`Database query failed for reports with IMEI ${imei}: ${err?.message || err}`);
+        throw err;
+      }
     }
 
-    if (!device && !this.validateLuhn(imei)) {
-      throw new BadRequestException('Invalid IMEI format or checksum failed');
-    }
+    const isStolen = (device && device.status === DeviceStatus.STOLEN) || (activeReport && activeReport.status === 'APPROVED');
 
+    // Handle authenticated user quota deduction via database
     if (email) {
       try {
         let user = await this.prisma.user.findUnique({ where: { email } });
@@ -143,11 +116,12 @@ export class ImeiService {
         if (userErr instanceof BadRequestException) {
           throw userErr;
         }
-        console.warn('User query/quota warning, proceeding with search:', userErr?.message || userErr);
+        this.logger.warn(`User quota operation encountered an error: ${userErr?.message || userErr}`);
+        throw userErr;
       }
     }
 
-    // Trigger Search Event & Real-Time Owner Notification (fire and forget / async)
+    // Trigger Search Event & Real-Time Owner Notification
     this.searchEventsService.recordSearchEvent({
       imei,
       ip,
@@ -156,14 +130,20 @@ export class ImeiService {
       longitude: lng,
       accuracy,
       locationSource
-    }).catch(err => console.warn('Search event recording warning:', err?.message || err));
+    }).catch((err: any) => this.logger.warn(`Search event recording warning: ${err?.message || err}`));
 
-    // Also trigger legacy Search Log Event asynchronously
-    this.searchLogsService.logSearch(imei, ip, clientLocation).catch(err => console.warn('Search log non-critical error:', err?.message || err));
+    // Log search event associated with user
+    this.searchLogsService.logSearch(
+      imei,
+      ip,
+      clientLocation,
+      currentUser?.id,
+      currentUser?.email
+    ).catch((err: any) => this.logger.warn(`Search log error: ${err?.message || err}`));
 
     const maskedImei = imei.length === 15 ? `${imei.slice(0, 6)}*****${imei.slice(11)}` : `***********${imei.slice(-4)}`;
 
-    if (!device) {
+    if (!device && !activeReport) {
       // Return clean default state with strict advisory
       let explanation = language === 'banglish' 
         ? 'Eti ekta clean device. Kono churi ba GD report paowa jayni.' 
@@ -171,7 +151,7 @@ export class ImeiService {
       try {
         explanation = await this.aiService.generateRiskExplanation(DeviceStatus.CLEAN, 0, language);
       } catch (aiErr: any) {
-        console.warn('AI risk explanation fallback:', aiErr?.message || aiErr);
+        this.logger.warn(`AI risk explanation fallback: ${aiErr?.message || aiErr}`);
       }
 
       return {
@@ -186,62 +166,49 @@ export class ImeiService {
       };
     }
 
+    const deviceStatus = isStolen ? DeviceStatus.STOLEN : (device?.status || DeviceStatus.CLEAN);
+    const riskScore = isStolen ? (device?.riskScore || 98) : (device?.riskScore || 0);
+    const riskLevel = isStolen ? RiskLevel.HIGH : (device?.riskLevel || RiskLevel.LOW);
+
     let explanation = 'Device status evaluated.';
     try {
-      explanation = await this.aiService.generateRiskExplanation(device.status, device.riskScore, language);
+      explanation = await this.aiService.generateRiskExplanation(deviceStatus, riskScore, language);
     } catch (aiErr: any) {
-      console.warn('AI risk explanation fallback:', aiErr?.message || aiErr);
+      this.logger.warn(`AI risk explanation fallback: ${aiErr?.message || aiErr}`);
     }
 
-    // Fetch verified owner details safely
-    let contactNumber: string | null = null;
-    if (device.status === DeviceStatus.STOLEN) {
-      try {
-        const approvedRep = await this.prisma.report.findFirst({
-          where: { imei: device.imei, status: 'APPROVED' },
-          select: { contactNumber: true }
-        });
-        contactNumber = approvedRep?.contactNumber || null;
-      } catch (repErr: any) {
-        console.warn('Could not query approved report contact from DB:', repErr?.message || repErr);
-      }
-
-      if (!contactNumber && approvedReport) {
-        contactNumber = approvedReport.contactNumber || null;
-      }
-    }
-
-    const isStolen = device.status === DeviceStatus.STOLEN;
-    const reportType = approvedReport?.reportType || (isStolen ? 'STOLEN' : 'CLEAN');
-
+    // Check if the current user is an admin or the legitimate owner of the report
     const isOwnerOrAdmin =
       currentUser &&
       (currentUser.role === 'ADMIN' ||
-        (approvedReport?.userEmail &&
+        (activeReport?.userEmail &&
           currentUser.email?.toLowerCase().trim() ===
-            approvedReport.userEmail.toLowerCase().trim()));
+            activeReport.userEmail.toLowerCase().trim()) ||
+        (activeReport?.userId && currentUser.id === activeReport.userId));
 
     // Mask phone number for public users (prevent scraping & harassment)
-    let displayContactNumber = contactNumber;
-    if (!isOwnerOrAdmin && contactNumber) {
+    let displayContactNumber = activeReport?.contactNumber || null;
+    if (!isOwnerOrAdmin && displayContactNumber) {
       displayContactNumber =
-        contactNumber.length >= 7
-          ? `${contactNumber.slice(0, 4)}****${contactNumber.slice(-3)}`
+        displayContactNumber.length >= 7
+          ? `${displayContactNumber.slice(0, 4)}****${displayContactNumber.slice(-3)}`
           : '***********';
     }
 
     // Mask Police GD number for public users
-    let displayPoliceGd = approvedReport?.policeGdNumber || null;
+    let displayPoliceGd = activeReport?.policeGdNumber || null;
     if (!isOwnerOrAdmin && displayPoliceGd && displayPoliceGd.length > 4) {
       displayPoliceGd = `${displayPoliceGd.slice(0, 2)}****${displayPoliceGd.slice(-2)}`;
     }
 
+    const reportType = activeReport?.reportType || (isStolen ? 'STOLEN' : 'CLEAN');
+
     return {
-      imei: device.imei,
+      imei,
       maskedImei,
-      risk_score: device.riskScore,
-      risk_level: device.riskLevel,
-      status: device.status,
+      risk_score: riskScore,
+      risk_level: riskLevel,
+      status: deviceStatus,
       reportType,
       explanation,
       contactNumber: displayContactNumber,
@@ -249,17 +216,17 @@ export class ImeiService {
         ? 'WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.'
         : undefined,
       ownerAlertDispatched: isStolen,
-      brand: approvedReport?.brand || approvedReport?.deviceName?.split(' ')[0] || 'Mobile Device',
-      model: approvedReport?.model || approvedReport?.deviceName || 'Standard Model',
-      deviceName: approvedReport?.deviceName || 'Reported Handset',
-      lossDate: approvedReport?.lossDate || approvedReport?.date || null,
+      brand: activeReport?.brand || activeReport?.deviceName?.split(' ')[0] || 'Mobile Device',
+      model: activeReport?.model || activeReport?.deviceName || 'Standard Model',
+      deviceName: activeReport?.deviceName || 'Reported Handset',
+      lossDate: activeReport?.lossDate || activeReport?.date || null,
       policeGdNumber: displayPoliceGd,
-      policeStation: approvedReport?.policeStation || null,
+      policeStation: activeReport?.policeStation || null,
       allowContact: isStolen,
       safetyGuidance: isStolen
         ? 'Law Enforcement Advice: Do not confront the seller directly. Note down their phone number or shop location and immediately inform your local police station.'
         : undefined,
     };
-
   }
 }
+

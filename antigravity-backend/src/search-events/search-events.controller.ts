@@ -2,6 +2,8 @@ import { Controller, Get, Post, Param, Query, Body, Req, ForbiddenException } fr
 import { SearchEventsService } from './search-events.service';
 import { Public } from '../auth/public.decorator';
 import { Throttle } from '@nestjs/throttler';
+import { SellerReportDto } from './dto/seller-report.dto';
+import { OwnerMessageDto } from './dto/owner-message.dto';
 
 @Controller('search-events')
 export class SearchEventsController {
@@ -60,30 +62,14 @@ export class SearchEventsController {
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('report-seller')
-  async reportSeller(
-    @Body()
-    body: {
-      imei: string;
-      sellerContact: string;
-      sellerLocation?: string;
-      notes?: string;
-      reporterEmail?: string;
-    },
-  ) {
+  async reportSeller(@Body() body: SellerReportDto) {
     return this.searchEventsService.saveSellerReport(body);
   }
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('contact-owner')
-  async contactOwner(
-    @Body()
-    body: {
-      imei: string;
-      senderContact: string;
-      message: string;
-    },
-  ) {
+  async contactOwner(@Body() body: OwnerMessageDto) {
     return this.searchEventsService.saveOwnerMessage(body);
   }
 }

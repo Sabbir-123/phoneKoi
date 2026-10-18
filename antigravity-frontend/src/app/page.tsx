@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useDashboardStore } from "@/store/useDashboardStore";
 
 // Luhn check algorithm
 const validateLuhn = (imei: string): boolean => {
@@ -48,6 +49,13 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [heroImei, setHeroImei] = useState("");
   const [heroLuhnValid, setHeroLuhnValid] = useState<boolean | null>(null);
+
+  const { profile, fetchProfile } = useDashboardStore();
+  const hasClaimedPromo = Boolean(profile?.hasClaimedPromo || profile?.plan === '6 Months Pro');
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   // Check active user session
   useEffect(() => {
@@ -847,11 +855,21 @@ export default function Home() {
 
             <div className="pt-6">
               <Link
-                href={user ? "/dashboard?claimed=true" : "/signup?redirectTo=/dashboard?claimed=true"}
+                href={
+                  user
+                    ? hasClaimedPromo
+                      ? "/pricing"
+                      : "/dashboard?claimed=true"
+                    : "/signup?redirectTo=/dashboard?claimed=true"
+                }
                 className="w-full py-3.5 px-4 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:brightness-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
               >
                 <Sparkles className="w-4 h-4 text-slate-950" />
-                {user ? "Go to Dashboard (Claimed)" : "Claim 6 Months Free Pro"}
+                {user
+                  ? hasClaimedPromo
+                    ? "Promo Claimed (Manage Plans)"
+                    : "Go to Dashboard (Claimed)"
+                  : "Claim 6 Months Free Pro"}
               </Link>
             </div>
           </div>

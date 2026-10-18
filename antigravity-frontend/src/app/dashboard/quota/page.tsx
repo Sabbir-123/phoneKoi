@@ -7,6 +7,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
 import { ShieldCheck, Sparkles, Smartphone, Search, AlertCircle, Copy, Check, Send } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useDashboardStore } from '@/store/useDashboardStore';
 
 const subscriptionPlans = [
   {
@@ -78,33 +79,17 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [searchesLeft, setSearchesLeft] = useState<number | null>(null);
-  const [searchLimit, setSearchLimit] = useState<number | null>(null);
-  const [reportsLeft, setReportsLeft] = useState<number | null>(null);
-  const [reportLimit, setReportLimit] = useState<number | null>(null);
+  const { profile, fetchProfile, profileLoading } = useDashboardStore();
 
   useEffect(() => {
-    const fetchEmail = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.email) {
-        setEmail(session.user.email);
-        try {
-          const res = await authFetch(`${API_URL}/users/profile?email=${session.user.email}`);
-          if (res.ok) {
-            const data = await res.json();
-            setSearchesLeft(data.searchesLeft);
-            setSearchLimit(data.searchLimit);
-            setReportsLeft(data.reportsLeft);
-            setReportLimit(data.reportLimit);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-    fetchEmail();
-  }, []);
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const effectiveEmail = profile?.email || email;
+  const searchesLeft = profile?.searchesLeft ?? null;
+  const searchLimit = profile?.searchLimit ?? null;
+  const reportsLeft = profile?.reportsLeft ?? null;
+  const reportLimit = profile?.reportLimit ?? null;
 
   const handleCopyNumber = () => {
     navigator.clipboard.writeText('01626693505');
@@ -187,7 +172,8 @@ export default function PricingPage() {
         </div>
 
         {/* Quota Balance Banners */}
-        {searchesLeft !== null && searchLimit !== null && (
+        {/* Quota Balance Banners */}
+        {searchesLeft !== null && searchLimit !== null ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Search Quota Balance */}
             <motion.div
@@ -223,7 +209,24 @@ export default function PricingPage() {
               </div>
             </motion.div>
           </div>
-        )}
+        ) : profileLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto animate-pulse">
+            <div className="p-1 rounded-[1.8rem] bg-slate-100/60 border border-slate-200/50 h-36">
+              <div className="bg-white/80 p-6 rounded-[1.7rem] h-full flex flex-col items-center justify-center space-y-2">
+                <div className="h-3 w-32 bg-slate-200 rounded-full" />
+                <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+                <div className="h-2.5 w-48 bg-slate-100 rounded-full" />
+              </div>
+            </div>
+            <div className="p-1 rounded-[1.8rem] bg-slate-100/60 border border-slate-200/50 h-36">
+              <div className="bg-white/80 p-6 rounded-[1.7rem] h-full flex flex-col items-center justify-center space-y-2">
+                <div className="h-3 w-32 bg-slate-200 rounded-full" />
+                <div className="h-8 w-24 bg-slate-200 rounded-lg" />
+                <div className="h-2.5 w-48 bg-slate-100 rounded-full" />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Plans Grid */}

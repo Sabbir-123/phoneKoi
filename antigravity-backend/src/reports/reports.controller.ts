@@ -1,14 +1,15 @@
-import { Controller, Post, Body, Req, Get, Query, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get, Query, Param, ForbiddenException } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { Throttle } from '@nestjs/throttler';
-import { Public } from '../auth/public.decorator';
+import { SubmitReportDto } from './dto/submit-report.dto';
+import { ExtractGdDto } from './dto/extract-gd.dto';
 
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Post('submit')
-  async submitReport(@Body() body: any, @Req() req: any) {
+  async submitReport(@Body() body: SubmitReportDto, @Req() req: any) {
     const forwarded = req.headers['x-forwarded-for'];
     const ip =
       typeof forwarded === 'string'
@@ -43,8 +44,8 @@ export class ReportsController {
 
   @Throttle({ default: { limit: 4, ttl: 60000 } })
   @Post('extract-gd')
-  async extractGd(@Body('base64Image') base64Image: string) {
-    return this.reportsService.extractInfoFromGd(base64Image);
+  async extractGd(@Body() body: ExtractGdDto) {
+    return this.reportsService.extractInfoFromGd(body.base64Image);
   }
 
   @Get()
@@ -61,5 +62,15 @@ export class ReportsController {
         : caller.email;
 
     return this.reportsService.getReports(targetEmail);
+  }
+
+  @Post(':id/mark-recovered')
+  async markRecovered(@Param('id') id: string, @Req() req: any) {
+    const caller = req.user;
+    if (!caller || !caller.email) {
+      throw new ForbiddenException('Authentication required to mark device as recovered');
+    }
+
+    return this.reportsService.markAsRecovered(id, caller.email, caller.id);
   }
 }
