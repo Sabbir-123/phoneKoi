@@ -11,6 +11,7 @@ COPY . .
 
 RUN npx prisma generate
 RUN npm run build
+RUN echo "=== Checking compiled output ===" && find /app/dist -maxdepth 4 -type f -name "main.js" -print
 
 FROM node:24-alpine
 
