@@ -54,6 +54,7 @@ export class ImeiService {
         include: {
           reports: {
             where: { status: { in: ['APPROVED', 'PENDING'] } },
+            include: { user: true },
             orderBy: { createdAt: 'desc' }
           }
         }
@@ -72,6 +73,7 @@ export class ImeiService {
       try {
         activeReport = await this.prisma.report.findFirst({
           where: { imei, status: { in: ['APPROVED', 'PENDING'] } },
+          include: { user: true },
           orderBy: { createdAt: 'desc' }
         });
       } catch (err: any) {
@@ -203,6 +205,8 @@ export class ImeiService {
 
     const reportType = activeReport?.reportType || (isStolen ? 'STOLEN' : 'CLEAN');
 
+    const rawOwnerContact = activeReport?.contactNumber || activeReport?.user?.whatsapp || activeReport?.user?.phone || null;
+
     return {
       imei,
       maskedImei,
@@ -212,6 +216,7 @@ export class ImeiService {
       reportType,
       explanation,
       contactNumber: displayContactNumber,
+      ownerWhatsappNumber: isStolen ? rawOwnerContact : null,
       warningMessage: isStolen
         ? 'WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.'
         : undefined,

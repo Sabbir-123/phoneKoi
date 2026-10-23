@@ -33,6 +33,13 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   const [sellerNotes, setSellerNotes] = useState("");
   const [sellerReportSubmitted, setSellerReportSubmitted] = useState(false);
 
+  // Exact Location Sharing State
+  const [sharingLocation, setSharingLocation] = useState(false);
+  const [locationSharedSuccess, setLocationSharedSuccess] = useState(false);
+  const [locationShareError, setLocationShareError] = useState<string | null>(null);
+  const [sharedAccuracy, setSharedAccuracy] = useState<number | null>(null);
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -281,7 +288,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
     );
   }
 
-  const formatWhatsAppLink = (phone: string) => {
+  const getWhatsAppUrl = (phone?: string, coords?: { lat: number; lng: number } | null) => {
     if (!phone) return "";
     let clean = phone.replace(/\D/g, "");
     if (clean.startsWith("01")) {
@@ -289,7 +296,101 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
     } else if (clean.length === 10 && clean.startsWith("1")) {
       clean = "880" + clean;
     }
-    return `https://wa.me/${clean}`;
+    
+    const message = coords
+      ? `Hello! I checked IMEI ${params.imei} on PhoneKoi and saw it is reported lost/stolen. Current Location: https://maps.google.com/?q=${coords.lat},${coords.lng} (Please reply if you are the verified owner).`
+      : `Hello! I checked IMEI ${params.imei} on PhoneKoi and saw it is reported lost/stolen. I want to assist in safely returning the device.`;
+
+    return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+  };
+
+  const formatWhatsAppLink = (phone: string) => {
+    return getWhatsAppUrl(phone, currentCoords);
+  };
+
+  const handleShareExactLocation = () => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      setLocationShareError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setSharingLocation(true);
+    setLocationShareError(null);
+
+    let watchId: number | null = null;
+    let timeoutTimer: NodeJS.Timeout | null = null;
+    let bestPos: GeolocationPosition | null = null;
+
+    const cleanup = () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (timeoutTimer !== null) clearTimeout(timeoutTimer);
+    };
+
+    const submitLocation = async (pos: GeolocationPosition) => {
+      cleanup();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const accuracy = Math.round(pos.coords.accuracy * 10) / 10;
+      setCurrentCoords({ lat, lng });
+
+      try {
+        const res = await authFetch(`${API_URL}/search-events/share-location`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imei: params.imei,
+            latitude: lat,
+            longitude: lng,
+            accuracy,
+            clientLocation: "Exact GPS Pinpoint (Verified)",
+          }),
+        });
+
+        if (res.ok) {
+          setLocationSharedSuccess(true);
+          setSharedAccuracy(accuracy);
+        } else {
+          const data = await res.json().catch(() => null);
+          setLocationShareError(data?.message || "Failed to transmit location to owner.");
+        }
+      } catch (err) {
+        setLocationShareError("Network error transmitting location. Please try WhatsApp.");
+      } finally {
+        setSharingLocation(false);
+      }
+    };
+
+    // Use watchPosition to acquire satellite lock and filter by accuracy
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        bestPos = pos;
+        // If accuracy is high (within 50 meters), lock in immediately
+        if (pos.coords.accuracy <= 50) {
+          submitLocation(pos);
+        }
+      },
+      (err) => {
+        cleanup();
+        setSharingLocation(false);
+        if (err.code === 1) {
+          setLocationShareError("Location permission denied. Please allow location in browser settings or message via WhatsApp.");
+        } else {
+          setLocationShareError("Unable to acquire high-accuracy GPS fix. You can still message via WhatsApp.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+
+    // After 7 seconds, if we got any position at all, submit the best one
+    timeoutTimer = setTimeout(() => {
+      if (bestPos) {
+        submitLocation(bestPos);
+      } else {
+        cleanup();
+        setSharingLocation(false);
+        setLocationShareError("GPS lock timed out. You can still message the owner on WhatsApp.");
+      }
+    }, 7000);
   };
 
   return (
@@ -394,23 +495,77 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
             </div>
           )}
 
-          {/* Action Buttons for Stolen Device */}
+          {/* Action Section for Stolen Device */}
           {activeStatus === "stolen" && (
-            <div className="space-y-2 pt-1">
-              {backendData?.contactNumber && (
-                <button
-                  onClick={() => setShowContactModal(true)}
-                  className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-red-200/50 transition-all hover:scale-[1.01] active:scale-[0.99] text-sm tracking-wide"
-                >
-                  <Phone className="w-4 h-4 animate-pulse" />
-                  Contact Verified Owner
-                </button>
-              )}
+            <div className="space-y-3 pt-2 text-left">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-red-500/10 via-rose-500/5 to-amber-500/10 border border-red-200/80 shadow-sm space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0 text-red-600 font-bold mt-0.5">
+                    <MapPin className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-red-950 uppercase tracking-wide">
+                      Assist in Device Recovery
+                    </h4>
+                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
+                      Are you inspecting this handset? Help the verified owner locate it safely.
+                    </p>
+                  </div>
+                </div>
 
+                {/* Status banner if location was successfully transmitted */}
+                {locationSharedSuccess ? (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-800">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 font-bold" />
+                    <div className="text-[11px] font-semibold leading-tight">
+                      <strong>Location Sent!</strong> Exact satellite GPS coordinates (±{sharedAccuracy || 10}m) have been safely transmitted to the owner's recovery map.
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleShareExactLocation}
+                    disabled={sharingLocation}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 active:scale-[0.99] text-white font-bold text-xs shadow-md shadow-red-200 transition-all disabled:opacity-70 cursor-pointer"
+                  >
+                    {sharingLocation ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Acquiring High-Precision GPS Lock...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>Share Live Exact Location with Owner</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {locationShareError && (
+                  <p className="text-[10px] text-red-600 font-semibold text-center">
+                    {locationShareError}
+                  </p>
+                )}
+
+                {/* WhatsApp Direct Action Button */}
+                {(backendData?.ownerWhatsappNumber || backendData?.contactNumber) && (
+                  <a
+                    href={getWhatsAppUrl(backendData.ownerWhatsappNumber || backendData.contactNumber, currentCoords)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs shadow-md shadow-emerald-200 transition-all cursor-pointer"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat with Owner on WhatsApp</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Secondary Actions: Call Owner Modal, Report Seller, Safety Guide */}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setShowReportSellerModal(true)}
-                  className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl border border-red-200 bg-white/80 hover:bg-red-50 text-red-700 font-bold text-xs transition-colors shadow-sm"
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-700 font-bold text-xs transition-colors shadow-sm"
                 >
                   <Flag className="w-3.5 h-3.5" />
                   Report Seller
@@ -418,7 +573,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
 
                 <button
                   onClick={() => setShowSafetyModal(true)}
-                  className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl border border-slate-200 bg-white/80 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-sm"
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-sm"
                 >
                   <Shield className="w-3.5 h-3.5 text-indigo-600" />
                   Safety Guide
@@ -520,7 +675,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
                   </button>
 
                   <a
-                    href={`tel:${backendData.contactNumber}`}
+                    href={`tel:${backendData.ownerWhatsappNumber || backendData.contactNumber}`}
                     className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs text-center shadow-md transition-colors"
                   >
                     <Phone className="w-4 h-4" />
@@ -529,7 +684,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
                 </div>
 
                 <a
-                  href={formatWhatsAppLink(backendData.contactNumber)}
+                  href={getWhatsAppUrl(backendData.ownerWhatsappNumber || backendData.contactNumber, currentCoords)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl text-xs text-center shadow-md transition-colors mt-2"

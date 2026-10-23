@@ -458,6 +458,31 @@ export class SearchEventsService {
     };
   }
 
+  async shareLocation(data: {
+    imei: string;
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    clientLocation?: string;
+    ip?: string;
+  }) {
+    const event = await this.createEvent({
+      imei: data.imei,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      accuracy: data.accuracy || 15,
+      locationSource: 'BROWSER_GPS',
+      clientLocation: data.clientLocation || 'Exact GPS Pinpoint (Verified)',
+      ip: data.ip,
+    });
+
+    return {
+      success: true,
+      message: 'High-precision GPS coordinates successfully transmitted to the verified owner.',
+      event,
+    };
+  }
+
   async getEventsSummary(ownerEmail: string) {
     if (!ownerEmail) {
       return { totalEvents: 0, unreadCount: 0, distinctLocations: 0 };

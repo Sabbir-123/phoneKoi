@@ -4,6 +4,7 @@ import { Public } from '../auth/public.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { SellerReportDto } from './dto/seller-report.dto';
 import { OwnerMessageDto } from './dto/owner-message.dto';
+import { ShareLocationDto } from './dto/share-location.dto';
 
 @Controller('search-events')
 export class SearchEventsController {
@@ -71,5 +72,21 @@ export class SearchEventsController {
   @Post('contact-owner')
   async contactOwner(@Body() body: OwnerMessageDto) {
     return this.searchEventsService.saveOwnerMessage(body);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('share-location')
+  async shareLocation(@Body() body: ShareLocationDto, @Req() req: any) {
+    const forwarded = req.headers['x-forwarded-for'];
+    const realIp =
+      typeof forwarded === 'string'
+        ? forwarded.split(',')[0].trim()
+        : req.socket?.remoteAddress || req.connection?.remoteAddress || '127.0.0.1';
+
+    return this.searchEventsService.shareLocation({
+      ...body,
+      ip: realIp,
+    });
   }
 }

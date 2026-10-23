@@ -49,25 +49,7 @@ export default function CheckPage() {
     }
 
     setIsSearching(true);
-    setLocationStatus("Requesting location consent for search audit...");
-
-    if (typeof navigator !== "undefined" && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const accuracy = Math.round(pos.coords.accuracy * 10) / 10;
-          router.push(`/result/${imei}?lat=${lat}&lng=${lng}&accuracy=${accuracy}&locationSource=BROWSER_GPS`);
-        },
-        (err) => {
-          console.warn("Geolocation denied or unavailable, falling back to IP:", err.message);
-          router.push(`/result/${imei}?locationSource=IP_GEOLOCATION`);
-        },
-        { timeout: 3500, enableHighAccuracy: true, maximumAge: 30000 }
-      );
-    } else {
-      router.push(`/result/${imei}?locationSource=IP_GEOLOCATION`);
-    }
+    router.push(`/result/${imei}`);
   };
 
   const ringColor = isValid
@@ -194,7 +176,7 @@ export default function CheckPage() {
             <span>Search Security & Owner Alert Guarantee</span>
           </div>
           <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-            When you search, PhoneKoi requests browser geolocation with your explicit consent to record search audit logs and immediately alert the verified owner if a stolen phone is checked. If permission is denied, approximate IP-based location is used. Your identity is never exposed to the public.
+            PhoneKoi securely verifies device records against police complaints and active loss reports. Search inquiries protect legitimate handset owners while strictly safeguarding your personal privacy.
           </p>
         </div>
       </motion.form>
