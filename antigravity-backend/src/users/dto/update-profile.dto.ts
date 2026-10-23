@@ -1,6 +1,10 @@
 import { IsString, IsNotEmpty, IsOptional, Length, Matches } from 'class-validator';
 
 export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  email?: string;
+
   @IsString()
   @IsNotEmpty()
   @Length(2, 100)

@@ -193,7 +193,6 @@ export default function ProfilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
           displayName: displayName.trim(),
           avatar: avatar.trim(),
           phone: phone.trim(),
