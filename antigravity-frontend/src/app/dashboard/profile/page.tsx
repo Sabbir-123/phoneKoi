@@ -131,7 +131,11 @@ export default function ProfilePage() {
         if (res.ok) {
           const data = await res.json();
           if (!data.available) {
-            setPhoneError(data.message || 'Duplicate number: another user has already used this phone number. Please use a different number.');
+            const rawMsg = data.message;
+            const errorMsg = Array.isArray(rawMsg)
+              ? rawMsg.join('. ')
+              : (typeof rawMsg === 'string' ? rawMsg : 'Duplicate number: another user has already used this phone number. Please use a different number.');
+            setPhoneError(errorMsg);
             setPhoneAvailable(false);
           } else {
             setPhoneError(null);
@@ -198,14 +202,19 @@ export default function ProfilePage() {
         }),
       });
 
-      const data = await res.json();
-
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        if (data.message && (data.message.toLowerCase().includes('duplicate') || data.message.toLowerCase().includes('phone'))) {
-          setPhoneError(data.message);
+        const rawMessage = data?.message;
+        const errorMsg = Array.isArray(rawMessage)
+          ? rawMessage.join('. ')
+          : (typeof rawMessage === 'string' ? rawMessage : (data?.error || 'Failed to save profile'));
+
+        const lowerMsg = errorMsg.toLowerCase();
+        if (lowerMsg.includes('duplicate') || lowerMsg.includes('phone')) {
+          setPhoneError(errorMsg);
         } else {
-          setSaveError(data.message || 'Failed to save profile');
+          setSaveError(errorMsg);
         }
         setSaveLoading(false);
         return;

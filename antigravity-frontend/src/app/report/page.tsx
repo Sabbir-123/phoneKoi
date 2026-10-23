@@ -189,8 +189,12 @@ export default function ReportPage() {
       if (response.ok) {
         router.push("/dashboard/devices?reportSuccess=true");
       } else {
-        const errorData = await response.json();
-        alert(errorData?.message || "Submission failed. Please try again.");
+        const errorData = await response.json().catch(() => null);
+        const rawMsg = errorData?.message;
+        const errString = Array.isArray(rawMsg)
+          ? rawMsg.join('. ')
+          : (typeof rawMsg === 'string' ? rawMsg : (errorData?.error || "Submission failed. Please try again."));
+        alert(errString);
       }
     } catch (error) {
       console.error(error);

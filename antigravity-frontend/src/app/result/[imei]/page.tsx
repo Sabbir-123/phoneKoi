@@ -93,13 +93,18 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
 
         
         if (!res.ok) {
-          const errData = await res.json();
-          if (errData.message && errData.message.includes('QUOTA_LIMIT_EXCEEDED')) {
+          const errData = await res.json().catch(() => null);
+          const rawMsg = errData?.message;
+          const errString = Array.isArray(rawMsg)
+            ? rawMsg.join('. ')
+            : (typeof rawMsg === 'string' ? rawMsg : (errData?.error || 'Invalid IMEI format or checksum failed.'));
+
+          if (errString && errString.includes('QUOTA_LIMIT_EXCEEDED')) {
             setQuotaError('You have used up all your free search limits. Please upgrade your subscription plan to run unlimited IMEI checks.');
             setLoading(false);
             return;
           } else {
-            setChecksumError(errData.message || 'Invalid IMEI format or checksum failed.');
+            setChecksumError(errString);
             setLoading(false);
             return;
           }
