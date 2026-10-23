@@ -308,7 +308,7 @@ export default function ReportPage() {
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.15 }}
-        className="w-full bg-white/80 border border-slate-100 shadow-2xl shadow-indigo-100/40 rounded-[2.5rem] p-6 md:p-10 space-y-8 backdrop-blur-2xl relative overflow-hidden"
+        className="w-full bg-white/80 border border-slate-100 shadow-2xl shadow-indigo-100/40 rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-8 backdrop-blur-2xl relative overflow-hidden"
       >
         {/* Progress indicator */}
         <div className="flex items-center justify-between border-b border-slate-100/80 pb-6">

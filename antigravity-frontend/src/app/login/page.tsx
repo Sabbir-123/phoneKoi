@@ -72,7 +72,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center px-6 py-20 relative">
+    <div className="min-h-screen w-full flex items-center justify-center px-4 sm:px-6 py-12 sm:py-20 relative">
       <div className="orb w-[400px] h-[400px] bg-indigo-200 top-0 right-0 -z-10" />
       <div className="orb w-[300px] h-[300px] bg-purple-200 bottom-0 left-0 -z-10" style={{ animationDelay: "3s" }} />
 
@@ -82,7 +82,7 @@ function LoginContent() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="glass rounded-3xl p-8 shadow-xl shadow-indigo-100/50 relative overflow-hidden">
+        <div className="glass rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl shadow-indigo-100/50 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-sky-400" />
 
           <div className="text-center mb-8">

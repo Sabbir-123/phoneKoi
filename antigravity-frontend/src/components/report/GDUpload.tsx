@@ -95,7 +95,7 @@ export default function GDUpload({ onUpload, isExtracting }: GDUploadProps) {
           isDragging 
             ? "border-red-500/50 bg-red-500/5" 
             : "border-slate-200 bg-slate-50/20 hover:border-slate-300 hover:bg-slate-50/50 shadow-sm"
-        } p-8 md:p-12`}
+        } p-5 sm:p-8 md:p-12`}
       >
         {/* Animated Background Glow */}
         <div className="absolute inset-0 bg-gradient-to-tr from-red-500/5 via-transparent to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

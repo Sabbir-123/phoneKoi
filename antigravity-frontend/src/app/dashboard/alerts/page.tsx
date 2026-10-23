@@ -294,16 +294,16 @@ export default function AlertsPage() {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+      <div className="flex items-center gap-2 sm:gap-3 border-b border-slate-200 pb-3 overflow-x-auto flex-nowrap no-scrollbar">
         <button
           onClick={() => setActiveTab('imei-alerts')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'imei-alerts'
               ? 'bg-indigo-600 text-white shadow-md'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <Radio className="w-4 h-4" />
+          <Radio className="w-4 h-4 shrink-0" />
           <span>Real-Time Search Inquiries</span>
           {stats.unreadCount > 0 && (
             <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500 text-white animate-pulse">
@@ -314,28 +314,28 @@ export default function AlertsPage() {
 
         <button
           onClick={() => setActiveTab('general-alerts')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
             activeTab === 'general-alerts'
               ? 'bg-indigo-600 text-white shadow-md'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="w-4 h-4 shrink-0" />
           <span>System Broadcasts & Watchlist</span>
         </button>
       </div>
 
       {activeTab === 'imei-alerts' ? (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Top Key Metrics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Searches</span>
-              <div className="text-2xl md:text-3xl font-black text-indigo-950">{stats.total}</div>
-              <p className="text-[11px] text-slate-500 font-medium">Recorded on PhoneKoi</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Searches</span>
+              <div className="text-xl sm:text-2xl md:text-3xl font-black text-indigo-950">{stats.total}</div>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Recorded on PhoneKoi</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white border border-red-200/80 shadow-sm space-y-1">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-white border border-red-200/80 shadow-sm space-y-1">
               <span className="text-[10px] uppercase font-bold text-red-500 tracking-wider">GPS Confirmed</span>
               <div className="text-2xl md:text-3xl font-black text-red-600">{stats.gpsCount}</div>
               <p className="text-[11px] text-red-500 font-medium">Browser Geolocation</p>

@@ -161,25 +161,25 @@ export default function ReportedDevicesPage() {
                 transition={{ delay: i * 0.1 }}
               >
                 <GlassCard 
-                  className={`p-6 cursor-pointer transition-all bg-white/70 border hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] ${
+                  className={`p-4 sm:p-6 cursor-pointer transition-all bg-white/70 border hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] ${
                     selectedDevice?.id === device.id 
                       ? 'border-indigo-500 bg-indigo-50/20 shadow-md' 
                       : 'border-slate-100 hover:border-indigo-100/50'
                   }`}
                   onClick={() => setSelectedDevice(device)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-indigo-50 border border-indigo-100/50 rounded-xl">
-                        <Smartphone className="w-6 h-6 text-indigo-600" />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="p-2.5 sm:p-3 bg-indigo-50 border border-indigo-100/50 rounded-xl shrink-0">
+                        <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-indigo-950">{device.name}</h3>
-                        <p className="text-sm font-mono text-slate-400 font-medium">{device.imei}</p>
+                      <div className="min-w-0">
+                        <h3 className="text-base sm:text-lg font-bold text-indigo-950 truncate">{device.name}</h3>
+                        <p className="text-xs sm:text-sm font-mono text-slate-400 font-medium break-all">{device.imei}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-1 ${
+                    <div className="text-left sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-0 sm:mb-1 ${
                         device.rawStatus === 'RECOVERED'
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           : device.rawStatus === 'APPROVED'
@@ -189,7 +189,7 @@ export default function ReportedDevicesPage() {
                         {device.rawStatus === 'RECOVERED' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                         {device.status}
                       </div>
-                      <p className="text-xs text-slate-400 font-medium">{device.lastActivity}</p>
+                      <p className="text-[11px] sm:text-xs text-slate-400 font-medium">{device.lastActivity}</p>
                     </div>
                   </div>
                 </GlassCard>

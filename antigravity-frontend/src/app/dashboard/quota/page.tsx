@@ -230,7 +230,7 @@ export default function PricingPage() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {subscriptionPlans.map((plan, idx) => {
           const isHighlighted = hoveredPlanName ? (hoveredPlanName === plan.name) : (selectedPlanName === plan.name);
           const isSelected = selectedPlanName === plan.name;
@@ -248,7 +248,7 @@ export default function PricingPage() {
                 onMouseEnter={() => setHoveredPlanName(plan.name)}
                 onMouseLeave={() => setHoveredPlanName(null)}
                 onClick={() => setSelectedPlanName(plan.name)}
-                className={`p-7 flex flex-col justify-between w-full relative transition-all duration-300 cursor-pointer ${
+                className={`p-5 sm:p-7 flex flex-col justify-between w-full relative transition-all duration-300 cursor-pointer ${
                   isHighlighted
                     ? 'border-indigo-600 ring-4 ring-indigo-500/20 shadow-2xl shadow-indigo-500/20 bg-white scale-[1.03] z-10'
                     : 'border-slate-100 hover:border-indigo-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)] bg-white/70 scale-100'
@@ -317,13 +317,13 @@ export default function PricingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-6 z-50"
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-3.5 sm:p-6 z-50"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-white rounded-[2rem] border border-slate-100 p-8 max-w-lg w-full relative shadow-2xl overflow-hidden"
+              className="bg-white rounded-[2rem] border border-slate-100 p-5 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto relative shadow-2xl"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-pink-500 to-indigo-600" />
               

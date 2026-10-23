@@ -61,12 +61,11 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <motion.aside
         initial={{ x: -300 }}
         animate={{ x: isMobile ? (sidebarOpen ? 0 : -300) : 0 }}
         transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-        className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-white/80 border-r border-slate-100 backdrop-blur-md z-50 flex flex-col`}
+        className={`fixed lg:sticky top-0 left-0 h-screen w-72 max-w-[85vw] bg-white/80 border-r border-slate-100 backdrop-blur-md z-50 flex flex-col`}
       >
         <div className="h-16 lg:h-20 flex items-center justify-between px-6 border-b border-slate-100">
           <Link href="/" className="flex items-center py-1 group">

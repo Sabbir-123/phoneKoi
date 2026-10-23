@@ -122,8 +122,8 @@ export default function CheckPage() {
 
           {/* Input Field Row */}
           <div className="relative flex items-center bg-white/40 backdrop-blur-sm border border-indigo-50/50 rounded-2xl p-1">
-            <div className="pl-4 pr-3 text-indigo-400">
-              <Search className="w-6 h-6" />
+            <div className="pl-3 sm:pl-4 pr-2 sm:pr-3 text-indigo-400 shrink-0">
+              <Search className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
 
             <input
@@ -131,7 +131,7 @@ export default function CheckPage() {
               value={imei}
               onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))}
               placeholder="000000000000000"
-              className="flex-1 bg-transparent border-none outline-none text-2xl md:text-4xl font-mono tracking-[0.2em] text-indigo-950 placeholder:text-slate-200 py-4 w-full"
+              className="flex-1 bg-transparent border-none outline-none text-base sm:text-2xl md:text-4xl font-mono tracking-widest sm:tracking-[0.2em] text-indigo-950 placeholder:text-slate-200 py-3 sm:py-4 w-full min-w-0"
               disabled={isSearching}
               suppressHydrationWarning
             />

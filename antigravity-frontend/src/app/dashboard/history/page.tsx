@@ -87,22 +87,22 @@ export default function HistoryPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
               >
-                <GlassCard className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white/70 border border-slate-100 hover:border-indigo-100/50 hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] transition-colors">
-                  <div className="flex items-center gap-5">
-                    <div className={`p-3.5 rounded-2xl border ${
+                <GlassCard className="p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 bg-white/70 border border-slate-100 hover:border-indigo-100/50 hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] transition-colors">
+                  <div className="flex items-center gap-3.5 sm:gap-5 min-w-0 w-full md:w-auto">
+                    <div className={`p-2.5 sm:p-3.5 rounded-2xl border shrink-0 ${
                       item.result === 'Clean' ? 'bg-emerald-50 border-emerald-100' :
                       item.result === 'Stolen' ? 'bg-red-50 border-red-100' :
                       'bg-amber-50 border-amber-100'
                     }`}>
-                      {item.result === 'Clean' ? <CheckCircle2 className="w-6 h-6 text-emerald-600" /> : <ShieldAlert className="w-6 h-6 text-red-600" />}
+                      {item.result === 'Clean' ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" /> : <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />}
                     </div>
-                    <div>
-                      <div className="font-mono text-lg font-bold text-indigo-950 tracking-wider mb-1">{item.imei}</div>
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm sm:text-lg font-bold text-indigo-950 tracking-wider mb-0.5 sm:mb-1 break-all">{item.imei}</div>
                       <div className="text-xs text-slate-400 font-semibold">{item.date}</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
+                  <div className="flex items-center gap-4 sm:gap-8 w-full md:w-auto justify-between md:justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                     <div className="flex flex-col items-start md:items-end">
                       <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wider font-bold">Risk Score</div>
                       <div className={`text-lg font-extrabold ${

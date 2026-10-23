@@ -78,21 +78,21 @@ export default function PromoModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-indigo-100 overflow-hidden z-10 my-8"
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-indigo-100 z-10 my-4 sm:my-8"
           >
             {/* Top decorative gradient band */}
-            <div className="h-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 w-full" />
+            <div className="h-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 w-full shrink-0 sticky top-0 z-20" />
 
             {/* Close Button */}
             <button
               onClick={handleDismiss}
-              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-20"
+              className="absolute top-4 sm:top-5 right-4 sm:right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-30"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-5 sm:p-8 space-y-5 sm:space-y-6">
               {/* Badge & Header */}
               <div className="text-center space-y-3">
                 <motion.div

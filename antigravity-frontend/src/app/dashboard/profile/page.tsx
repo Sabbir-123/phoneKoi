@@ -292,11 +292,11 @@ export default function ProfilePage() {
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Page Header */}
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-        <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight flex items-center gap-3">
-          <UserCircle className="w-8 h-8 text-indigo-600" />
-          {language === 'banglish' ? 'Account & Trust Profile' : 'Account & Trust Profile'}
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-950 tracking-tight flex items-center gap-2.5 sm:gap-3">
+          <UserCircle className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600 shrink-0" />
+          <span>{language === 'banglish' ? 'Account & Trust Profile' : 'Account & Trust Profile'}</span>
         </h1>
-        <p className="text-slate-500 mt-2 font-medium">
+        <p className="text-slate-500 mt-1.5 sm:mt-2 text-xs sm:text-sm font-medium">
           {language === 'banglish' ? 'Apnar account details ebong trust score ekhane dekhun.' : 'Manage your identity, view your community trust standing, and review active badges.'}
         </p>
       </motion.div>
@@ -311,12 +311,12 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }} 
           transition={{ delay: 0.1 }}
         >
-          <GlassCard className="p-6 flex flex-col items-center text-center bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
-            <div className="w-24 h-24 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4 overflow-hidden relative shadow-inner group">
+          <GlassCard className="p-4 sm:p-6 flex flex-col items-center text-center bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-3 sm:mb-4 overflow-hidden relative shadow-inner group shrink-0">
               {avatar ? (
                 <img src={avatar} alt={displayName || 'User'} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-4xl font-extrabold text-indigo-600">
+                <span className="text-3xl sm:text-4xl font-extrabold text-indigo-600">
                   {(displayName || email || 'U').charAt(0).toUpperCase()}
                 </span>
               )}
@@ -330,10 +330,10 @@ export default function ProfilePage() {
                 <span>Upload</span>
               </button>
             </div>
-            <h2 className="text-xl font-bold text-indigo-950 mb-1">{displayName || email?.split('@')[0] || 'Phone Koi User'}</h2>
-            <div className="flex items-center justify-center gap-2 text-sm text-slate-400 font-semibold mb-6">
-              <Mail className="w-4 h-4 text-indigo-500" />
-              {email}
+            <h2 className="text-lg sm:text-xl font-bold text-indigo-950 mb-1 truncate max-w-full px-2">{displayName || email?.split('@')[0] || 'Phone Koi User'}</h2>
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-400 font-semibold mb-4 sm:mb-6 max-w-full px-2 truncate">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 shrink-0" />
+              <span className="truncate">{email}</span>
             </div>
             
             <div className="w-full pt-6 border-t border-slate-100 flex flex-col gap-3.5 text-left">
@@ -374,10 +374,10 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.2 }}
           >
-            <GlassCard className="p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
-              <h3 className="text-lg font-bold text-indigo-950 mb-6">Trust Standing</h3>
+            <GlassCard className="p-4 sm:p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+              <h3 className="text-base sm:text-lg font-bold text-indigo-950 mb-4 sm:mb-6">Trust Standing</h3>
               
-              <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-8 mb-4">
                 <div className="flex-1 w-full">
                   <div className="flex justify-between mb-2.5">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Community Trust Score</span>
@@ -396,9 +396,9 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                <div className="flex-shrink-0 flex items-center justify-center w-24 h-24 rounded-full bg-emerald-50 border border-emerald-100/50 shadow-sm shadow-emerald-100">
+                <div className="flex-shrink-0 flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-50 border border-emerald-100/50 shadow-sm shadow-emerald-100">
                   <div className="text-center">
-                    <div className="text-3xl font-extrabold text-emerald-600 tracking-tighter">{calculatedTrustScore}</div>
+                    <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 tracking-tighter">{calculatedTrustScore}</div>
                     <div className="text-[9px] text-emerald-500/80 uppercase font-extrabold tracking-widest">Score</div>
                   </div>
                 </div>
@@ -412,7 +412,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.25 }}
           >
-            <GlassCard className="p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+            <GlassCard className="p-4 sm:p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
               <h3 className="text-lg font-bold text-indigo-950 mb-4 flex items-center gap-2">
                 <UserCircle className="w-5 h-5 text-indigo-600" />
                 Complete Your Profile

@@ -307,21 +307,21 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         {/* Main Card */}
         <motion.div
           animate={activeStatus === "stolen" ? { x: [-1.5, 1.5, -1.5, 0], transition: { repeat: Infinity, duration: 0.6, repeatDelay: 2.5 } } : {}}
-          className={`${config.cardBg} border ${config.border} rounded-[2rem] p-6 md:p-8 text-center shadow-lg backdrop-blur-md ${config.shadow} space-y-4`}
+          className={`${config.cardBg} border ${config.border} rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 text-center shadow-lg backdrop-blur-md ${config.shadow} space-y-4`}
         >
           <div className="flex justify-center mb-1">
-            <div className={`p-4 rounded-2xl ${config.iconBg}`}>
-              <Icon className={`w-10 h-10 ${config.iconColor}`} />
+            <div className={`p-3.5 sm:p-4 rounded-2xl ${config.iconBg}`}>
+              <Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${config.iconColor}`} />
             </div>
           </div>
 
-          <div className={`inline-block px-3.5 py-1 rounded-full text-[10px] font-bold tracking-widest ${config.badge}`}>
+          <div className={`inline-block px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full text-[10px] font-bold tracking-widest ${config.badge}`}>
             {config.badgeText}
           </div>
 
           {/* Prominent Required Stolen Device Warning */}
           {activeStatus === "stolen" && (
-            <div className="p-4 rounded-2xl bg-red-600 text-white shadow-md text-left space-y-1">
+            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-red-600 text-white shadow-md text-left space-y-1">
               <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider">
                 <ShieldAlert className="w-4 h-4 text-white shrink-0" />
                 <span>OFFICIAL SECURITY ALERT</span>
@@ -332,18 +332,18 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
             </div>
           )}
 
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-1.5 text-indigo-950 tracking-tight">{config.title}</h1>
-          <p className="text-slate-500 leading-relaxed text-sm font-medium">{config.desc}</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold mb-1 text-indigo-950 tracking-tight">{config.title}</h1>
+          <p className="text-slate-500 leading-relaxed text-xs sm:text-sm font-medium">{config.desc}</p>
 
-          <div className="py-3 border-t border-indigo-950/5 flex flex-col items-center">
-            <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-[0.2em]">Risk Score</div>
-            <div className={`text-7xl font-black font-mono tracking-tighter leading-none ${config.scoreColor}`}>{score}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">out of 100</div>
+          <div className="py-2.5 sm:py-3 border-t border-indigo-950/5 flex flex-col items-center">
+            <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-[0.2em]">Risk Score</div>
+            <div className={`text-5xl sm:text-7xl font-black font-mono tracking-tighter leading-none ${config.scoreColor}`}>{score}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">out of 100</div>
           </div>
 
-          <div className="py-2.5 bg-white/60 rounded-2xl border border-white/80">
+          <div className="py-2.5 px-3 bg-white/60 rounded-2xl border border-white/80">
             <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-widest font-bold">Queried IMEI</div>
-            <div className="text-base font-mono text-indigo-950 tracking-[0.15em] font-bold">{params.imei}</div>
+            <div className="text-sm sm:text-base font-mono text-indigo-950 tracking-wider font-bold break-all">{params.imei}</div>
           </div>
 
           {/* Device Information Block */}

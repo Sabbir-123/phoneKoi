@@ -147,11 +147,11 @@ function DashboardHomeContent() {
             initial={{ opacity: 0, y: -20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.98 }}
-            className="p-1 rounded-[1.8rem] bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 relative z-20 shadow-xl"
+            className="p-1 rounded-2xl sm:rounded-[1.8rem] bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 relative z-20 shadow-xl"
           >
-            <div className="bg-white/80 backdrop-blur-2xl rounded-[1.7rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex-shrink-0">
+            <div className="bg-white/80 backdrop-blur-2xl rounded-xl sm:rounded-[1.7rem] p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-amber-500/10 rounded-xl sm:rounded-2xl border border-amber-500/20 flex-shrink-0">
                   <ShieldAlert className="w-8 h-8 text-amber-500" />
                 </div>
                 <div>
@@ -237,10 +237,10 @@ function DashboardHomeContent() {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-10"
       >
-        <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight mb-1.5">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-950 tracking-tight mb-1">
           {greeting}, <span className="text-indigo-600">{name}</span>
         </h1>
-        <p className="text-slate-500 text-base">
+        <p className="text-slate-500 text-xs sm:text-sm">
           {language === 'banglish' 
             ? 'Apnar account er current obostha dekhe nin.' 
             : "Here's what's happening with your account today."}
@@ -248,7 +248,7 @@ function DashboardHomeContent() {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((stat, i) => (
           <motion.div
             key={i}
@@ -256,7 +256,7 @@ function DashboardHomeContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
-            <GlassCard glowColor={stat.glow} className="p-6 flex flex-col gap-4 bg-white/70 border border-slate-100 hover:border-indigo-100/50 hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] transition-all">
+            <GlassCard glowColor={stat.glow} className="p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 bg-white/70 border border-slate-100 hover:border-indigo-100/50 hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] transition-all">
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-xl ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="w-5 h-5" />
@@ -282,7 +282,7 @@ function DashboardHomeContent() {
           <h2 className="text-xl font-bold text-indigo-950">
             {language === 'banglish' ? 'Recent Activity' : 'Recent Activity'}
           </h2>
-          <GlassCard className="p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+          <GlassCard className="p-4 sm:p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
             <div className="space-y-8">
               {recentActivity.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 font-semibold text-sm">
@@ -321,7 +321,7 @@ function DashboardHomeContent() {
           <h2 className="text-xl font-bold text-indigo-950">
             {language === 'banglish' ? 'Quick Actions' : 'Quick Actions'}
           </h2>
-          <GlassCard className="p-6 flex flex-col gap-4 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
+          <GlassCard className="p-4 sm:p-6 flex flex-col gap-3.5 sm:gap-4 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
             <Link href="/report">
               <MotionButton variant="primary" className="w-full justify-between group">
                 <span className="flex items-center gap-2">
