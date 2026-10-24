@@ -1,6 +1,7 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { TelegramBotService } from './telegram-bot.service';
 import { AlertDispatcherService } from './alert-dispatcher.service';
+import { Public } from '../auth/public.decorator';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -10,8 +11,18 @@ export class NotificationsController {
   ) {}
 
   /**
+   * Public endpoint to get which notification channels are enabled by Admin
+   */
+  @Public()
+  @Get('active-channels')
+  async getActiveChannels() {
+    return this.alertDispatcher.getActiveChannels();
+  }
+
+  /**
    * Telegram Webhook endpoint (for production deployment)
    */
+  @Public()
   @Post('telegram/webhook')
   @HttpCode(HttpStatus.OK)
   async handleTelegramWebhook(@Body() update: any) {

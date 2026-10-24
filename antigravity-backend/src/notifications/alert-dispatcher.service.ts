@@ -127,6 +127,20 @@ export class AlertDispatcherService {
   }
 
   /**
+   * Returns which alert notification channels are active and configured for report submission
+   */
+  async getActiveChannels(): Promise<{ inApp: boolean; telegram: boolean; email: boolean; whatsapp: boolean; sms: boolean }> {
+    const config = await this.getGatewaysConfig();
+    return {
+      inApp: true,
+      telegram: Boolean(config.telegram?.enabled && config.telegram?.botToken),
+      email: Boolean(config.email?.enabled && config.email?.resendApiKey),
+      whatsapp: Boolean(config.whatsapp?.enabled && (config.whatsapp?.token || config.whatsapp?.instanceId)),
+      sms: Boolean(config.sms?.enabled && config.sms?.apiKey),
+    };
+  }
+
+  /**
    * Main Dispatcher: Called when an IMEI is searched
    */
   async dispatchSearchAlert(payload: SearchAlertPayload): Promise<DeliveryChannelStatus[]> {

@@ -105,17 +105,18 @@ export class ReportsService {
     }
 
     // 3. Normalize notification preferences
-    let notificationPreferences: string[] = ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'];
+    let notificationPreferences: string[] = ['IN_APP', 'TELEGRAM', 'EMAIL', 'WHATSAPP', 'SMS'];
     if (Array.isArray(data.notificationPreferences)) {
       notificationPreferences = data.notificationPreferences.map((p: any) => String(p).toUpperCase());
     } else if (data.notificationPreferences && typeof data.notificationPreferences === 'object') {
       const prefs: string[] = [];
       const np = data.notificationPreferences as Record<string, any>;
       if (np.inApp) prefs.push('IN_APP');
+      if (np.telegram) prefs.push('TELEGRAM');
       if (np.whatsapp) prefs.push('WHATSAPP');
       if (np.email) prefs.push('EMAIL');
       if (np.sms) prefs.push('SMS');
-      notificationPreferences = prefs.length > 0 ? prefs : ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'];
+      notificationPreferences = prefs.length > 0 ? prefs : ['IN_APP', 'TELEGRAM', 'EMAIL'];
     }
 
     // 4. Secure File Storage: Upload base64 GD to Supabase Storage if provided

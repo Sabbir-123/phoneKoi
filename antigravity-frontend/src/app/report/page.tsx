@@ -34,8 +34,22 @@ export default function ReportPage() {
   const [lossDate, setLossDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [policeGdNumber, setPoliceGdNumber] = useState("");
   const [policeStation, setPoliceStation] = useState("");
+  const [activeChannels, setActiveChannels] = useState<{
+    inApp: boolean;
+    telegram: boolean;
+    email: boolean;
+    whatsapp: boolean;
+    sms: boolean;
+  }>({
+    inApp: true,
+    telegram: false,
+    email: false,
+    whatsapp: false,
+    sms: false,
+  });
   const [notificationPreferences, setNotificationPreferences] = useState({
     inApp: true,
+    telegram: true,
     whatsapp: true,
     email: true,
     sms: true,
@@ -66,6 +80,24 @@ export default function ReportPage() {
           );
           setIsPro(isProPlan);
           setReportsLeft(data.reportsLeft ?? 0);
+        }
+
+        // Fetch which notification channels are enabled by Admin
+        try {
+          const chanRes = await fetch(`${API_URL}/notifications/active-channels`);
+          if (chanRes.ok) {
+            const channels = await chanRes.json();
+            setActiveChannels(channels);
+            setNotificationPreferences((prev) => ({
+              ...prev,
+              telegram: Boolean(channels.telegram),
+              whatsapp: Boolean(channels.whatsapp),
+              email: Boolean(channels.email),
+              sms: Boolean(channels.sms),
+            }));
+          }
+        } catch (e) {
+          console.error("Could not load active channels:", e);
         }
       } catch (err) {
         console.error("Error checking user quota:", err);
@@ -166,9 +198,10 @@ export default function ReportPage() {
       // Normalize notification preferences to array format for database compatibility
       const selectedPrefs: string[] = [];
       if (notificationPreferences.inApp) selectedPrefs.push("IN_APP");
-      if (notificationPreferences.whatsapp) selectedPrefs.push("WHATSAPP");
-      if (notificationPreferences.email) selectedPrefs.push("EMAIL");
-      if (notificationPreferences.sms) selectedPrefs.push("SMS");
+      if (notificationPreferences.telegram && activeChannels.telegram) selectedPrefs.push("TELEGRAM");
+      if (notificationPreferences.whatsapp && activeChannels.whatsapp) selectedPrefs.push("WHATSAPP");
+      if (notificationPreferences.email && activeChannels.email) selectedPrefs.push("EMAIL");
+      if (notificationPreferences.sms && activeChannels.sms) selectedPrefs.push("SMS");
 
       const response = await authFetch(`${API_URL}/reports/submit`, {
         method: "POST",
@@ -281,7 +314,7 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="w-full max-w-2xl flex flex-col items-center justify-center py-8 px-6">
+    <div className="w-full max-w-2xl flex flex-col items-center justify-center pt-24 sm:pt-28 pb-12 px-4 sm:px-6">
       {/* Ambient backgrounds */}
       <div className="orb w-[500px] h-[500px] bg-red-100/10 top-0 right-0 -z-10 blur-[80px]" />
       <div className="orb w-[300px] h-[300px] bg-indigo-100/10 bottom-0 left-0 -z-10 blur-[60px]" style={{ animationDelay: "4s" }} />
@@ -588,59 +621,88 @@ export default function ReportPage() {
                 </div>
 
                 {/* 7. Real-Time Search Alert Preferences */}
-                <div className="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100/70 space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="p-4 sm:p-5 bg-indigo-50/40 rounded-2xl border border-indigo-100/70 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-xs font-extrabold text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
-                      <Bell className="w-4 h-4 text-indigo-600" /> Real-Time Search Alert Channels
+                      <Bell className="w-4 h-4 text-indigo-600 shrink-0" /> Real-Time Search Alert Channels
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
-                      Instant Dispatch Active
+                    <span className="self-start sm:self-auto text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Instant Dispatch Active
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium">
                     Select how you want to be notified the exact instant someone queries this IMEI on PhoneKoi:
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2.5 pt-1">
-                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {/* 1. In-App Dashboard (Always visible & active) */}
+                    <label className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
                       <input
                         type="checkbox"
                         checked={notificationPreferences.inApp}
                         onChange={(e) => setNotificationPreferences({ ...notificationPreferences, inApp: e.target.checked })}
-                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 shrink-0"
                       />
-                      <span className="text-xs font-bold text-slate-700">In-App Dashboard</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-slate-700">In-App Dashboard</span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-150">Default</span>
+                      </div>
                     </label>
 
-                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={notificationPreferences.whatsapp}
-                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, whatsapp: e.target.checked })}
-                        className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                      />
-                      <span className="text-xs font-bold text-slate-700">WhatsApp Alert</span>
-                    </label>
+                    {/* 2. Telegram Bot Push Alert (Only if activeChannels.telegram) */}
+                    {activeChannels.telegram && (
+                      <label className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-sky-200/80 shadow-sm cursor-pointer hover:bg-sky-50/50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={notificationPreferences.telegram}
+                          onChange={(e) => setNotificationPreferences({ ...notificationPreferences, telegram: e.target.checked })}
+                          className="rounded text-sky-600 focus:ring-sky-500 w-4 h-4 shrink-0"
+                        />
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-slate-800">Telegram Bot Push</span>
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">100% Free</span>
+                        </div>
+                      </label>
+                    )}
 
-                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={notificationPreferences.email}
-                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, email: e.target.checked })}
-                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
-                      />
-                      <span className="text-xs font-bold text-slate-700">Email Notification</span>
-                    </label>
+                    {/* 3. Email Notification (Only if activeChannels.email) */}
+                    {activeChannels.email && (
+                      <label className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={notificationPreferences.email}
+                          onChange={(e) => setNotificationPreferences({ ...notificationPreferences, email: e.target.checked })}
+                          className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0"
+                        />
+                        <span className="text-xs font-bold text-slate-700">Email Notification</span>
+                      </label>
+                    )}
 
-                    <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={notificationPreferences.sms}
-                        onChange={(e) => setNotificationPreferences({ ...notificationPreferences, sms: e.target.checked })}
-                        className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
-                      />
-                      <span className="text-xs font-bold text-slate-700">Emergency SMS</span>
-                    </label>
+                    {/* 4. WhatsApp Alert (Only if activeChannels.whatsapp) */}
+                    {activeChannels.whatsapp && (
+                      <label className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={notificationPreferences.whatsapp}
+                          onChange={(e) => setNotificationPreferences({ ...notificationPreferences, whatsapp: e.target.checked })}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 shrink-0"
+                        />
+                        <span className="text-xs font-bold text-slate-700">WhatsApp Alert</span>
+                      </label>
+                    )}
+
+                    {/* 5. Emergency SMS (Only if activeChannels.sms) */}
+                    {activeChannels.sms && (
+                      <label className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-slate-150 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={notificationPreferences.sms}
+                          onChange={(e) => setNotificationPreferences({ ...notificationPreferences, sms: e.target.checked })}
+                          className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 shrink-0"
+                        />
+                        <span className="text-xs font-bold text-slate-700">Emergency SMS</span>
+                      </label>
+                    )}
                   </div>
                 </div>
               </div>
