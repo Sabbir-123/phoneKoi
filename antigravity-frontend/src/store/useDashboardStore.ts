@@ -12,6 +12,7 @@ export interface UserProfile {
   displayName?: string;
   phone?: string;
   whatsapp?: string;
+  telegramChatId?: string;
   address?: string;
   avatar?: string;
   avatarUrl?: string;

@@ -14,6 +14,7 @@ import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
 import { UsersModule } from './users/users.module';
 import { SearchEventsModule } from './search-events/search-events.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SearchEventsModule } from './search-events/search-events.module';
     AiModule,
     UsersModule,
     SearchEventsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

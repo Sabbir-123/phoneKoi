@@ -40,6 +40,7 @@ model User {
   phone                 String?               @unique
   normalizedPhone       String?
   whatsapp              String?
+  telegramChatId        String?
   address               String?
   avatarUrl             String?
   isProfileComplete     Boolean               @default(false)
@@ -189,4 +190,10 @@ model OwnerMessage {
   message    String
   contact    String?
   createdAt  DateTime @default(now())
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }

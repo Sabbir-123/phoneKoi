@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { Roles } from '../auth/roles.decorator';
 
@@ -32,8 +32,19 @@ export class AdminController {
     return this.adminService.approveDeviceReport(id);
   }
 
-  @Post('reports/:id/reject')
-  async rejectReport(@Param('id') id: string) {
-    return this.adminService.rejectDeviceReport(id);
+  @Get('settings/gateways')
+  async getGatewaySettings() {
+    return this.adminService.getGatewaySettings();
+  }
+
+  @Post('settings/gateways')
+  async updateGatewaySettings(@Body() body: any) {
+    return this.adminService.updateGatewaySettings(body);
+  }
+
+  @Post('settings/gateways/test')
+  async testGatewayChannel(@Body() body: { channel: 'TELEGRAM' | 'EMAIL' | 'WHATSAPP' | 'SMS'; recipient: string; configOverride?: any }) {
+    return this.adminService.testGatewayChannel(body.channel, body.recipient, body.configOverride);
   }
 }
+

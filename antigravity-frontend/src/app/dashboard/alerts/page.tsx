@@ -29,6 +29,7 @@ import {
   Mail,
   PhoneCall,
   Search,
+  Send,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -74,10 +75,112 @@ interface SearchEventItem {
 }
 
 export default function AlertsPage() {
-  const { language } = useDashboardStore();
+  const { language, profile, fetchProfile } = useDashboardStore();
   const [activeTab, setActiveTab] = useState<'imei-alerts' | 'general-alerts'>('imei-alerts');
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Telegram Linking State
+  const [telegramInput, setTelegramInput] = useState('');
+  const [savingTelegram, setSavingTelegram] = useState(false);
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramToast, setTelegramToast] = useState<{ message: string; isError?: boolean } | null>(null);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [waitingForSync, setWaitingForSync] = useState(false);
+
+  useEffect(() => {
+    if (profile?.telegramChatId) {
+      setTelegramInput(profile.telegramChatId);
+    }
+  }, [profile?.telegramChatId]);
+
+  const handleStart1ClickSync = () => {
+    if (!profile?.id) {
+      alert('Please wait for profile to load or sign in.');
+      return;
+    }
+    const botUser = 'PhoneKoiAlertBot';
+    const link = `https://t.me/${botUser}?start=connect_${profile.id}`;
+    window.open(link, '_blank');
+    setWaitingForSync(true);
+    setTelegramToast({ message: 'Opening Telegram... Please tap "Start" in the bot to connect.' });
+
+    // Poll profile every 2.5s for 45 seconds to detect link
+    let attempts = 0;
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      const updated = await fetchProfile(true);
+      if (updated?.telegramChatId || attempts > 18) {
+        clearInterval(pollInterval);
+        setWaitingForSync(false);
+        if (updated?.telegramChatId) {
+          setTelegramToast({ message: '🎉 Telegram successfully connected to PhoneKoi!' });
+        }
+      }
+    }, 2500);
+  };
+
+  const handleTestUserTelegram = async () => {
+    try {
+      setTestingTelegram(true);
+      const res = await authFetch(`${API_URL}/users/test-telegram`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTelegramToast({ message: '✅ Test security alert delivered to your Telegram!' });
+      } else {
+        setTelegramToast({ message: data?.message || 'Failed to send test alert', isError: true });
+      }
+    } catch (e: any) {
+      setTelegramToast({ message: e?.message || 'Error sending test alert', isError: true });
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
+
+  const handleUnlinkTelegram = async () => {
+    if (!confirm('Are you sure you want to disconnect Telegram alerts?')) return;
+    try {
+      setSavingTelegram(true);
+      const res = await authFetch(`${API_URL}/users/link-telegram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramChatId: '' }),
+      });
+      if (res.ok) {
+        await fetchProfile(true);
+        setTelegramInput('');
+        setTelegramToast({ message: 'Telegram alerts disconnected' });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingTelegram(false);
+    }
+  };
+
+  const handleSaveTelegram = async () => {
+    try {
+      setSavingTelegram(true);
+      const res = await authFetch(`${API_URL}/users/link-telegram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramChatId: telegramInput.trim() }),
+      });
+      if (res.ok) {
+        await fetchProfile(true);
+        setShowManualInput(false);
+        setTelegramToast({ message: 'Telegram Chat ID linked successfully!' });
+      } else {
+        setTelegramToast({ message: 'Failed to update Telegram Chat ID', isError: true });
+      }
+    } catch (e: any) {
+      setTelegramToast({ message: e?.message || 'Error updating Telegram Chat ID', isError: true });
+    } finally {
+      setSavingTelegram(false);
+    }
+  };
 
   // IMEI Search Alerts State
   const [searchEvents, setSearchEvents] = useState<SearchEventItem[]>([]);
@@ -327,6 +430,135 @@ export default function AlertsPage() {
 
       {activeTab === 'imei-alerts' ? (
         <div className="space-y-6 sm:space-y-8">
+          {/* Telegram Instant Alert Connection Banner */}
+          <div className="bg-gradient-to-r from-sky-50 via-indigo-50/30 to-white p-4 sm:p-5 rounded-3xl border border-sky-200/80 shadow-sm space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-sky-500/25">
+                  <Send className="w-5 h-5 -rotate-12 translate-x-0.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-slate-900">Telegram Instant Push Alerts</h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      100% Free
+                    </span>
+                    {profile?.telegramChatId ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-700" /> Active (Chat ID: {profile.telegramChatId})
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                        Not Connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Receive real-time GPS telemetry, searcher IP, and timestamp on your Telegram the exact second your device is searched.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                {!profile?.telegramChatId ? (
+                  <>
+                    <button
+                      onClick={handleStart1ClickSync}
+                      disabled={waitingForSync}
+                      className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-md shadow-sky-500/20 flex items-center gap-2 active:scale-95"
+                    >
+                      {waitingForSync ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Waiting for Start in Telegram...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>⚡ Connect Telegram in 1-Click</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowManualInput(!showManualInput)}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 underline px-1"
+                    >
+                      {showManualInput ? 'Hide Manual' : 'Enter ID Manually'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleTestUserTelegram}
+                      disabled={testingTelegram}
+                      className="px-3.5 py-2 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 text-xs font-bold transition-all flex items-center gap-1.5"
+                    >
+                      {testingTelegram ? (
+                        <div className="w-3 h-3 border-2 border-sky-800 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3" />
+                      )}
+                      Test Alert
+                    </button>
+                    <button
+                      onClick={handleUnlinkTelegram}
+                      disabled={savingTelegram}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 text-xs font-medium transition-all"
+                    >
+                      Disconnect
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Manual ID Input fallback */}
+            {showManualInput && !profile?.telegramChatId && (
+              <div className="pt-2 border-t border-sky-100/80 flex items-center gap-2 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Paste Telegram Chat ID (e.g. 8655616982)..."
+                  value={telegramInput}
+                  onChange={(e) => setTelegramInput(e.target.value)}
+                  className="flex-1 text-xs font-mono px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                />
+                <button
+                  onClick={handleSaveTelegram}
+                  disabled={savingTelegram || !telegramInput.trim()}
+                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center gap-1"
+                >
+                  {savingTelegram ? (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                  Save
+                </button>
+              </div>
+            )}
+
+            {/* Dynamic Toast Feedback */}
+            {telegramToast && (
+              <div
+                className={`p-2.5 rounded-xl text-xs font-medium flex items-center justify-between gap-2 ${
+                  telegramToast.isError
+                    ? 'bg-red-50 border border-red-200 text-red-700'
+                    : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                }`}
+              >
+                <span>{telegramToast.message}</span>
+                <button
+                  onClick={() => setTelegramToast(null)}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Top Key Metrics Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <div className="p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">

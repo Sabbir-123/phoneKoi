@@ -92,4 +92,26 @@ export class UsersController {
     }
     return this.usersService.getUserAlerts(caller.email);
   }
+
+  @Post('link-telegram')
+  async linkTelegram(
+    @Body() body: { telegramChatId: string },
+    @Req() req: any,
+  ) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.usersService.linkTelegramChatId(caller.email, body.telegramChatId);
+  }
+
+  @Post('test-telegram')
+  async testTelegram(@Req() req: any) {
+    const caller = req.user;
+    if (!caller) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.usersService.testUserTelegram(caller.email);
+  }
 }
+

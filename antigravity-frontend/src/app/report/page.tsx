@@ -163,11 +163,17 @@ export default function ReportPage() {
 
       const finalDeviceName = model.trim() ? (model.toLowerCase().includes(brand.toLowerCase()) ? model.trim() : `${brand} ${model.trim()}`) : deviceName;
 
+      // Normalize notification preferences to array format for database compatibility
+      const selectedPrefs: string[] = [];
+      if (notificationPreferences.inApp) selectedPrefs.push("IN_APP");
+      if (notificationPreferences.whatsapp) selectedPrefs.push("WHATSAPP");
+      if (notificationPreferences.email) selectedPrefs.push("EMAIL");
+      if (notificationPreferences.sms) selectedPrefs.push("SMS");
+
       const response = await authFetch(`${API_URL}/reports/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-
           imei,
           description,
           deviceName: finalDeviceName,
@@ -177,7 +183,7 @@ export default function ReportPage() {
           lossDate,
           policeGdNumber: policeGdNumber.trim() || undefined,
           policeStation: policeStation.trim() || undefined,
-          notificationPreferences,
+          notificationPreferences: selectedPrefs,
           contactNumber,
           extractedFromGd,
           aiExtractionConfidence: aiConfidence,
@@ -193,12 +199,12 @@ export default function ReportPage() {
         const rawMsg = errorData?.message;
         const errString = Array.isArray(rawMsg)
           ? rawMsg.join('. ')
-          : (typeof rawMsg === 'string' ? rawMsg : (errorData?.error || "Submission failed. Please try again."));
+          : (typeof rawMsg === 'string' ? rawMsg : (errorData?.error || (language === 'banglish' ? "Report submit kora jay ni. Please abar try korun." : "Submission failed. Please try again.")));
         alert(errString);
       }
     } catch (error) {
       console.error(error);
-      alert("Something went wrong during submission.");
+      alert(language === 'banglish' ? "Report submit korte somossa hoyese. Abar chesta korun." : "Something went wrong during submission. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

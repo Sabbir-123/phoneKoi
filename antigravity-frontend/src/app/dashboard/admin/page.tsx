@@ -5,7 +5,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
-import { ShieldCheck, UserCheck, Search, Filter, RefreshCw, XCircle, Clock, Smartphone, ShieldAlert, AlertTriangle, FileText, Check } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  UserCheck, 
+  Search, 
+  Filter, 
+  RefreshCw, 
+  XCircle, 
+  Clock, 
+  Smartphone, 
+  ShieldAlert, 
+  AlertTriangle, 
+  FileText, 
+  Check,
+  Send,
+  Mail,
+  MessageSquare,
+  PhoneCall,
+  Bot,
+  Save,
+  Sparkles,
+  CheckCircle2,
+  Radio
+} from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { InteractiveLoader } from '@/components/ui/InteractiveLoader';
@@ -37,15 +59,62 @@ interface DeviceReport {
   gdImage?: string | null;
 }
 
+interface GatewaySettings {
+  telegram: {
+    enabled: boolean;
+    botToken: string;
+    botUsername: string;
+    adminChatId?: string;
+  };
+  email: {
+    enabled: boolean;
+    provider: 'RESEND' | 'EMAILJS' | 'SMTP';
+    resendApiKey?: string;
+    fromEmail?: string;
+  };
+  whatsapp: {
+    enabled: boolean;
+    provider: 'ULTRAMSG' | 'GREENAPI' | 'TWILIO' | 'META';
+    instanceId?: string;
+    token?: string;
+    senderNumber?: string;
+  };
+  sms: {
+    enabled: boolean;
+    provider: 'GREENWEB' | 'SSL_WIRELESS' | 'BULKSMS_BD' | 'TWILIO';
+    apiKey?: string;
+    senderId?: string;
+    clientSecret?: string;
+  };
+}
+
 export default function AdminDashboard() {
   const { profile, fetchProfile } = useDashboardStore();
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
   const [deviceReports, setDeviceReports] = useState<DeviceReport[]>([]);
-  const [activeTab, setActiveTab] = useState<'SUBSCRIPTIONS' | 'REPORTS'>('SUBSCRIPTIONS');
+  const [activeTab, setActiveTab] = useState<'SUBSCRIPTIONS' | 'REPORTS' | 'GATEWAYS'>('SUBSCRIPTIONS');
   
   const [subFilter, setSubFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [reportFilter, setReportFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   
+  const [gateways, setGateways] = useState<GatewaySettings>({
+    telegram: { enabled: false, botToken: '', botUsername: 'PhoneKoiAlertBot', adminChatId: '' },
+    email: { enabled: false, provider: 'RESEND', resendApiKey: '', fromEmail: 'PhoneKoi Alerts <onboarding@resend.dev>' },
+    whatsapp: { enabled: false, provider: 'ULTRAMSG', instanceId: '', token: '', senderNumber: '' },
+    sms: { enabled: false, provider: 'GREENWEB', apiKey: '', senderId: '', clientSecret: '' },
+  });
+  const [gatewaysLoading, setGatewaysLoading] = useState(false);
+  const [gatewaysSaving, setGatewaysSaving] = useState(false);
+  const [gatewaysSuccessMsg, setGatewaysSuccessMsg] = useState<string | null>(null);
+  const [testingChannel, setTestingChannel] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{ channel: string; message: string; isError?: boolean } | null>(null);
+  const [testInputs, setTestInputs] = useState({
+    telegramChatId: '',
+    emailAddress: '',
+    whatsappNumber: '',
+    smsNumber: '',
+  });
+
   const [loading, setLoading] = useState(true);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
@@ -107,6 +176,76 @@ export default function AdminDashboard() {
       setReportsLoading(false);
     }
   }, []);
+
+  const fetchGateways = useCallback(async () => {
+    try {
+      setGatewaysLoading(true);
+      const res = await authFetch(`${API_URL}/admin/settings/gateways`);
+      if (res.ok) {
+        const data = await res.json();
+        setGateways(data);
+      }
+    } catch (e) {
+      console.error('Error fetching gateways:', e);
+    } finally {
+      setGatewaysLoading(false);
+    }
+  }, []);
+
+  const handleSaveGateways = async () => {
+    try {
+      setGatewaysSaving(true);
+      setGatewaysSuccessMsg(null);
+      const res = await authFetch(`${API_URL}/admin/settings/gateways`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gateways),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setGateways(updated);
+        setGatewaysSuccessMsg('Notification Gateways successfully saved and updated!');
+        setTimeout(() => setGatewaysSuccessMsg(null), 5000);
+      } else {
+        alert('Failed to save gateway settings');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error saving gateway settings');
+    } finally {
+      setGatewaysSaving(false);
+    }
+  };
+
+  const handleTestChannel = async (channel: 'TELEGRAM' | 'EMAIL' | 'WHATSAPP' | 'SMS', recipient: string) => {
+    if (!recipient.trim()) {
+      alert('Please enter a recipient target to send the test alert.');
+      return;
+    }
+    try {
+      setTestingChannel(channel);
+      setTestResult(null);
+      const res = await authFetch(`${API_URL}/admin/settings/gateways/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel,
+          recipient: recipient.trim(),
+          configOverride: gateways,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestResult({ channel, message: data.message });
+      } else {
+        setTestResult({ channel, message: data?.message || 'Test delivery failed', isError: true });
+      }
+    } catch (e: any) {
+      setTestResult({ channel, message: e?.message || 'Network error during test', isError: true });
+    } finally {
+      setTestingChannel(null);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -212,7 +351,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50 self-start shadow-inner">
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50 self-start shadow-inner flex-wrap gap-1">
           <button
             onClick={() => setActiveTab('SUBSCRIPTIONS')}
             className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative ${
@@ -232,6 +371,17 @@ export default function AdminDashboard() {
             }`}
           >
             Device Reports
+          </button>
+          <button
+            onClick={() => { setActiveTab('GATEWAYS'); fetchGateways(); }}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-1.5 ${
+              activeTab === 'GATEWAYS'
+                ? 'bg-white text-indigo-950 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+            Alert Gateways
           </button>
         </div>
       </div>
@@ -543,6 +693,595 @@ export default function AdminDashboard() {
                 </div>
               )}
             </GlassCard>
+          </motion.div>
+        )}
+
+        {activeTab === 'GATEWAYS' && (
+          <motion.div
+            key="gateways"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* Gateways Header & Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-slate-900">Alert Gateways & Telemetry Dispatchers</h2>
+                  <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    Live Triggers
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 max-w-2xl">
+                  Configure multi-channel security dispatchers. When an IMEI reported as stolen is searched in PhoneKoi, these enabled gateways will immediately notify the device owner.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={fetchGateways}
+                  disabled={gatewaysLoading}
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 transition-all"
+                  title="Reload settings"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${gatewaysLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <MotionButton
+                  onClick={handleSaveGateways}
+                  disabled={gatewaysSaving}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2"
+                >
+                  {gatewaysSaving ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  Save All Changes
+                </MotionButton>
+              </div>
+            </div>
+
+            {/* Notification Banner */}
+            {gatewaysSuccessMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 shadow-sm"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                {gatewaysSuccessMsg}
+              </motion.div>
+            )}
+
+            {testResult && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-2 shadow-sm ${
+                  testResult.isError
+                    ? 'bg-red-50 border border-red-200 text-red-800'
+                    : 'bg-indigo-50 border border-indigo-200 text-indigo-900'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {testResult.isError ? (
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                  )}
+                  <span>
+                    <strong>[{testResult.channel}]</strong> {testResult.message}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setTestResult(null)}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            )}
+
+            {/* 4 Gateway Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* 1. Telegram Bot Card */}
+              <GlassCard className="p-6 space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shadow-sm">
+                      <Send className="w-5 h-5 -rotate-12 translate-x-0.5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900">Telegram Bot Alert</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          100% Free
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">Instant push alerts via Telegram Bot (Unlimited & Zero Cost)</p>
+                    </div>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={gateways.telegram.enabled}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          telegram: { ...gateways.telegram, enabled: e.target.checked },
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                  </label>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                      Telegram Bot Token
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                      value={gateways.telegram.botToken}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          telegram: { ...gateways.telegram, botToken: e.target.value },
+                        })
+                      }
+                      className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Obtain from <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-sky-600 underline">@BotFather</a> on Telegram in 30 seconds.
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Bot Username
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="@PhoneKoiAlertBot"
+                        value={gateways.telegram.botUsername}
+                        onChange={(e) =>
+                          setGateways({
+                            ...gateways,
+                            telegram: { ...gateways.telegram, botUsername: e.target.value },
+                          })
+                        }
+                        className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Admin Broadcast Chat ID (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. -100123456789 or user ID"
+                        value={gateways.telegram.adminChatId || ''}
+                        onChange={(e) =>
+                          setGateways({
+                            ...gateways,
+                            telegram: { ...gateways.telegram, adminChatId: e.target.value },
+                          })
+                        }
+                        className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-lg bg-sky-50/80 border border-sky-200/60 text-[10px] text-sky-800 leading-relaxed flex items-center justify-between gap-2">
+                    <span>
+                      💬 <strong>First-Time Requirement:</strong> Open{' '}
+                      <a
+                        href={`https://t.me/${gateways.telegram.botUsername || 'PhoneKoiAlertBot'}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold underline"
+                      >
+                        @{gateways.telegram.botUsername || 'PhoneKoiAlertBot'}
+                      </a>{' '}
+                      and click <strong>Start (/start)</strong> so Telegram gives the bot permission to message you.
+                    </span>
+                    <a
+                      href={`https://t.me/${gateways.telegram.botUsername || 'PhoneKoiAlertBot'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2 py-1 rounded bg-sky-600 text-white font-bold text-[9px] shrink-0 hover:bg-sky-700"
+                    >
+                      Open Bot ↗
+                    </a>
+                  </div>
+                </div>
+
+                {/* Test Channel Form */}
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter Chat ID to test..."
+                    value={testInputs.telegramChatId}
+                    onChange={(e) => setTestInputs({ ...testInputs, telegramChatId: e.target.value })}
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                  <button
+                    onClick={() => handleTestChannel('TELEGRAM', testInputs.telegramChatId || gateways.telegram.adminChatId || '')}
+                    disabled={testingChannel === 'TELEGRAM'}
+                    className="px-3 py-2 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                  >
+                    {testingChannel === 'TELEGRAM' ? (
+                      <div className="w-3 h-3 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
+                    Test Alert
+                  </button>
+                </div>
+              </GlassCard>
+
+              {/* 2. Resend Email Gateway Card */}
+              <GlassCard className="p-6 space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900">Email Gateway (Resend)</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                          3,000 Free / Mo
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">Delivers HTML security alerts directly to the device owner's email</p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={gateways.email.enabled}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          email: { ...gateways.email, enabled: e.target.checked },
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                      Resend API Key
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="re_123456789_abcdef..."
+                      value={gateways.email.resendApiKey || ''}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          email: { ...gateways.email, resendApiKey: e.target.value },
+                        })
+                      }
+                      className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Free developer account at <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-indigo-600 underline">resend.com</a> (100 emails/day completely free).
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                        From / Sender Address
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGateways({
+                            ...gateways,
+                            email: { ...gateways.email, fromEmail: 'PhoneKoi Alerts <onboarding@resend.dev>' },
+                          })
+                        }
+                        className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 underline"
+                      >
+                        Use Test Address (onboarding@resend.dev)
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="PhoneKoi Alerts <onboarding@resend.dev>"
+                      value={gateways.email.fromEmail || ''}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          email: { ...gateways.email, fromEmail: e.target.value },
+                        })
+                      }
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
+                    />
+                    <div className="mt-1.5 p-2 rounded-lg bg-amber-50/80 border border-amber-200/60 text-[10px] text-amber-800 leading-relaxed">
+                      ⚠️ <strong>Domain Notice:</strong> Resend rejects <code>alerts@phonekoi.com</code> until the domain is verified at <a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="underline font-bold">resend.com/domains</a>. For instant testing, use <code>PhoneKoi Alerts &lt;onboarding@resend.dev&gt;</code> and send to your Resend account email.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test Channel Form */}
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <input
+                    type="email"
+                    placeholder="Enter email to test alert..."
+                    value={testInputs.emailAddress}
+                    onChange={(e) => setTestInputs({ ...testInputs, emailAddress: e.target.value })}
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <button
+                    onClick={() => handleTestChannel('EMAIL', testInputs.emailAddress)}
+                    disabled={testingChannel === 'EMAIL'}
+                    className="px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                  >
+                    {testingChannel === 'EMAIL' ? (
+                      <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Mail className="w-3 h-3" />
+                    )}
+                    Test Email
+                  </button>
+                </div>
+              </GlassCard>
+
+              {/* 3. WhatsApp Gateway Card */}
+              <GlassCard className="p-6 space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900">WhatsApp Alert Gateway</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          {gateways.whatsapp.enabled ? 'Active' : 'Standby'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">Automated WhatsApp messages sent to device owner upon search</p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={gateways.whatsapp.enabled}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          whatsapp: { ...gateways.whatsapp, enabled: e.target.checked },
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Provider
+                      </label>
+                      <select
+                        value={gateways.whatsapp.provider}
+                        onChange={(e) =>
+                          setGateways({
+                            ...gateways,
+                            whatsapp: { ...gateways.whatsapp, provider: e.target.value as any },
+                          })
+                        }
+                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none"
+                      >
+                        <option value="ULTRAMSG">UltraMsg (Instance API)</option>
+                        <option value="GREENAPI">Green API</option>
+                        <option value="TWILIO">Twilio WhatsApp</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Instance ID / Account SID
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. instance12345"
+                        value={gateways.whatsapp.instanceId || ''}
+                        onChange={(e) =>
+                          setGateways({
+                            ...gateways,
+                            whatsapp: { ...gateways.whatsapp, instanceId: e.target.value },
+                          })
+                        }
+                        className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                      Token / API Key
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. token_secret_key"
+                      value={gateways.whatsapp.token || ''}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          whatsapp: { ...gateways.whatsapp, token: e.target.value },
+                        })
+                      }
+                      className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Test Channel Form */}
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter phone to test (e.g. 017xxxxxxxx)..."
+                    value={testInputs.whatsappNumber}
+                    onChange={(e) => setTestInputs({ ...testInputs, whatsappNumber: e.target.value })}
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <button
+                    onClick={() => handleTestChannel('WHATSAPP', testInputs.whatsappNumber)}
+                    disabled={testingChannel === 'WHATSAPP'}
+                    className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                  >
+                    {testingChannel === 'WHATSAPP' ? (
+                      <div className="w-3 h-3 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <MessageSquare className="w-3 h-3" />
+                    )}
+                    Test WhatsApp
+                  </button>
+                </div>
+              </GlassCard>
+
+              {/* 4. Emergency SMS Gateway Card */}
+              <GlassCard className="p-6 space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
+                      <PhoneCall className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900">Emergency SMS Gateway</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          {gateways.sms.enabled ? 'Active' : 'Standby'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">BD Telco masking SMS alerts to owner upon unauthorized detection</p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={gateways.sms.enabled}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          sms: { ...gateways.sms, enabled: e.target.checked },
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                  </label>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        SMS Provider
+                      </label>
+                      <select
+                        value={gateways.sms.provider}
+                        onChange={(e) =>
+                          setGateways({
+                            ...gateways,
+                            sms: { ...gateways.sms, provider: e.target.value as any },
+                          })
+                        }
+                        className="w-full text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none"
+                      >
+                        <option value="GREENWEB">Greenweb BD</option>
+                        <option value="BULKSMS_BD">BulkSMS BD</option>
+                        <option value="SSL_WIRELESS">SSL Wireless</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Sender ID / Masking
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. PhoneKoi or Non-Masking"
+                        value={gateways.sms.senderId || ''}
+                        onChange={(e) =>
+                          setGateways({
+                            ...gateways,
+                            sms: { ...gateways.sms, senderId: e.target.value },
+                          })
+                        }
+                        className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                      API Key / Secret Token
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. gw_token_key..."
+                      value={gateways.sms.apiKey || ''}
+                      onChange={(e) =>
+                        setGateways({
+                          ...gateways,
+                          sms: { ...gateways.sms, apiKey: e.target.value },
+                        })
+                      }
+                      className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Test Channel Form */}
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter BD phone (e.g. 018xxxxxxxx)..."
+                    value={testInputs.smsNumber}
+                    onChange={(e) => setTestInputs({ ...testInputs, smsNumber: e.target.value })}
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                  <button
+                    onClick={() => handleTestChannel('SMS', testInputs.smsNumber)}
+                    disabled={testingChannel === 'SMS'}
+                    className="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                  >
+                    {testingChannel === 'SMS' ? (
+                      <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <PhoneCall className="w-3 h-3" />
+                    )}
+                    Test SMS
+                  </button>
+                </div>
+              </GlassCard>
+
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

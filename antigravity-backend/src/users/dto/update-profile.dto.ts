@@ -27,6 +27,10 @@ export class UpdateProfileDto {
   address!: string;
 
   @IsString()
+  @IsOptional()
+  telegramChatId?: string;
+
+  @IsString()
   @IsNotEmpty()
   avatar!: string;
 }

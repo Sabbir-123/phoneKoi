@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import * as geoip from 'geoip-lite';
+import { AlertDispatcherService } from '../notifications/alert-dispatcher.service';
 
 export interface IMEISearchEvent {
   id: string;
@@ -26,15 +28,21 @@ export interface IMEISearchEvent {
   policeGdNumber?: string;
   isRead: boolean;
   notifications: Array<{
-    channel: 'IN_APP' | 'EMAIL' | 'WHATSAPP' | 'SMS';
-    status: 'DELIVERED' | 'FAILED' | 'SENT';
+    channel: string;
+    status: string;
+    detail?: string;
     deliveredAt: string;
   }>;
 }
 
 @Injectable()
 export class SearchEventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(SearchEventsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly alertDispatcherService: AlertDispatcherService,
+  ) {}
 
   private maskImei(imei: string): string {
     if (!imei) return 'Unknown IMEI';
@@ -133,20 +141,46 @@ export class SearchEventsService {
     const searchResult = activeReport.reportType === 'LOST' ? 'LOST' : 'STOLEN';
     const ownerEmail = activeReport.userEmail || activeReport.user?.email || '';
 
-    const notifications = [
+    // Dispatch real-time security alerts across configured channels (Telegram, Email, WhatsApp, SMS)
+    let notifications: any[] = [
       {
         channel: 'IN_APP',
         status: 'DELIVERED',
         deliveredAt: now.toISOString(),
       },
-      { channel: 'EMAIL', status: 'SENT', deliveredAt: now.toISOString() },
-      {
-        channel: 'WHATSAPP',
-        status: 'DELIVERED',
-        deliveredAt: now.toISOString(),
-      },
-      { channel: 'SMS', status: 'DELIVERED', deliveredAt: now.toISOString() },
     ];
+
+    try {
+      const dispatched = await this.alertDispatcherService.dispatchSearchAlert({
+        imei,
+        maskedImei: this.maskImei(imei),
+        deviceName: activeReport.deviceName || 'Mobile Device',
+        deviceBrand:
+          activeReport.brand ||
+          activeReport.deviceName?.split(' ')[0] ||
+          'Unknown Brand',
+        deviceModel:
+          activeReport.model || activeReport.deviceName || 'Mobile Device',
+        searchResult,
+        timestamp: now,
+        ip: clientIp,
+        latitude,
+        longitude,
+        accuracyRadius,
+        locationName,
+        policeGdNumber: activeReport.policeGdNumber || '',
+        ownerEmail,
+        ownerPhone: activeReport.contactNumber || activeReport.user?.phone || undefined,
+        ownerWhatsapp: activeReport.user?.whatsapp || activeReport.contactNumber || undefined,
+        ownerTelegramChatId: activeReport.user?.telegramChatId || undefined,
+        notificationPreferences: activeReport.notificationPreferences || [],
+      });
+      if (dispatched && dispatched.length > 0) {
+        notifications = dispatched;
+      }
+    } catch (dispatchErr: any) {
+      this.logger.error(`Alert dispatching error: ${dispatchErr?.message || dispatchErr}`);
+    }
 
     const event = await this.prisma.searchEvent.create({
       data: {

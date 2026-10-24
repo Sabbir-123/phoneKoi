@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SupabaseService } from '../auth/supabase.service';
+import { AlertDispatcherService } from '../notifications/alert-dispatcher.service';
 import { PLAN_PRICING_CATALOG } from './dto/subscription-request.dto';
 
 export function normalizePhoneNumber(phone: string): string {
@@ -19,6 +20,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabaseService: SupabaseService,
+    private readonly alertDispatcher: AlertDispatcherService,
   ) {}
 
   invalidateProfileCache(email?: string) {
@@ -55,7 +57,7 @@ export class UsersService {
 
   async updateUserProfile(
     email: string,
-    dto: { phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string },
+    dto: { phone: string; whatsapp?: string; address?: string; displayName?: string; avatar?: string; telegramChatId?: string },
   ) {
     if (!email) {
       throw new BadRequestException('Email is required');
@@ -114,6 +116,7 @@ export class UsersService {
         phone: dto.phone.trim(),
         normalizedPhone,
         whatsapp: (dto.whatsapp || dto.phone).trim(),
+        telegramChatId: dto.telegramChatId ? dto.telegramChatId.trim() : undefined,
         address: dto.address.trim(),
         avatarUrl,
         isProfileComplete: true,
@@ -125,6 +128,7 @@ export class UsersService {
         phone: dto.phone.trim(),
         normalizedPhone,
         whatsapp: (dto.whatsapp || dto.phone).trim(),
+        telegramChatId: dto.telegramChatId ? dto.telegramChatId.trim() : undefined,
         address: dto.address.trim(),
         avatarUrl,
         isProfileComplete: true,
@@ -432,4 +436,40 @@ export class UsersService {
 
     return alerts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
   }
+
+  async linkTelegramChatId(email: string, chatId: string) {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanChatId = chatId ? chatId.trim() : null;
+    const user = await this.prisma.user.update({
+      where: { email: cleanEmail },
+      data: { telegramChatId: cleanChatId },
+    });
+    this.invalidateProfileCache(cleanEmail);
+    return { success: true, telegramChatId: user.telegramChatId };
+  }
+
+  async testUserTelegram(email: string) {
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+      select: { id: true, email: true, displayName: true, telegramChatId: true },
+    });
+    if (!user || !user.telegramChatId) {
+      throw new BadRequestException('No Telegram account is linked. Please link your Telegram first.');
+    }
+    const config = await this.alertDispatcher.getGatewaysConfig();
+    const botToken = config.telegram?.botToken;
+    if (!botToken || botToken.includes('...')) {
+      throw new BadRequestException('Telegram Bot gateway is not configured by system administrator.');
+    }
+    await this.alertDispatcher.sendTelegramMessage(
+      botToken,
+      user.telegramChatId,
+      `🚨 *PhoneKoi Security Test Alert!*\n\n` +
+      `Hello *${user.displayName || user.email}*! Your Telegram push alert connection is active and working.\n\n` +
+      `Whenever an IMEI query is performed for your lost/stolen device, real-time GPS telemetry will be delivered directly here.`
+    );
+    return { success: true, message: `Test security alert delivered to Telegram Chat ID: ${user.telegramChatId}` };
+  }
 }
+

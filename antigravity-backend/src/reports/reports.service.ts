@@ -102,37 +102,21 @@ export class ReportsService {
           'You have reached your free device reporting limit. Please upgrade your plan or request a top-up in the quota management page.',
         );
       }
-
-      if (userRecord.reportsLeft !== undefined && userRecord.reportsLeft > 0) {
-        await this.prisma.user.update({
-          where: { id: userRecord.id },
-          data: { reportsLeft: { decrement: 1 } },
-        });
-      }
     }
 
-    // 3. Upsert Device in Database
-    const deviceStatus = data.extractedFromGd ? DeviceStatus.STOLEN : DeviceStatus.SUSPICIOUS;
-    await this.prisma.device.upsert({
-      where: { imei: data.imei },
-      update: {
-        status: deviceStatus,
-        riskScore: data.extractedFromGd ? 98 : 65,
-        riskLevel: data.extractedFromGd ? RiskLevel.HIGH : RiskLevel.MEDIUM,
-        brand: data.brand || (data.deviceName ? data.deviceName.split(' ')[0] : undefined),
-        model: data.model || data.deviceName || undefined,
-        deviceName: data.deviceName || undefined,
-      },
-      create: {
-        imei: data.imei,
-        status: deviceStatus,
-        riskScore: data.extractedFromGd ? 98 : 65,
-        riskLevel: data.extractedFromGd ? RiskLevel.HIGH : RiskLevel.MEDIUM,
-        brand: data.brand || (data.deviceName ? data.deviceName.split(' ')[0] : undefined),
-        model: data.model || data.deviceName || undefined,
-        deviceName: data.deviceName || undefined,
-      },
-    });
+    // 3. Normalize notification preferences
+    let notificationPreferences: string[] = ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'];
+    if (Array.isArray(data.notificationPreferences)) {
+      notificationPreferences = data.notificationPreferences.map((p: any) => String(p).toUpperCase());
+    } else if (data.notificationPreferences && typeof data.notificationPreferences === 'object') {
+      const prefs: string[] = [];
+      const np = data.notificationPreferences as Record<string, any>;
+      if (np.inApp) prefs.push('IN_APP');
+      if (np.whatsapp) prefs.push('WHATSAPP');
+      if (np.email) prefs.push('EMAIL');
+      if (np.sms) prefs.push('SMS');
+      notificationPreferences = prefs.length > 0 ? prefs : ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'];
+    }
 
     // 4. Secure File Storage: Upload base64 GD to Supabase Storage if provided
     let gdStoragePath: string | null = null;
@@ -151,30 +135,69 @@ export class ReportsService {
       }
     }
 
-    // 5. Persist to PostgreSQL Report table
-    const savedReport = await this.prisma.report.create({
-      data: {
-        imei: data.imei,
-        reporterIp: data.ip,
-        userId: finalUserId,
-        userEmail: data.email || userRecord?.email || null,
-        location: data.location || '',
-        description: data.description || '',
-        contactNumber: data.contactNumber || '',
-        deviceName: data.deviceName || '',
-        brand: data.brand || (data.deviceName ? data.deviceName.split(' ')[0] : 'Unknown Brand'),
-        model: data.model || data.deviceName || 'Mobile Device',
-        reportType: data.reportType || 'STOLEN',
-        lossDate: data.lossDate ? new Date(data.lossDate) : new Date(),
-        policeGdNumber: data.policeGdNumber || '',
-        policeStation: data.policeStation || '',
-        notificationPreferences: data.notificationPreferences || ['IN_APP', 'EMAIL', 'WHATSAPP', 'SMS'],
-        extractedFromGd: Boolean(data.extractedFromGd),
-        aiExtractionConfidence: data.aiExtractionConfidence || 0.85,
-        status: 'PENDING',
-        trustWeight: data.trustWeight || (data.extractedFromGd ? 5 : 1),
-        gdStoragePath,
-      },
+    // 5. Atomic persistence: Upsert device, create report, and decrement quota only on success
+    const deviceStatus = data.extractedFromGd ? DeviceStatus.STOLEN : DeviceStatus.SUSPICIOUS;
+
+    const savedReport = await this.prisma.$transaction(async (tx: any) => {
+      // Upsert device record
+      await tx.device.upsert({
+        where: { imei: data.imei },
+        update: {
+          status: deviceStatus,
+          riskScore: data.extractedFromGd ? 98 : 65,
+          riskLevel: data.extractedFromGd ? RiskLevel.HIGH : RiskLevel.MEDIUM,
+          brand: data.brand || (data.deviceName ? data.deviceName.split(' ')[0] : undefined),
+          model: data.model || data.deviceName || undefined,
+          deviceName: data.deviceName || undefined,
+        },
+        create: {
+          imei: data.imei,
+          status: deviceStatus,
+          riskScore: data.extractedFromGd ? 98 : 65,
+          riskLevel: data.extractedFromGd ? RiskLevel.HIGH : RiskLevel.MEDIUM,
+          brand: data.brand || (data.deviceName ? data.deviceName.split(' ')[0] : undefined),
+          model: data.model || data.deviceName || undefined,
+          deviceName: data.deviceName || undefined,
+        },
+      });
+
+      // Persist to PostgreSQL Report table
+      const report = await tx.report.create({
+        data: {
+          imei: data.imei,
+          reporterIp: data.ip,
+          userId: finalUserId,
+          userEmail: data.email || userRecord?.email || null,
+          location: data.location || '',
+          description: data.description || '',
+          contactNumber: data.contactNumber || '',
+          deviceName: data.deviceName || '',
+          brand: data.brand || (data.deviceName ? data.deviceName.split(' ')[0] : 'Unknown Brand'),
+          model: data.model || data.deviceName || 'Mobile Device',
+          reportType: data.reportType || 'STOLEN',
+          lossDate: data.lossDate ? new Date(data.lossDate) : new Date(),
+          policeGdNumber: data.policeGdNumber || '',
+          policeStation: data.policeStation || '',
+          notificationPreferences,
+          extractedFromGd: Boolean(data.extractedFromGd),
+          aiExtractionConfidence: data.aiExtractionConfidence || 0.85,
+          status: 'PENDING',
+          trustWeight: data.trustWeight || (data.extractedFromGd ? 5 : 1),
+          gdStoragePath,
+        },
+      });
+
+      // ONLY decrement user quota once report is successfully persisted
+      if (userRecord && !isAdmin) {
+        if (userRecord.reportsLeft !== undefined && userRecord.reportsLeft > 0) {
+          await tx.user.update({
+            where: { id: userRecord.id },
+            data: { reportsLeft: { decrement: 1 } },
+          });
+        }
+      }
+
+      return report;
     });
 
     return savedReport;

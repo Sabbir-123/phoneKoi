@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AlertDispatcherService } from '../notifications/alert-dispatcher.service';
 
 @Injectable()
 export class AdminService {
@@ -9,6 +10,7 @@ export class AdminService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly alertDispatcherService: AlertDispatcherService,
   ) {}
 
   invalidateCaches() {
@@ -248,5 +250,50 @@ export class AdminService {
       return updatedReport;
     });
   }
+
+  async getGatewaySettings() {
+    return this.alertDispatcherService.getMaskedConfigForAdmin();
+  }
+
+  async updateGatewaySettings(body: any) {
+    const existing = await this.alertDispatcherService.getGatewaysConfig();
+
+    const merged = {
+      telegram: {
+        enabled: Boolean(body.telegram?.enabled),
+        botToken: body.telegram?.botToken && !body.telegram.botToken.includes('...') ? body.telegram.botToken : existing.telegram.botToken,
+        botUsername: body.telegram?.botUsername || existing.telegram.botUsername || 'PhoneKoiAlertBot',
+        adminChatId: body.telegram?.adminChatId !== undefined ? body.telegram.adminChatId : existing.telegram.adminChatId,
+      },
+      email: {
+        enabled: Boolean(body.email?.enabled),
+        provider: body.email?.provider || existing.email.provider || 'RESEND',
+        resendApiKey: body.email?.resendApiKey && !body.email.resendApiKey.includes('...') ? body.email.resendApiKey : existing.email.resendApiKey,
+        fromEmail: body.email?.fromEmail || existing.email.fromEmail || 'PhoneKoi Alerts <alerts@phonekoi.com>',
+      },
+      whatsapp: {
+        enabled: Boolean(body.whatsapp?.enabled),
+        provider: body.whatsapp?.provider || existing.whatsapp.provider || 'ULTRAMSG',
+        instanceId: body.whatsapp?.instanceId !== undefined ? body.whatsapp.instanceId : existing.whatsapp.instanceId,
+        token: body.whatsapp?.token && !body.whatsapp.token.includes('...') ? body.whatsapp.token : existing.whatsapp.token,
+        senderNumber: body.whatsapp?.senderNumber !== undefined ? body.whatsapp.senderNumber : existing.whatsapp.senderNumber,
+      },
+      sms: {
+        enabled: Boolean(body.sms?.enabled),
+        provider: body.sms?.provider || existing.sms.provider || 'GREENWEB',
+        apiKey: body.sms?.apiKey && !body.sms.apiKey.includes('...') ? body.sms.apiKey : existing.sms.apiKey,
+        senderId: body.sms?.senderId !== undefined ? body.sms.senderId : existing.sms.senderId,
+        clientSecret: body.sms?.clientSecret && !body.sms.clientSecret.includes('...') ? body.sms.clientSecret : existing.sms.clientSecret,
+      },
+    };
+
+    await this.alertDispatcherService.updateGatewaysConfig(merged);
+    return this.alertDispatcherService.getMaskedConfigForAdmin();
+  }
+
+  async testGatewayChannel(channel: 'TELEGRAM' | 'EMAIL' | 'WHATSAPP' | 'SMS', recipient: string, configOverride?: any) {
+    return this.alertDispatcherService.testChannel(channel, recipient, configOverride);
+  }
 }
+
 
