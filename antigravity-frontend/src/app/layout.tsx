@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import PageWrapper from "@/components/layout/PageWrapper";
+import InteractiveBackground from "@/components/layout/InteractiveBackground";
 import QueryProvider from "@/components/providers/QueryProvider";
 import { cn } from "@/lib/utils";
 
@@ -296,7 +297,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col text-indigo-950`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col text-indigo-950 relative`}>
+        <InteractiveBackground />
         <QueryProvider>
           <Navbar />
           <main className="relative flex flex-col items-center justify-start flex-1 w-full">
