@@ -7,7 +7,8 @@ import LanguageModal from '@/components/dashboard/LanguageModal';
 import PromoModal from '@/components/dashboard/PromoModal';
 import CompleteProfileModal from '@/components/dashboard/CompleteProfileModal';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { Menu } from 'lucide-react';
+import { useTranslation } from '@/lib/useTranslation';
+import { Menu, Globe } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -16,6 +17,7 @@ import { createClient } from '@/utils/supabase/client';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { toggleSidebar, fetchProfile, profile } = useDashboardStore();
+  const { t, isBn, toggleLanguage } = useTranslation();
 
   useEffect(() => {
     fetchProfile(true);
@@ -25,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isPro = Boolean(profile?.isPro || (profile?.plan && profile.plan.includes('Pro')));
   const isProMember = isPro || plan === 'PRO' || (typeof plan === 'string' && plan.includes('Pro'));
 
-  const displayName = profile?.displayName || profile?.email?.split('@')[0] || 'My Account';
+  const displayName = profile?.displayName || profile?.email?.split('@')[0] || (isBn ? 'আমার অ্যাকাউন্ট' : 'My Account');
   const avatarUrl = profile?.avatar || profile?.avatarUrl || null;
   const resolvedAvatar = avatarUrl 
     ? (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('data:image/'))
@@ -55,7 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button 
                 onClick={toggleSidebar}
-                className="lg:hidden p-1.5 sm:p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-600 shrink-0"
+                className="lg:hidden p-1.5 sm:p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-600 shrink-0 cursor-pointer"
                 aria-label="Toggle navigation menu"
               >
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -76,12 +78,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     height={26}
                     className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0"
                   />
-                  <span className="truncate">Phone Koi <span className="text-indigo-600 font-extrabold">Dashboard</span></span>
+                  <span className="truncate">
+                    PhoneKoi <span className="text-indigo-600 font-extrabold">{isBn ? 'ড্যাশবোর্ড' : 'Dashboard'}</span>
+                  </span>
                 </h2>
               </div>
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Quick Language Toggle Pill */}
+              <button
+                type="button"
+                onClick={toggleLanguage}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all duration-200 cursor-pointer"
+                title={isBn ? 'Switch to English' : 'বাংলায় দেখুন'}
+              >
+                <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>{isBn ? 'EN' : 'বাংলা'}</span>
+              </button>
+
               <div className={`h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-full flex items-center justify-center border transition-all ${
                 isProMember 
                   ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200/80 shadow-xs' 
@@ -92,18 +107,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }`}>
                   {plan === '6 Months Pro' ? (
                     <>
-                      <span>6 Months Pro</span>
-                      <span className="hidden sm:inline"> Member</span>
+                      <span>{isBn ? '৬ মাসের প্রো' : '6 Months Pro'}</span>
+                      <span className="hidden sm:inline"> {isBn ? 'মেম্বার' : 'Member'}</span>
                     </>
                   ) : isProMember ? (
                     <>
-                      <span>Pro</span>
-                      <span className="hidden sm:inline"> Member</span>
+                      <span>{isBn ? 'প্রো' : 'Pro'}</span>
+                      <span className="hidden sm:inline"> {isBn ? 'মেম্বার' : 'Member'}</span>
                     </>
                   ) : (
                     <>
-                      <span>Basic</span>
-                      <span className="hidden sm:inline"> Member</span>
+                      <span>{isBn ? 'বেসিক' : 'Basic'}</span>
+                      <span className="hidden sm:inline"> {isBn ? 'মেম্বার' : 'Member'}</span>
                     </>
                   )}
                 </span>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
+import { useTranslation } from '@/lib/useTranslation';
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
@@ -12,7 +13,7 @@ import { createClient } from '@/utils/supabase/client';
 import { InteractiveLoader } from '@/components/ui/InteractiveLoader';
 
 export default function HistoryPage() {
-  const { language } = useDashboardStore();
+  const { t, isBn } = useTranslation();
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,10 +44,10 @@ export default function HistoryPage() {
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
         <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight flex items-center gap-3">
           <History className="w-8 h-8 text-indigo-600" />
-          {language === 'banglish' ? 'IMEI Check History' : 'IMEI Check History'}
+          {isBn ? 'IMEI যাচাইয়ের ইতিহাস' : 'IMEI Check History'}
         </h1>
         <p className="text-slate-500 mt-2 font-medium">
-          {language === 'banglish' ? 'Apnar purber shob IMEI search er result ekhane paben.' : 'Review your past device verifications and risk scores.'}
+          {isBn ? 'আপনার পূর্বের সকল ডিভাইস যাচাই ও রিস্ক স্কোরের তালিকা।' : 'Review your past device verifications and risk scores.'}
         </p>
       </motion.div>
 
@@ -55,8 +56,8 @@ export default function HistoryPage() {
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
             <InteractiveLoader
-              title="Querying Search Ledger Audit Logs"
-              subtitle="Verifying your previous IMEI security inquiries"
+              title={isBn ? 'অনুসন্ধানের লগ লোড হচ্ছে...' : 'Querying Search Ledger Audit Logs'}
+              subtitle={isBn ? 'আপনার পূর্বের আইএমইআই সিকিউরিটি হিস্টোরি যাচাই হচ্ছে' : 'Verifying your previous IMEI security inquiries'}
               skeletonType="table"
             />
           ) : history.length === 0 ? (
@@ -65,17 +66,17 @@ export default function HistoryPage() {
                 <History className="w-10 h-10 text-indigo-600 animate-pulse" />
               </div>
               <h3 className="text-xl font-bold text-indigo-950 mb-2">
-                {language === 'banglish' ? 'Kono Search History Nai' : 'No Search History'}
+                {isBn ? 'কোনো সার্চ ইতিহাস পাওয়া যায়নি' : 'No Search History'}
               </h3>
               <p className="text-slate-500 max-w-md mb-6 text-sm font-semibold">
-                {language === 'banglish' 
-                  ? 'Apnar ekhono kono IMEI search history nai. Ekta device verify korte nicher button e click korun.' 
+                {isBn 
+                  ? 'আপনি এখনও কোনো ডিভাইসের IMEI চেক করেননি। নিচে ক্লিক করে নতুন ফোন যাচাই শুরু করুন।' 
                   : 'You have not checked any device IMEIs yet. Start verifying devices to keep track of your search logs here.'}
               </p>
               <Link href="/check">
-                <MotionButton variant="primary" className="shadow-md">
+                <MotionButton variant="primary" className="shadow-md cursor-pointer">
                   <Search className="w-5 h-5" />
-                  {language === 'banglish' ? 'IMEI Check Korun' : 'Check IMEI Now'}
+                  {isBn ? 'এখনই IMEI যাচাই করুন' : 'Check IMEI Now'}
                 </MotionButton>
               </Link>
             </GlassCard>
@@ -104,7 +105,9 @@ export default function HistoryPage() {
 
                   <div className="flex items-center gap-4 sm:gap-8 w-full md:w-auto justify-between md:justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                     <div className="flex flex-col items-start md:items-end">
-                      <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wider font-bold">Risk Score</div>
+                      <div className="text-[10px] text-slate-400 mb-0.5 uppercase tracking-wider font-bold">
+                        {isBn ? 'রিস্ক স্কোর' : 'Risk Score'}
+                      </div>
                       <div className={`text-lg font-extrabold ${
                         item.score > 80 ? 'text-red-600' :
                         item.score > 30 ? 'text-amber-600' : 'text-emerald-600'
@@ -114,9 +117,9 @@ export default function HistoryPage() {
                     </div>
                     
                     <Link href={`/result/${item.imei}`}>
-                      <MotionButton variant="secondary" className="px-4 py-2 border-slate-100 text-indigo-600 shadow-none hover:bg-slate-50 font-bold text-xs gap-1.5">
+                      <MotionButton variant="secondary" className="px-4 py-2 border-slate-100 text-indigo-600 shadow-none hover:bg-slate-50 font-bold text-xs gap-1.5 cursor-pointer">
                         <Search className="w-4 h-4" />
-                        {language === 'banglish' ? 'Abar Check Korun' : 'Search Again'}
+                        {isBn ? 'পুনরায় দেখুন' : 'Search Again'}
                       </MotionButton>
                     </Link>
                   </div>
@@ -139,7 +142,7 @@ export default function HistoryPage() {
                   <ShieldCheck className="w-5 h-5 text-indigo-600 animate-pulse" />
                 </div>
                 <h3 className="font-bold text-indigo-950 text-base">
-                  Used Phone Checklist
+                  {isBn ? 'ব্যবহৃত ফোন কেনার চেকলিস্ট' : 'Used Phone Checklist'}
                 </h3>
               </div>
               
@@ -147,24 +150,36 @@ export default function HistoryPage() {
                 <div className="flex gap-3.5 items-start">
                   <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shrink-0 mt-0.5">1</div>
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-indigo-950">Check IMEI Structure</p>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">Use the Luhn validator to check format authenticity.</p>
+                    <p className="text-sm font-bold text-indigo-950">
+                      {isBn ? 'IMEI ফরম্যাট যাচাই করুন' : 'Check IMEI Structure'}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                      {isBn ? 'লুহন অ্যালগরিদম চেকসাম দিয়ে হার্ডওয়্যারের সত্যতা নিশ্চিত হন।' : 'Use the Luhn validator to check format authenticity.'}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex gap-3.5 items-start">
                   <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shrink-0 mt-0.5">2</div>
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-indigo-950">Check Stolen Status</p>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">Query Phone Koi database for theft flags before buying.</p>
+                    <p className="text-sm font-bold text-indigo-950">
+                      {isBn ? 'চুরি বা হারানোর রেকর্ড দেখুন' : 'Check Stolen Status'}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                      {isBn ? 'কেনার আগে ফোনকই ডেটাবেজে থানার জিডি সার্চ করুন।' : 'Query PhoneKoi database for theft flags before buying.'}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex gap-3.5 items-start">
                   <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shrink-0 mt-0.5">3</div>
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-indigo-950">Request Police GD Copy</p>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">If the seller claims a phone is second-hand, request evidence.</p>
+                    <p className="text-sm font-bold text-indigo-950">
+                      {isBn ? 'বক্স ও ক্যাশমেমো মিলিয়ে নিন' : 'Request Police GD Copy'}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                      {isBn ? 'বিক্রেতার দেওয়া তথ্যের সাথে ফোনের আসল হার্ডওয়্যার মিলিয়ে নিন।' : 'If the seller claims a phone is second-hand, request evidence.'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -173,7 +188,10 @@ export default function HistoryPage() {
                 <div className="p-3 bg-indigo-50/50 border border-indigo-100/50 rounded-2xl flex gap-2.5 items-start">
                   <HelpCircle className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                   <p className="text-[11px] font-semibold text-slate-500 leading-relaxed">
-                    Checks are encrypted and anonymous. Your searches are never shared with sellers.
+                    {isBn 
+                      ? 'সকল অনুসন্ধান সুরক্ষিত ও সম্পূর্ণ বেনামী। আপনার সার্চ রেকর্ড কখনো বিক্রেতাকে দেওয়া হয় না।'
+                      : 'Checks are encrypted and anonymous. Your searches are never shared with sellers.'
+                    }
                   </p>
                 </div>
               </div>

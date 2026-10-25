@@ -8,11 +8,13 @@ import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles, Phone, Mes
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useTranslation } from "@/lib/useTranslation";
 
 export default function ResultPage(props: { params: Promise<{ imei: string }> }) {
   const params = use(props.params);
   const searchParams = useSearchParams();
   const statusParam = searchParams.get("status") || "clean";
+  const { t, isBn } = useTranslation();
 
   const [score, setScore] = useState(0);
   const [backendData, setBackendData] = useState<any>(null);
@@ -122,7 +124,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         const locationSource = searchParams.get("locationSource") || "";
 
         const queryParams = new URLSearchParams({
-          lang: "english",
+          lang: isBn ? "bangla" : "english",
           email: email,
           ...(clientIp && { clientIp }),
           ...(clientLocation && { clientLocation }),
@@ -182,10 +184,10 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
       iconColor: "text-emerald-600",
       scoreColor: "text-emerald-600",
       icon: ShieldCheck,
-      title: "Device is Clean",
-      desc: "No theft reports or suspicious activities found. Safe to proceed.",
+      title: isBn ? "ডিভাইসটি নিরাপদ" : "Device is Clean",
+      desc: isBn ? "কোনো চুরির জিডি বা সন্দেহজনক কার্যকলাপ পাওয়া যায়নি।" : "No theft reports or suspicious activities found. Safe to proceed.",
       badge: "bg-emerald-100 text-emerald-700",
-      badgeText: "✓ VERIFIED CLEAN",
+      badgeText: isBn ? "✓ সম্পূর্ণ নিরাপদ (VERIFIED CLEAN)" : "✓ VERIFIED CLEAN",
     },
     suspicious: {
       cardBg: "bg-gradient-to-br from-amber-50 to-orange-50",
@@ -195,10 +197,10 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
       iconColor: "text-amber-600",
       scoreColor: "text-amber-600",
       icon: ShieldAlert,
-      title: "Suspicious Activity",
-      desc: "This device shows unusual patterns. Proceed with caution.",
+      title: isBn ? "সন্দেহজনক কার্যকলাপ" : "Suspicious Activity",
+      desc: isBn ? "এই ডিভাইসের তথ্যে অস্বাভাবিক অমিল দেখা গেছে। সতর্ক থাকুন।" : "This device shows unusual patterns. Proceed with caution.",
       badge: "bg-amber-100 text-amber-700",
-      badgeText: "⚠ CAUTION ADVISED",
+      badgeText: isBn ? "⚠ সতর্ক থাকুন (CAUTION ADVISED)" : "⚠ CAUTION ADVISED",
     },
     stolen: {
       cardBg: "bg-gradient-to-br from-red-50 to-rose-50",
@@ -208,10 +210,10 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
       iconColor: "text-red-600",
       scoreColor: "text-red-600",
       icon: AlertOctagon,
-      title: "Reported Stolen",
-      desc: "HIGH RISK: This device has been reported stolen. Do not purchase.",
+      title: isBn ? "চুরির জিডিভুক্ত ডিভাইস" : "Reported Stolen",
+      desc: isBn ? "মারাত্মক ঝুঁকি: এই ডিভাইসটি চুরির সাধারণ ডায়েরিভুক্ত (GD)। কোনোভাবেই ক্রয় করবেন না।" : "HIGH RISK: This device has been reported stolen. Do not purchase.",
       badge: "bg-red-100 text-red-700",
-      badgeText: "✗ DO NOT PURCHASE",
+      badgeText: isBn ? "✗ ক্রয় করা নিষিদ্ধ (DO NOT PURCHASE)" : "✗ DO NOT PURCHASE",
     },
   }[activeStatus];
 

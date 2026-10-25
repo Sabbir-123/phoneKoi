@@ -7,10 +7,12 @@ import { ShieldAlert, Send, Loader2, Info, ArrowRight, CheckCircle2, FileText, A
 import { useRouter } from "next/navigation";
 import GDUpload from "@/components/report/GDUpload";
 import { useDashboardStore } from "@/store/useDashboardStore";
+import { useTranslation } from "@/lib/useTranslation";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 export default function ReportPage() {
   const { profile, fetchProfile, language } = useDashboardStore();
+  const { t, isBn } = useTranslation();
   const [imei, setImei] = useState("");
   const [deviceName, setDeviceName] = useState("");
   const [description, setDescription] = useState("");
@@ -131,8 +133,8 @@ export default function ReportPage() {
         setGdUploaded(true);
         setExtractedFromGd(true);
         setErrorMessage(
-          language === 'banglish'
-            ? "GD copy processing ektu problem hoyese, kintu file successfully peyechi. Dayani niche manual details puron korun."
+          isBn
+            ? "জিডি কপি প্রক্রিয়াকরণে কিছুটা সমস্যা হয়েছে, তবে ফাইলটি সফলভাবে গ্রহণ করা হয়েছে। অনুগ্রহ করে নিচের তথ্যগুলো পূরণ করুন।"
             : "We encountered an issue processing the GD copy automatically, but your file is uploaded. Please fill in the details below manually."
         );
         return;
@@ -157,8 +159,8 @@ export default function ReportPage() {
       // If confidence is low or fields are empty, show a soft helper warning instead of a hard crash
       if (data.confidence < 0.3 || (!data.imei && !data.deviceName)) {
         setErrorMessage(
-          language === 'banglish'
-            ? "Information fully detect kora jay nai. Please manually fill the fields below."
+          isBn
+            ? "তথ্য স্বয়ংক্রিয়ভাবে শনাক্ত করা যায়নি। অনুগ্রহ করে নিচের ঘরগুলো পূরণ করুন।"
             : "Could not fully extract details automatically. Please fill in the fields below manually."
         );
       }
@@ -167,8 +169,8 @@ export default function ReportPage() {
       setGdUploaded(true);
       setExtractedFromGd(true);
       setErrorMessage(
-        language === 'banglish'
-          ? "Information fully detect kora jay nai. Please manually fill the fields below."
+        isBn
+          ? "তথ্য স্বয়ংক্রিয়ভাবে শনাক্ত করা যায়নি। অনুগ্রহ করে নিচের ঘরগুলো পূরণ করুন।"
           : "Could not fully extract details automatically. Please fill in the fields below manually."
       );
     } finally {
@@ -180,8 +182,8 @@ export default function ReportPage() {
     e.preventDefault();
     if (!gdUploaded) {
       alert(
-        language === 'banglish'
-          ? "Verification Police GD copy upload koro mandatory!"
+        isBn
+          ? "যাচাইয়ের জন্য থানার জিডি কপি আপলোড করা বাধ্যতামূলক!"
           : "Uploading a verification Police GD copy is mandatory!"
       );
       return;
@@ -238,12 +240,12 @@ export default function ReportPage() {
         const rawMsg = errorData?.message;
         const errString = Array.isArray(rawMsg)
           ? rawMsg.join('. ')
-          : (typeof rawMsg === 'string' ? rawMsg : (errorData?.error || (language === 'banglish' ? "Report submit kora jay ni. Please abar try korun." : "Submission failed. Please try again.")));
+          : (typeof rawMsg === 'string' ? rawMsg : (errorData?.error || (isBn ? "রিপোর্ট জমা দেওয়া সম্ভব হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন।" : "Submission failed. Please try again.")));
         alert(errString);
       }
     } catch (error) {
       console.error(error);
-      alert(language === 'banglish' ? "Report submit korte somossa hoyese. Abar chesta korun." : "Something went wrong during submission. Please try again.");
+      alert(isBn ? "রিপোর্ট জমা দেওয়ার সময় ত্রুটি হয়েছে। পুনরায় চেষ্টা করুন।" : "Something went wrong during submission. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -339,12 +341,10 @@ export default function ReportPage() {
           </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-indigo-950">
-          {language === 'banglish' ? 'Report Stolen Device' : 'Report Stolen Device'}
+          {t.reportPage.title}
         </h1>
         <p className="text-slate-500 text-base max-w-lg mx-auto font-medium">
-          {language === 'banglish' 
-            ? 'GD copy verification process er jonno upload kora mandatory. System will automatically verify and queue report for Admin review.'
-            : 'Uploading a Police GD copy is mandatory for verification. The system will automatically parse and queue the report for Admin review.'}
+          {t.reportPage.subtitle}
         </p>
       </motion.div>
 
@@ -366,11 +366,11 @@ export default function ReportPage() {
             <div>
               <h2 className="text-base font-bold text-indigo-950">
                 {gdUploaded 
-                  ? (language === 'banglish' ? 'GD Copy Uploaded' : 'GD Copy Uploaded') 
-                  : (language === 'banglish' ? 'Police GD Copy Upload Korun' : 'Upload Police GD Copy')}
+                  ? (isBn ? 'জিডি কপি আপলোড সম্পন্ন হয়েছে' : 'GD Copy Uploaded') 
+                  : (isBn ? 'থানার জিডি কপি আপলোড করুন' : 'Upload Police GD Copy')}
               </h2>
               <p className="text-xs text-slate-400 font-semibold">
-                {language === 'banglish' ? 'Verification copy upload koro mandatory' : 'Mandatory verification document'}
+                {isBn ? 'ভেরিফিকেশনের জন্য বাধ্যতামূলক ডকুমেন্ট' : 'Mandatory verification document'}
               </p>
             </div>
           </div>
@@ -406,11 +406,11 @@ export default function ReportPage() {
               <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5 animate-bounce" />
               <div className="space-y-0.5">
                 <p className="text-xs leading-relaxed text-emerald-800 font-bold">
-                  {language === 'banglish' ? 'GD Copy successfully upload hoyese! 🎉' : 'GD Copy uploaded successfully! 🎉'}
+                  {isBn ? 'জিডি কপি সফলভাবে আপলোড হয়েছে! 🎉' : 'GD Copy uploaded successfully! 🎉'}
                 </p>
                 <p className="text-[10px] text-emerald-600 font-semibold">
-                  {language === 'banglish' 
-                    ? 'AI automatic details extract korse. Niche check kore nin.' 
+                  {isBn 
+                    ? 'এআই স্বয়ংক্রিয়ভাবে তথ্য এক্সট্র্যাক্ট করেছে। নিচে মিলিয়ে নিন।' 
                     : 'AI has extracted data fields in real-time. Please review them below.'}
                 </p>
               </div>
@@ -434,10 +434,10 @@ export default function ReportPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-indigo-950">
-                    {language === 'banglish' ? 'Details Verify Korun' : 'Verify Details'}
+                    {isBn ? 'ডিভাইসের তথ্য যাচাই করুন' : 'Verify Details'}
                   </h3>
                   <p className="text-xs text-slate-400 font-semibold">
-                    {language === 'banglish' ? 'Extracted details check ebong update korun' : 'Review and update extracted details'}
+                    {isBn ? 'এক্সট্র্যাক্ট হওয়া তথ্যগুলো মিলিয়ে নিন ও আপডেট করুন' : 'Review and update extracted details'}
                   </p>
                 </div>
               </div>
@@ -725,7 +725,7 @@ export default function ReportPage() {
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    {language === 'banglish' ? 'Confirm & Submit Korun' : 'Confirm & Submit Report'} <ArrowRight className="w-5 h-5" />
+                    {t.reportPage.submitButton} <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </motion.button>

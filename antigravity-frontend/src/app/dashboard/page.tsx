@@ -2,6 +2,7 @@
 import { API_URL, authFetch } from '@/utils/api';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
+import { useTranslation } from '@/lib/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { MotionButton } from '@/components/ui/MotionButton';
@@ -12,8 +13,9 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 function DashboardHomeContent() {
-  const { language, profile, fetchProfile } = useDashboardStore();
-  const [name, setName] = useState(profile?.displayName || 'User');
+  const { profile, fetchProfile } = useDashboardStore();
+  const { t, isBn } = useTranslation();
+  const [name, setName] = useState(profile?.displayName || (isBn ? 'গ্রাহক' : 'User'));
   const [email, setEmail] = useState('');
   const [profileWarning, setProfileWarning] = useState(false);
   const searchParams = useSearchParams();
@@ -44,84 +46,74 @@ function DashboardHomeContent() {
         // Initial fallback
         if (profile?.displayName) {
           setName(profile.displayName);
-        } else if (session.user.user_metadata?.displayName || session.user.user_metadata?.full_name) {
-          setName(session.user.user_metadata.displayName || session.user.user_metadata.full_name);
         } else {
-          setName(userEmail.split('@')[0]);
+          setName(session.user.user_metadata?.displayName || session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail.split('@')[0]);
         }
 
-        // Check profile completeness and real displayName from PostgreSQL database
         try {
-          const profileRes = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(userEmail)}`);
-          if (profileRes.ok) {
-            const profileData = await profileRes.json();
-            if (profileData.displayName) {
-              setName(profileData.displayName);
-            }
-            const isComplete = Boolean(profileData.isProfileComplete && profileData.phone && profileData.address);
-            setProfileWarning(!isComplete);
+          // Fetch real searches count
+          const searchesRes = await authFetch(`${API_URL}/devices/searches/count?email=${encodeURIComponent(userEmail)}`);
+          if (searchesRes.ok) {
+            const data = await searchesRes.json();
+            setSearchesCount(data.count || 0);
           }
-        } catch (e) {
-          console.error('Error fetching profile from database:', e);
-        }
 
-        // Load authoritative search history from PostgreSQL database
-        try {
-          const historyRes = await authFetch(`${API_URL}/users/me/search-history?email=${encodeURIComponent(userEmail)}`);
+          // Fetch real search history list
+          const historyRes = await authFetch(`${API_URL}/devices/searches/history?email=${encodeURIComponent(userEmail)}&limit=5`);
           if (historyRes.ok) {
-            const historyData = await historyRes.json();
-            setRealSearchHistory(Array.isArray(historyData) ? historyData : []);
-            setSearchesCount(Array.isArray(historyData) ? historyData.length : 0);
+            const histData = await historyRes.json();
+            setRealSearchHistory(histData.history || []);
           }
-        } catch (e) {
-          console.error('Error fetching search history from database:', e);
-        }
 
-        // Fetch real alerts and danger alerts count
-        try {
-          const alertsRes = await authFetch(`${API_URL}/users/alerts?email=${userEmail}`);
+          // Fetch real notifications/alerts for this user
+          const alertsRes = await authFetch(`${API_URL}/notifications?email=${encodeURIComponent(userEmail)}`);
           if (alertsRes.ok) {
             const alertsData = await alertsRes.json();
-            setRealAlerts(alertsData);
-            setAlertsCount(alertsData.length);
+            setRealAlerts(alertsData || []);
+            setAlertsCount(alertsData.length || 0);
             
-            // Filter danger alerts (type === 'danger')
-            const dangers = alertsData.filter((a: any) => a.type === 'danger');
-            setDangerAlertsCount(dangers.length);
+            // Count high risk / danger alerts
+            const dangerCount = (alertsData || []).filter((a: any) => a.type === 'danger' || a.priority === 'HIGH' || a.title?.toLowerCase().includes('risk') || a.title?.toLowerCase().includes('alert')).length;
+            setDangerAlertsCount(dangerCount);
           }
         } catch (e) {
-          console.error(e);
+          console.error("Failed to load dashboard metrics", e);
         }
       }
     });
-  }, [searchParams]);
 
-  // Fetch real reported devices from NestJS backend (filtered by email)
+    // Check for showProfileWarning in query params
+    if (searchParams.get('showProfileWarning') === 'true') {
+      setProfileWarning(true);
+    }
+  }, [searchParams, profile?.displayName, fetchProfile]);
+
+  // Fetch registered devices count
   const { data: reports } = useQuery({
-    queryKey: ['user-reports', email],
+    queryKey: ['myReports', email],
     queryFn: async () => {
-      const res = await authFetch(`${API_URL}/reports?email=${email}`);
-      if (!res.ok) throw new Error('Failed to fetch reports');
+      if (!email) return [];
+      const res = await authFetch(`${API_URL}/reports/my-reports?email=${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error('Failed to fetch devices');
       return res.json();
     },
     enabled: !!email
   });
 
-
-  const greeting = language === 'banglish' ? 'Welcome back 👋' : 'Welcome back 👋';
+  const greeting = isBn ? 'স্বাগতম 👋' : 'Welcome back 👋';
   const devicesCount = reports ? reports.length : 0;
 
   const statCards = [
-    { label: language === 'banglish' ? 'Report Kora Device' : 'Devices Reported', value: devicesCount, icon: Smartphone, color: 'text-indigo-600 bg-indigo-50 border border-indigo-100/50', glow: 'rgba(99,102,241,0.02)' },
-    { label: language === 'banglish' ? 'Recent IMEI Check' : 'Recent Checks', value: searchesCount, icon: Search, color: 'text-emerald-600 bg-emerald-50 border border-emerald-100/50', glow: 'rgba(52,211,153,0.02)' },
-    { label: language === 'banglish' ? 'Notun Alert' : 'Alerts Received', value: alertsCount, icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 border border-amber-100/50', glow: 'rgba(251,191,36,0.02)' },
-    { label: language === 'banglish' ? 'Sondehojonok Activity' : 'Suspicious Activities', value: dangerAlertsCount, icon: AlertTriangle, color: 'text-red-600 bg-red-50 border border-red-100/50', glow: 'rgba(248,113,113,0.02)' },
+    { label: isBn ? 'রিপোর্টকৃত ডিভাইস' : 'Devices Reported', value: devicesCount, icon: Smartphone, color: 'text-indigo-600 bg-indigo-50 border border-indigo-100/50', glow: 'rgba(99,102,241,0.02)' },
+    { label: isBn ? 'সাম্প্রতিক যাচাই' : 'Recent Checks', value: searchesCount, icon: Search, color: 'text-emerald-600 bg-emerald-50 border border-emerald-100/50', glow: 'rgba(52,211,153,0.02)' },
+    { label: isBn ? 'প্রাপ্ত সিকিউরিটি অ্যালার্ট' : 'Alerts Received', value: alertsCount, icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 border border-amber-100/50', glow: 'rgba(251,191,36,0.02)' },
+    { label: isBn ? 'সন্দেহজনক তৎপরতা' : 'Suspicious Activities', value: dangerAlertsCount, icon: AlertTriangle, color: 'text-red-600 bg-red-50 border border-red-100/50', glow: 'rgba(248,113,113,0.02)' },
   ];
 
   // Combine real user activities chronologically
   const reportEvents = reports ? reports.map((r: any) => ({
-    text: language === 'banglish' 
-      ? `Apnar reported device (${r.deviceName || 'Unknown'}) list e successfully jog hoyeche. IMEI: ${r.imei}` 
+    text: isBn 
+      ? `আপনার রিপোর্টকৃত ফোন (${r.deviceName || 'ডিভাইস'}) সফলভাবে যুক্ত হয়েছে। IMEI: ${r.imei}`
       : `Your reported device (${r.deviceName || 'Unknown'}) was successfully added. IMEI: ${r.imei}`,
     time: new Date(r.createdAt).toLocaleDateString(),
     status: 'success',
@@ -129,8 +121,8 @@ function DashboardHomeContent() {
   })) : [];
 
   const searchEvents = realSearchHistory.map((h: any) => ({
-    text: language === 'banglish'
-      ? `Apni IMEI check korchen: ${h.imei} (Result: ${h.result})`
+    text: isBn
+      ? `IMEI যাচাই সম্পন্ন: ${h.imei} (ফলাফল: ${h.result})`
       : `Checked device IMEI: ${h.imei} (Status: ${h.result})`,
     time: h.date,
     status: h.result === 'Stolen' ? 'danger' : 'success',
@@ -149,19 +141,15 @@ function DashboardHomeContent() {
     .slice(0, 5);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 relative">
-      {/* Background Ambient Orbs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-200/20 rounded-full blur-[100px] pointer-events-none -z-10" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-200/20 rounded-full blur-[90px] pointer-events-none -z-10" />
-
-      {/* Profile Warning Banner */}
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Profile Incomplete Warning Banner */}
       <AnimatePresence>
         {profileWarning && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.98 }}
-            className="p-1 rounded-2xl sm:rounded-[1.8rem] bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 relative z-20 shadow-xl"
+            className="p-1 rounded-2xl sm:rounded-[1.8rem] bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/20 relative z-20 shadow-xl"
           >
             <div className="bg-white/80 backdrop-blur-2xl rounded-xl sm:rounded-[1.7rem] p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start sm:items-center gap-3.5 sm:gap-4">
@@ -170,11 +158,11 @@ function DashboardHomeContent() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-indigo-950 mb-1">
-                    {language === 'banglish' ? 'Profile Incomplete! ⚠️' : 'Complete Your Profile! ⚠️'}
+                    {isBn ? 'প্রোফাইল অসম্পূর্ণ! ⚠️' : 'Complete Your Profile! ⚠️'}
                   </h3>
                   <p className="text-sm text-slate-500">
-                    {language === 'banglish'
-                      ? 'Apnar phone number, whatsapp number, ebong physical address diye profile complete korun verification active korte.'
+                    {isBn
+                      ? 'হারানো ফোন সার্চ হলে দ্রুত এসএমএস ও সতর্কবার্তা পেতে মোবাইল নম্বর, হোয়াটসঅ্যাপ ও ঠিকানা যুক্ত করুন।'
                       : 'Please fill up and complete your profile sections (Phone Number, WhatsApp Number, and Physical Address) to activate full verification trust.'}
                   </p>
                 </div>
@@ -183,9 +171,9 @@ function DashboardHomeContent() {
                 <Link href="/dashboard/profile">
                   <MotionButton
                     variant="primary"
-                    className="px-6 py-2.5 rounded-xl text-white bg-amber-500 hover:bg-amber-600 border border-transparent font-semibold transition-all shadow-sm flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl text-white bg-amber-500 hover:bg-amber-600 border border-transparent font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
                   >
-                    Go to Profile
+                    {isBn ? 'প্রোফাইলে যান' : 'Go to Profile'}
                   </MotionButton>
                 </Link>
                 <MotionButton
@@ -196,9 +184,9 @@ function DashboardHomeContent() {
                     url.searchParams.delete('showProfileWarning');
                     window.history.replaceState({}, document.title, url.pathname + url.search);
                   }}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold transition-all"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold transition-all cursor-pointer"
                 >
-                  Dismiss
+                  {isBn ? 'বাতিল' : 'Dismiss'}
                 </MotionButton>
               </div>
             </div>
@@ -222,11 +210,11 @@ function DashboardHomeContent() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-indigo-950 mb-1">
-                    {language === 'banglish' ? 'Stolen Report Submitted! 🎉' : 'Stolen Report Submitted! 🎉'}
+                    {isBn ? 'হারানো ফোনের রিপোর্ট জমা হয়েছে! 🎉' : 'Stolen Report Submitted! 🎉'}
                   </h3>
                   <p className="text-sm text-slate-500">
-                    {language === 'banglish'
-                      ? 'Tomar report system e verified and distribute hoye gese. Ekhon eita active track kora hobe.'
+                    {isBn
+                      ? 'আপনার ডিভাইসটি জাতীয় চুরি ডেটাবেজে যুক্ত হয়েছে। কোনো সার্চ হলে স্বয়ংক্রিয়ভাবে ট্র্যাকিং অ্যালার্ট চালু হবে।'
                       : 'Your device theft report has been successfully recorded and distributed to the safety registry. Tracking is active.'}
                   </p>
                 </div>
@@ -236,9 +224,9 @@ function DashboardHomeContent() {
                 onClick={() => {
                   window.history.replaceState({}, document.title, window.location.pathname);
                 }}
-                className="px-6 py-2.5 rounded-xl border border-emerald-200/50 text-emerald-600 bg-emerald-50/60 font-semibold hover:bg-emerald-50 transition-all shadow-sm"
+                className="px-6 py-2.5 rounded-xl border border-emerald-200/50 text-emerald-600 bg-emerald-50/60 font-semibold hover:bg-emerald-50 transition-all shadow-sm cursor-pointer"
               >
-                Got it!
+                {isBn ? 'ঠিক আছে' : 'Got it!'}
               </MotionButton>
             </div>
           </motion.div>
@@ -249,59 +237,64 @@ function DashboardHomeContent() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10"
+        className="space-y-1"
       >
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-950 tracking-tight mb-1">
-          {greeting}, <span className="text-indigo-600">{name}</span>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-950 tracking-tight">
+          {greeting}, <span className="text-indigo-600 font-extrabold">{name}</span>
         </h1>
-        <p className="text-slate-500 text-xs sm:text-sm">
-          {language === 'banglish' 
-            ? 'Apnar account er current obostha dekhe nin.' 
-            : "Here's what's happening with your account today."}
+        <p className="text-sm sm:text-base text-slate-500 font-medium">
+          {isBn
+            ? 'আপনার ডিভাইস সিকিউরিটি ও আইএমইআই ভেরিফিকেশন নেটওয়ার্কের সামগ্রিক তথ্য।'
+            : 'Here is your security status and IMEI verification metrics across PhoneKoi.'}
         </p>
       </motion.div>
 
-      {/* Stats Grid */}
+      {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((stat, i) => (
           <motion.div
-            key={i}
+            key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
-            <GlassCard glowColor={stat.glow} className="p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 bg-white/70 border border-slate-100 hover:border-indigo-100/50 hover:bg-white shadow-[0_4px_20px_rgba(99,102,241,0.02)] transition-all">
+            <GlassCard glowColor={stat.glow} className="p-4 sm:p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
               <div className="flex items-center justify-between">
-                <div className={`p-3 rounded-xl ${stat.color} flex items-center justify-center`}>
-                  <stat.icon className="w-5 h-5" />
+                <div className="space-y-1 sm:space-y-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-indigo-950 tracking-tight">{stat.value}</div>
                 </div>
-              </div>
-              <div>
-                <div className="text-3xl font-extrabold text-indigo-950 mb-1">{stat.value}</div>
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</div>
+                <div className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl ${stat.color} shadow-sm`}>
+                  <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
               </div>
             </GlassCard>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Timeline */}
+      {/* Content Split: Real Activity + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        {/* Real Activity Timeline */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
           className="lg:col-span-2 space-y-6"
         >
-          <h2 className="text-xl font-bold text-indigo-950">
-            {language === 'banglish' ? 'Recent Activity' : 'Recent Activity'}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-indigo-950 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              {isBn ? 'সাম্প্রতিক অ্যাক্টিভিটি' : 'Recent Activity'}
+            </h2>
+          </div>
+          
           <GlassCard className="p-4 sm:p-6 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
             <div className="space-y-8">
               {recentActivity.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 font-semibold text-sm">
-                  {language === 'banglish' 
-                    ? 'Kono somprotik activity nai. Sob shanto ache.' 
+                  {isBn 
+                    ? 'কোনো সাম্প্রতিক অ্যাক্টিভিটি নেই। সবকিছু নিরাপদ রয়েছে।'
                     : 'No recent activity. All systems are quiet.'}
                 </div>
               ) : (
@@ -333,28 +326,34 @@ function DashboardHomeContent() {
           className="space-y-6"
         >
           <h2 className="text-xl font-bold text-indigo-950">
-            {language === 'banglish' ? 'Quick Actions' : 'Quick Actions'}
+            {isBn ? 'কুইক অ্যাকশন' : 'Quick Actions'}
           </h2>
           <GlassCard className="p-4 sm:p-6 flex flex-col gap-3.5 sm:gap-4 bg-white/70 border border-slate-100 shadow-[0_4px_20px_rgba(99,102,241,0.02)]">
             <Link href="/report">
-              <MotionButton variant="primary" className="w-full justify-between group">
+              <MotionButton variant="primary" className="w-full justify-between group cursor-pointer">
                 <span className="flex items-center gap-2">
                   <Smartphone className="w-4 h-4" />
-                  {language === 'banglish' ? 'Device Report Korun' : 'Report Stolen Device'}
+                  {isBn ? 'হারানো ফোন রিপোর্ট করুন' : 'Report Stolen Device'}
                 </span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </MotionButton>
             </Link>
             <Link href="/check">
-              <MotionButton variant="secondary" className="w-full justify-start gap-2 border-slate-100 hover:bg-slate-50 transition-colors shadow-none text-slate-700">
+              <MotionButton variant="secondary" className="w-full justify-start gap-2 border-slate-100 hover:bg-slate-50 transition-colors shadow-none text-slate-700 cursor-pointer">
                 <Search className="w-4 h-4 text-indigo-600" />
-                {language === 'banglish' ? 'IMEI Check Korun' : 'Check IMEI Status'}
+                {isBn ? 'IMEI স্ট্যাটাস যাচাই' : 'Check IMEI Status'}
               </MotionButton>
             </Link>
             <Link href="/dashboard/alerts">
-              <MotionButton variant="secondary" className="w-full justify-start gap-2 border-slate-100 hover:bg-slate-50 transition-colors shadow-none text-slate-700">
+              <MotionButton variant="secondary" className="w-full justify-start gap-2 border-slate-100 hover:bg-slate-50 transition-colors shadow-none text-slate-700 cursor-pointer">
                 <Bell className="w-4 h-4 text-indigo-600" />
-                {language === 'banglish' ? 'Alerts Dekhun' : 'View Safety Alerts'}
+                {isBn ? 'নিরাপত্তা অ্যালার্ট দেখুন' : 'View Safety Alerts'}
+              </MotionButton>
+            </Link>
+            <Link href="/recovered">
+              <MotionButton variant="secondary" className="w-full justify-start gap-2 border-slate-100 hover:bg-slate-50 transition-colors shadow-none text-slate-700 cursor-pointer">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                {isBn ? 'উদ্ধারকৃত ফোন ডাটাবেজ' : 'View Recovered Devices'}
               </MotionButton>
             </Link>
           </GlassCard>
