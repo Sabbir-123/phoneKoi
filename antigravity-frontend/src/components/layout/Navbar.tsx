@@ -86,8 +86,8 @@ export default function Navbar() {
 
   const navItems = [
     { name: "Check IMEI", href: "/check", icon: Search },
-    { name: "Recovered", href: "/recovered", icon: ShieldCheck, badge: "DMP" },
     { name: "Report Stolen", href: "/report", icon: ShieldAlert },
+    { name: "Recovered", href: "/recovered", icon: ShieldCheck, badge: "DMP" },
     { name: "Pricing", href: "/pricing", icon: Sparkles },
     { name: "Dashboard", href: "/dashboard", icon: Activity },
   ];
