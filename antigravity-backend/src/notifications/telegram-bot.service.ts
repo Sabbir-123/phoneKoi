@@ -154,54 +154,26 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
         `Your Telegram Chat ID: \`${chatId}\` _(tap to copy)_\n\n` +
         `🔗 *1-Click Auto Connect:*\n` +
         `Log in to your PhoneKoi dashboard (https://phone-koi.vercel.app/dashboard/alerts) and click *"Connect Telegram in 1-Click"* to connect automatically!\n\n` +
-        `💡 *Or Link by Command:*\n` +
-        `Send \`/link your-email@example.com\` to connect with your registered email address.`
+        `💡 *How to Connect Your Account:*\n` +
+        `To protect your device location privacy, connecting requires authentication:\n` +
+        `1. Open https://phone-koi.vercel.app/dashboard/alerts\n` +
+        `2. Click *"Connect Telegram in 1-Click"* OR paste your Chat ID: \`${chatId}\``
       );
       return;
     }
 
-    // 2. Handle /link <email_or_phone>
+    // 2. Handle /link command securely (preventing unauthorized takeover)
     if (text.startsWith('/link')) {
-      const parts = text.split(/\s+/);
-      const target = parts[1]?.trim();
-
-      if (!target) {
-        await this.alertDispatcher.sendTelegramMessage(
-          botToken,
-          chatId,
-          `ℹ️ *How to link:* Send \`/link your-email@example.com\` or click *"Connect Telegram in 1-Click"* on your PhoneKoi dashboard.`
-        );
-        return;
-      }
-
-      const user = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: { equals: target, mode: 'insensitive' } },
-            { phone: target },
-            { normalizedPhone: target },
-          ],
-        },
-      });
-
-      if (user) {
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: { telegramChatId: chatId },
-        });
-
-        await this.alertDispatcher.sendTelegramMessage(
-          botToken,
-          chatId,
-          `✅ *PhoneKoi Account Linked!*\n\nConnected to *${user.displayName || user.email || user.phone}*. You will now receive security alerts directly here.`
-        );
-      } else {
-        await this.alertDispatcher.sendTelegramMessage(
-          botToken,
-          chatId,
-          `❌ *No Account Found*\n\nCould not find a PhoneKoi account with: \`${target}\`.\nPlease check spelling or connect via your dashboard at https://phone-koi.vercel.app.`
-        );
-      }
+      await this.alertDispatcher.sendTelegramMessage(
+        botToken,
+        chatId,
+        `🔒 *Secure Connection Required*\n\n` +
+        `To ensure nobody else can intercept your stolen phone alerts, linking must be done through your authenticated dashboard:\n\n` +
+        `1. Log in to *https://phone-koi.vercel.app/dashboard/alerts*\n` +
+        `2. Click *"Connect Telegram in 1-Click"*\n` +
+        `3. Or enter your Chat ID: \`${chatId}\` into the Telegram settings.\n\n` +
+        `This ensures 100% cryptographic protection of your device tracking data.`
+      );
       return;
     }
 

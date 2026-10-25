@@ -17,12 +17,61 @@ export class PoliceRecoveryService {
   ) {}
 
   /**
+   * Validates target URL against SSRF vulnerabilities (blocks loopback, private IPs, metadata endpoints)
+   */
+  private isSafePublicUrl(urlString: string): boolean {
+    try {
+      const parsed = new URL(urlString);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+      const hostname = parsed.hostname.toLowerCase();
+
+      // Block localhost, loopbacks, internal hostnames
+      if (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '0.0.0.0' ||
+        hostname === '::1' ||
+        hostname.endsWith('.localhost') ||
+        hostname.endsWith('.local') ||
+        hostname.endsWith('.internal')
+      ) {
+        return false;
+      }
+
+      // Block AWS/GCP/Azure link-local metadata endpoints
+      if (hostname === '169.254.169.254' || hostname.startsWith('169.254.')) {
+        return false;
+      }
+
+      // Block Private IPv4 Subnets (RFC 1918)
+      if (
+        /^10\./.test(hostname) ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+        /^192\.168\./.test(hostname) ||
+        /^127\./.test(hostname) ||
+        /^0\./.test(hostname)
+      ) {
+        return false;
+      }
+
+      // Block Private IPv6 Subnets
+      if (/^fc00:|^fe80:/.test(hostname)) {
+        return false;
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Fetches article/press release from URL and parses recovered phones using Gemini AI
    */
   async extractFromUrl(dto: ExtractUrlDto) {
     const { url } = dto;
-    if (!url || !url.startsWith('http')) {
-      throw new BadRequestException('A valid HTTP/HTTPS URL is required');
+    if (!url || !this.isSafePublicUrl(url)) {
+      throw new BadRequestException('A valid public HTTP/HTTPS URL is required. Internal or private network destinations are blocked.');
     }
 
     try {

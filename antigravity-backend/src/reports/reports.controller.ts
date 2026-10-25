@@ -8,6 +8,7 @@ import { ExtractGdDto } from './dto/extract-gd.dto';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('submit')
   async submitReport(@Body() body: SubmitReportDto, @Req() req: any) {
     const forwarded = req.headers['x-forwarded-for'];
