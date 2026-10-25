@@ -28,11 +28,6 @@ import {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useDashboardStore } from "@/store/useDashboardStore";
-import { BorderBeam } from "@/components/ui/BorderBeam";
-import { TiltCard } from "@/components/ui/TiltCard";
-import { MagneticButton } from "@/components/ui/MagneticButton";
-import { HolographicScanner } from "@/components/home/HolographicScanner";
-import { InteractiveBentoGrid } from "@/components/home/InteractiveBentoGrid";
 
 // Luhn check algorithm
 const validateLuhn = (imei: string): boolean => {
@@ -152,64 +147,42 @@ export default function Home() {
               Real-time IMEI risk scoring powered by verified Police GD records and community reports. Never buy a stolen, cloned, or blacklisted phone in Bangladesh again.
             </p>
 
-            {/* Quick Live IMEI Search Form with BorderBeam and Glassmorphism 2.0 */}
+            {/* Quick Live IMEI Search Form */}
             <div className="w-full max-w-xl">
-              <div className="relative rounded-3xl p-[1px] shadow-2xl shadow-indigo-500/10">
-                <BorderBeam size={220} duration={8} colorFrom="#8b5cf6" colorTo="#06b6d4" />
-                <form 
-                  onSubmit={handleHeroSearch}
-                  className="glass-2 rounded-3xl p-2.5 sm:p-3 flex flex-col sm:flex-row gap-2 transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100/80"
-                >
-                  <div className="relative flex-1 flex items-center px-3">
-                    <Search className="w-5 h-5 text-indigo-500 mr-2.5 shrink-0" />
-                    <input
-                      type="text"
-                      maxLength={15}
-                      value={heroImei}
-                      onChange={(e) => setHeroImei(e.target.value.replace(/\D/g, ""))}
-                      placeholder="Enter 15-digit IMEI (dial *#06#)"
-                      className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm sm:text-base font-mono tracking-wider font-semibold"
-                    />
-                    {heroLuhnValid === true && (
-                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Valid
-                      </span>
-                    )}
-                    {heroLuhnValid === false && (
-                      <span className="text-xs font-bold text-red-500 flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
-                        <AlertTriangle className="w-3.5 h-3.5" /> Invalid
-                      </span>
-                    )}
-                  </div>
+              <form 
+                onSubmit={handleHeroSearch}
+                className="bg-white/90 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-xl shadow-indigo-100/60 flex flex-col sm:flex-row gap-2 transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100"
+              >
+                <div className="relative flex-1 flex items-center px-3">
+                  <Search className="w-5 h-5 text-indigo-500 mr-2.5 shrink-0" />
+                  <input
+                    type="text"
+                    maxLength={15}
+                    value={heroImei}
+                    onChange={(e) => setHeroImei(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Enter 15-digit IMEI (dial *#06#)"
+                    className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm sm:text-base font-mono tracking-wider font-semibold"
+                  />
+                  {heroLuhnValid === true && (
+                    <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Valid
+                    </span>
+                  )}
+                  {heroLuhnValid === false && (
+                    <span className="text-xs font-bold text-red-500 flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Invalid
+                    </span>
+                  )}
+                </div>
 
-                  <MagneticButton
-                    type="submit"
-                    className="btn-primary py-3.5 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-indigo-500/25 transition-all shrink-0 cursor-pointer"
-                  >
-                    <span>Verify Now</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </MagneticButton>
-                </form>
-              </div>
-
-              {/* Instant One-Click Demo Sample Pills */}
-              <div className="flex items-center gap-2 mt-3 px-1 flex-wrap">
-                <span className="text-xs font-bold text-slate-400">Quick Test:</span>
                 <button
-                  type="button"
-                  onClick={() => setHeroImei("354892110283746")}
-                  className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+                  type="submit"
+                  className="btn-primary py-3.5 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-indigo-500/25 transition-all shrink-0 cursor-pointer"
                 >
-                  <span>⚡ Test Clean IMEI</span>
+                  <span>Verify Now</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setHeroImei("355235048744323")}
-                  className="text-xs font-bold px-3 py-1 rounded-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-all flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-                >
-                  <span>🚨 Test Stolen Demo</span>
-                </button>
-              </div>
+              </form>
 
               {/* Secondary CTA links */}
               <div className="flex items-center gap-4 mt-3 px-1 text-xs text-slate-500 flex-wrap">
@@ -247,14 +220,88 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Right Column: 3D Holographic Device Scanner */}
+          {/* Right Column: Luxury Smartphone Mockup with YouTube Video */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-5 flex justify-center items-center relative"
           >
-            <HolographicScanner onSelectSample={(imei) => setHeroImei(imei)} />
+            {/* Ambient Refraction Glows */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-purple-500/20 to-sky-400/20 rounded-full blur-[100px] -z-10" />
+
+            {/* Phone Device Frame */}
+            <div className="relative w-full max-w-[325px] aspect-[9/18.5] bg-slate-950 rounded-[48px] p-3 shadow-2xl shadow-indigo-900/30 border-[6px] border-slate-800 ring-1 ring-slate-700/60 overflow-hidden">
+              
+              {/* Dynamic Island / Speaker Notch */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-end px-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-700" />
+              </div>
+
+              {/* Status Bar simulation */}
+              <div className="absolute top-4 left-7 z-30 text-[10px] font-bold text-white/90">
+                12:45
+              </div>
+              <div className="absolute top-4 right-7 z-30 text-[10px] font-bold text-white/90 flex items-center gap-1">
+                <span>5G</span>
+                <span>100%</span>
+              </div>
+
+              {/* Video Screen Container */}
+              <div className="relative w-full h-full rounded-[38px] overflow-hidden bg-black">
+                {!videoError ? (
+                  <video
+                    src="/hero-video.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={() => setVideoError(true)}
+                    className="w-full h-full object-cover scale-105"
+                  />
+                ) : (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src="https://www.youtube.com/embed/RzTucEPowrg?autoplay=1&mute=1&loop=1&playlist=RzTucEPowrg&controls=0&rel=0&modestbranding=1"
+                    title="Phone Koi Preview"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full object-cover scale-105"
+                  />
+                )}
+
+                {/* Floating In-App Glass Badge Overlay */}
+                <div className="absolute bottom-5 left-3 right-3 bg-slate-950/80 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-left text-white shadow-xl pointer-events-none z-20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">
+                      Live Risk Engine Active
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-slate-200">
+                    Cross-checking Police GD &amp; Community Theft Database
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating Trust Metric Card */}
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="absolute -bottom-6 -left-4 sm:-left-8 bg-white/95 backdrop-blur-xl border border-indigo-100 p-4 rounded-2xl shadow-xl shadow-indigo-100/80 hidden sm:flex items-center gap-3.5 z-20"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                <BadgeCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Verification Engine</div>
+                <div className="text-sm font-extrabold text-indigo-950">Luhn + Police GD Match</div>
+              </div>
+            </motion.div>
           </motion.div>
 
         </div>
@@ -393,67 +440,143 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
           
           {/* Step 1 */}
-          <TiltCard maxTilt={8} className="h-full">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-200/90 shadow-lg shadow-indigo-100/30 relative flex flex-col justify-between h-full group hover:border-indigo-300 transition-all">
-              <div>
-                <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-6 font-black text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  01
-                </div>
-                <h3 className="text-xl font-bold text-indigo-950 mb-3">Dial *#06# on Phone</h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-4">
-                  Retrieve the hardware IMEI directly from the dialer. Compare it with the SIM tray print and original packaging to detect cloned motherboards.
-                </p>
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-lg shadow-indigo-100/30 relative flex flex-col justify-between group hover:border-indigo-300 transition-all">
+            <div>
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-6 font-black text-xl shadow-xs group-hover:scale-110 transition-transform">
+                01
               </div>
-              <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-indigo-600 flex items-center gap-1">
-                <span>Always verify on-device</span>
-                <Check className="w-3.5 h-3.5" />
-              </div>
+              <h3 className="text-xl font-bold text-indigo-950 mb-3">Dial *#06# on Phone</h3>
+              <p className="text-slate-500 text-sm leading-relaxed mb-4">
+                Retrieve the hardware IMEI directly from the dialer. Compare it with the SIM tray print and original packaging to detect cloned motherboards.
+              </p>
             </div>
-          </TiltCard>
+            <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-indigo-600 flex items-center gap-1">
+              <span>Always verify on-device</span>
+              <Check className="w-3.5 h-3.5" />
+            </div>
+          </div>
 
           {/* Step 2 */}
-          <TiltCard maxTilt={8} className="h-full">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-200/90 shadow-lg shadow-indigo-100/30 relative flex flex-col justify-between h-full group hover:border-indigo-300 transition-all">
-              <div>
-                <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 mb-6 font-black text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  02
-                </div>
-                <h3 className="text-xl font-bold text-indigo-950 mb-3">Run Live PhoneKoi Query</h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-4">
-                  Our engine executes real-time checks across active Police GD (General Diary) records, community theft flags, and algorithmic integrity parameters.
-                </p>
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-lg shadow-indigo-100/30 relative flex flex-col justify-between group hover:border-indigo-300 transition-all">
+            <div>
+              <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 mb-6 font-black text-xl shadow-xs group-hover:scale-110 transition-transform">
+                02
               </div>
-              <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-purple-600 flex items-center gap-1">
-                <span>Instant sub-second results</span>
-                <Check className="w-3.5 h-3.5" />
-              </div>
+              <h3 className="text-xl font-bold text-indigo-950 mb-3">Run Live PhoneKoi Query</h3>
+              <p className="text-slate-500 text-sm leading-relaxed mb-4">
+                Our engine executes real-time checks across active Police GD (General Diary) records, community theft flags, and algorithmic integrity parameters.
+              </p>
             </div>
-          </TiltCard>
+            <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-purple-600 flex items-center gap-1">
+              <span>Instant sub-second results</span>
+              <Check className="w-3.5 h-3.5" />
+            </div>
+          </div>
 
           {/* Step 3 */}
-          <TiltCard maxTilt={8} className="h-full">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-200/90 shadow-lg shadow-indigo-100/30 relative flex flex-col justify-between h-full group hover:border-indigo-300 transition-all">
-              <div>
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-6 font-black text-xl shadow-xs group-hover:scale-110 transition-transform">
-                  03
-                </div>
-                <h3 className="text-xl font-bold text-indigo-950 mb-3">Review Safety Verdict</h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-4">
-                  Receive an actionable risk score (Clean, Caution, or Stolen). Review whether a police report exists before finalizing your purchase securely.
-                </p>
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-lg shadow-indigo-100/30 relative flex flex-col justify-between group hover:border-indigo-300 transition-all">
+            <div>
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-6 font-black text-xl shadow-xs group-hover:scale-110 transition-transform">
+                03
               </div>
-              <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                <span>Complete transaction peace of mind</span>
-                <Check className="w-3.5 h-3.5" />
-              </div>
+              <h3 className="text-xl font-bold text-indigo-950 mb-3">Review Safety Verdict</h3>
+              <p className="text-slate-500 text-sm leading-relaxed mb-4">
+                Receive an actionable risk score (Clean, Caution, or Stolen). Review whether a police report exists before finalizing your purchase securely.
+              </p>
             </div>
-          </TiltCard>
+            <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-emerald-600 flex items-center gap-1">
+              <span>Complete transaction peace of mind</span>
+              <Check className="w-3.5 h-3.5" />
+            </div>
+          </div>
 
         </div>
       </section>
 
-      {/* ─── SECTION 4: 2026 INTERACTIVE BENTO GRID ─────────────────── */}
-      <InteractiveBentoGrid />
+      {/* ─── SECTION 4: THE PHONEKOI ENGINE (6 CORE PILLARS) ───────── */}
+      <section className="py-24 px-6 relative max-w-7xl mx-auto bg-gradient-to-b from-slate-50 to-white rounded-3xl border border-slate-200/80 my-8 shadow-sm">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">
+            <Database className="w-3.5 h-3.5" /> Technical Infrastructure
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-indigo-950 tracking-tight">
+            The PhoneKoi Verification Engine
+          </h2>
+          <p className="text-slate-500 text-base sm:text-lg mt-3">
+            Multi-layered security protocols built to combat mobile theft, device fencing, and fraudulent secondary market reselling.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          {/* Feature 1: Luhn Algorithm Check */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-indigo-950 mb-2.5">Luhn Algorithm Check</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Instant mathematical checksum verification ensuring the 15-digit IMEI complies with official GSMA device format standards.
+            </p>
+          </div>
+
+          {/* Feature 2: Real-time Risk Engine */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6">
+              <Zap className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-indigo-950 mb-2.5">Real-time Risk Engine</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Dynamic risk calculation continuously evaluating theft incident reports, query patterns, and geographic suspicion indicators.
+            </p>
+          </div>
+
+          {/* Feature 3: Community Driven Registry */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-indigo-950 mb-2.5">Community Driven Database</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              A decentralized registry of lost and stolen smartphones submitted by verified owners across all districts in Bangladesh.
+            </p>
+          </div>
+
+          {/* Feature 4: Police GD Cross-Referencing */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-6">
+              <FileText className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-indigo-950 mb-2.5">Police GD Cross-Reference</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Direct verification with Thana General Diary records to legally flag stolen items and prevent criminals from reselling property.
+            </p>
+          </div>
+
+          {/* Feature 5: 1-Number Identity Anti-Fraud */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6">
+              <Fingerprint className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-indigo-950 mb-2.5">1-Number Identity Policy</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Every reporter must link a unique verified phone number. Prevents fake reports, retaliatory harassment, and duplicate spam accounts.
+            </p>
+          </div>
+
+          {/* Feature 6: Marketplace Blacklist Broadcast */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-6">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-indigo-950 mb-2.5">Instant Theft Broadcast</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              As soon as a device is reported with verified GD evidence, it is instantly blacklisted across our lookup engine to alert potential buyers.
+            </p>
+          </div>
+
+        </div>
+      </section>
 
       {/* ─── SECTION 5: ECOSYSTEM & POPULAR DEVICES SHOWCASE ────── */}
       <section className="py-20 px-6 relative max-w-7xl mx-auto">
