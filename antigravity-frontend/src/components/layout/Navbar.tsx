@@ -151,7 +151,7 @@ export default function Navbar() {
                     <Icon className="w-3.5 h-3.5 shrink-0" />
                     <span>{item.name}</span>
                     {item.badge && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60 leading-tight">
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200/80 leading-tight">
                         {item.badge}
                       </span>
                     )}
@@ -249,7 +249,7 @@ export default function Navbar() {
                     <span className="flex-1 flex items-center justify-between">
                       <span>{item.name}</span>
                       {item.badge && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200/80">
                           {item.badge}
                         </span>
                       )}

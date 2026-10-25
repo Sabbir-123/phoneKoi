@@ -120,8 +120,8 @@ export default function RecoveredPhonesPortal() {
   return (
     <div className="min-h-screen pt-28 pb-20 px-4 max-w-6xl mx-auto flex flex-col items-center">
       {/* Background Orbs */}
-      <div className="orb w-[500px] h-[500px] bg-emerald-200/50 top-20 right-10 -z-10" />
-      <div className="orb w-[400px] h-[400px] bg-cyan-200/40 bottom-20 left-10 -z-10" />
+      <div className="orb w-[500px] h-[500px] bg-indigo-200/50 top-20 right-10 -z-10" />
+      <div className="orb w-[400px] h-[400px] bg-purple-200/40 bottom-20 left-10 -z-10" style={{ animationDelay: "3s" }} />
 
       {/* Header Badge & Title */}
       <motion.div
@@ -129,14 +129,14 @@ export default function RecoveredPhonesPortal() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center space-y-4 mb-10 max-w-3xl"
       >
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold uppercase tracking-wider shadow-sm">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-bold uppercase tracking-wider shadow-sm">
+          <ShieldCheck className="w-4 h-4 text-indigo-600" />
           Bangladesh Police Recovered Handset Registry
         </div>
 
         <h1 className="text-3xl md:text-5xl font-extrabold text-indigo-950 tracking-tight leading-tight">
           Check If Your Lost Phone <br className="hidden sm:inline" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600">
             Has Been Recovered by Police
           </span>
         </h1>
@@ -152,14 +152,14 @@ export default function RecoveredPhonesPortal() {
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="w-full max-w-2xl bg-white/80 backdrop-blur-xl border border-emerald-100 rounded-3xl p-4 md:p-6 shadow-xl shadow-emerald-950/5 mb-12"
+        className="w-full max-w-2xl bg-white/80 backdrop-blur-xl border border-indigo-100 rounded-3xl p-4 md:p-6 shadow-xl shadow-indigo-950/5 mb-12"
       >
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Enter 15-digit Device IMEI Number
             </span>
-            <span className="text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+            <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100/60">
               {searchImei.length}/15 digits
             </span>
           </div>
@@ -171,14 +171,14 @@ export default function RecoveredPhonesPortal() {
                 value={searchImei}
                 onChange={(e) => setSearchImei(e.target.value.replace(/\D/g, "").slice(0, 16))}
                 placeholder="e.g. 355235048744323"
-                className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 rounded-2xl px-4 py-3.5 text-lg font-mono tracking-widest text-indigo-950 placeholder:text-slate-300 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl px-4 py-3.5 text-lg font-mono tracking-widest text-indigo-950 placeholder:text-slate-300 outline-none transition-all"
               />
             </div>
 
             <button
               type="submit"
               disabled={searching || searchImei.length < 14}
-              className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all transform active:scale-95 shrink-0"
+              className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all transform active:scale-95 shrink-0"
             >
               {searching ? (
                 <>
@@ -206,17 +206,17 @@ export default function RecoveredPhonesPortal() {
             className="w-full max-w-2xl mb-14"
           >
             {searchResult.found && searchResult.drive ? (
-              <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 text-white rounded-3xl p-6 md:p-8 shadow-2xl border border-emerald-500/40 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 text-white rounded-3xl p-6 md:p-8 shadow-2xl border border-indigo-500/40 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                  <ShieldCheck className="w-48 h-48 text-emerald-400" />
+                  <ShieldCheck className="w-48 h-48 text-indigo-400" />
                 </div>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                     <CheckCircle2 className="w-6 h-6" />
                   </span>
                   <div>
-                    <span className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">
+                    <span className="text-xs uppercase font-extrabold tracking-wider text-indigo-400">
                       MATCH CONFIRMED (IN POLICE CUSTODY)
                     </span>
                     <h3 className="text-2xl font-black text-white">
@@ -235,7 +235,7 @@ export default function RecoveredPhonesPortal() {
                   </div>
                   <div>
                     <span className="text-xs text-slate-400">IMEI Number</span>
-                    <p className="font-mono font-semibold text-emerald-400 text-sm">
+                    <p className="font-mono font-semibold text-indigo-300 text-sm">
                       {searchResult.device?.imei1 || searchResult.device?.imei2}
                     </p>
                   </div>
@@ -244,7 +244,7 @@ export default function RecoveredPhonesPortal() {
                 {/* Recovery Drive Details */}
                 <div className="space-y-3 border-t border-white/10 pt-4 text-sm">
                   <div className="flex items-start gap-2.5 text-slate-300">
-                    <Building className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <Building className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
                     <span>
                       <strong>Agency / Station:</strong> {searchResult.drive.agency}{" "}
                       {searchResult.drive.policeStation ? `(${searchResult.drive.policeStation})` : ""}
@@ -253,7 +253,7 @@ export default function RecoveredPhonesPortal() {
 
                   {searchResult.drive.caseNumber && (
                     <div className="flex items-start gap-2.5 text-slate-300">
-                      <FileText className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <FileText className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
                       <span>
                         <strong>GD / Case Number:</strong> {searchResult.drive.caseNumber}
                       </span>
@@ -262,7 +262,7 @@ export default function RecoveredPhonesPortal() {
 
                   {searchResult.drive.officerName && (
                     <div className="flex items-start gap-2.5 text-slate-300">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
                       <span>
                         <strong>Investigating Officer:</strong> {searchResult.drive.officerName}
                       </span>
@@ -270,12 +270,12 @@ export default function RecoveredPhonesPortal() {
                   )}
 
                   {searchResult.drive.officerContact && (
-                    <div className="flex items-center gap-2.5 text-emerald-300 pt-1">
-                      <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="flex items-center gap-2.5 text-indigo-200 pt-1">
+                      <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
                       <span className="font-bold">Contact Phone:</span>
                       <a
                         href={`tel:${searchResult.drive.officerContact}`}
-                        className="font-mono font-bold underline bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30"
+                        className="font-mono font-bold underline bg-indigo-500/20 px-3 py-1 rounded-lg border border-indigo-500/30 hover:bg-indigo-500/30 text-indigo-200"
                       >
                         {searchResult.drive.officerContact}
                       </a>
@@ -284,8 +284,8 @@ export default function RecoveredPhonesPortal() {
                 </div>
 
                 {/* Claim Instructions */}
-                <div className="mt-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-1.5 flex items-center gap-1.5">
+                <div className="mt-6 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300 mb-1.5 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" /> Legal Claim & Retrieval Instructions
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
@@ -300,7 +300,7 @@ export default function RecoveredPhonesPortal() {
                       href={searchResult.drive.sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-emerald-300 hover:text-emerald-200 underline font-medium"
+                      className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-200 underline font-medium"
                     >
                       View Official Police Press Release <ExternalLink className="w-3.5 h-3.5" />
                     </a>
@@ -338,7 +338,7 @@ export default function RecoveredPhonesPortal() {
       <div className="w-full flex items-center justify-between mb-6 border-b border-slate-200/80 pb-4">
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-indigo-950 flex items-center gap-2">
-            <Building className="w-6 h-6 text-emerald-600" />
+            <Building className="w-6 h-6 text-indigo-600" />
             Recent Police Recovery Drives
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -350,7 +350,7 @@ export default function RecoveredPhonesPortal() {
       {/* Drives List */}
       {drivesLoading ? (
         <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           <span className="text-sm font-medium">Loading recovery drives...</span>
         </div>
       ) : drives.length === 0 ? (
@@ -363,12 +363,12 @@ export default function RecoveredPhonesPortal() {
             <motion.div
               key={drive.id}
               whileHover={{ y: -3 }}
-              className="bg-white/80 backdrop-blur-md border border-slate-200/70 hover:border-emerald-300 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-emerald-950/5 transition-all flex flex-col justify-between"
+              className="bg-white/80 backdrop-blur-md border border-slate-200/70 hover:border-indigo-300 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-indigo-950/5 transition-all flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-extrabold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-100 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-[11px] font-extrabold px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
                     {drive.deviceCount} Recovered Devices
                   </span>
                   <span className="text-xs text-slate-400 flex items-center gap-1">
@@ -409,7 +409,7 @@ export default function RecoveredPhonesPortal() {
                     href={drive.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-slate-500 hover:text-emerald-700 flex items-center gap-1"
+                    className="text-xs text-slate-500 hover:text-indigo-600 flex items-center gap-1"
                   >
                     Official Release <ExternalLink className="w-3 h-3" />
                   </a>
@@ -417,7 +417,7 @@ export default function RecoveredPhonesPortal() {
 
                 <button
                   onClick={() => openDriveModal(drive.id)}
-                  className="px-4 py-2 bg-indigo-50 hover:bg-emerald-600 hover:text-white text-indigo-900 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-900 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
                 >
                   View Device List <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -441,7 +441,7 @@ export default function RecoveredPhonesPortal() {
               <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
                 <div className="space-y-1 pr-6">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
                       {selectedDrive.devices?.length || 0} Devices Recovered
                     </span>
                     <span className="text-xs text-slate-500">{selectedDrive.agency}</span>
@@ -510,7 +510,7 @@ export default function RecoveredPhonesPortal() {
                           <td className="py-2.5 px-3 font-semibold text-slate-800">
                             {d.brand || "Unknown"} {d.model || ""}
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-emerald-700 font-medium">
+                          <td className="py-2.5 px-3 font-mono text-indigo-600 font-medium">
                             {d.imei1 || "-"}
                           </td>
                           <td className="py-2.5 px-3 font-mono text-slate-600">
