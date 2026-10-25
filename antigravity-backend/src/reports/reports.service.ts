@@ -184,6 +184,7 @@ export class ReportsService {
           aiExtractionConfidence: data.aiExtractionConfidence || 0.85,
           status: 'PENDING',
           trustWeight: data.trustWeight || (data.extractedFromGd ? 5 : 1),
+          gdImage: data.gdImage || null,
           gdStoragePath,
         },
       });

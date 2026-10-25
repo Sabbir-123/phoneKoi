@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AlertDispatcherService } from '../notifications/alert-dispatcher.service';
+import { SupabaseService } from '../auth/supabase.service';
 
 @Injectable()
 export class AdminService {
@@ -11,6 +12,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly alertDispatcherService: AlertDispatcherService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   invalidateCaches() {
@@ -161,8 +163,24 @@ export class AdminService {
         },
       });
 
-      this.deviceReportsCache = { data, expiresAt: now + 5000 };
-      return data;
+      const enrichedData = await Promise.all(
+        data.map(async (report) => {
+          if (!report.gdImage && report.gdStoragePath) {
+            try {
+              const signedUrl = await this.supabaseService.getSignedUrl('gd-documents', report.gdStoragePath, 3600);
+              if (signedUrl) {
+                return { ...report, gdImage: signedUrl };
+              }
+            } catch {
+              // Ignore failure to fetch signed URL, fallback to raw report
+            }
+          }
+          return report;
+        })
+      );
+
+      this.deviceReportsCache = { data: enrichedData, expiresAt: now + 5000 };
+      return enrichedData;
     } catch (e: any) {
       this.logger.error(`Error querying device reports from database: ${e?.message || e}`);
       throw e;

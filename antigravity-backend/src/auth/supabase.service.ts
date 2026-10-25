@@ -12,6 +12,7 @@ export interface AuthenticatedUser {
 export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
   private supabase: SupabaseClient | null = null;
+  private readonly tokenCache = new Map<string, { user: AuthenticatedUser; expiresAt: number }>();
 
   constructor(private readonly prisma: PrismaService) {
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -32,6 +33,12 @@ export class SupabaseService {
   async validateToken(token: string): Promise<AuthenticatedUser | null> {
     if (!this.supabase || !token) {
       return null;
+    }
+
+    const now = Date.now();
+    const cached = this.tokenCache.get(token);
+    if (cached && cached.expiresAt > now) {
+      return cached.user;
     }
 
     try {
@@ -65,11 +72,24 @@ export class SupabaseService {
         }
       }
 
-      return {
+      const authUser: AuthenticatedUser = {
         id: user.id,
         email,
         role,
       };
+
+      // Cache for 60 seconds to eliminate external roundtrip latency
+      this.tokenCache.set(token, { user: authUser, expiresAt: Date.now() + 60000 });
+
+      // Clean cache if too large
+      if (this.tokenCache.size > 500) {
+        const currentTime = Date.now();
+        for (const [key, value] of this.tokenCache.entries()) {
+          if (value.expiresAt <= currentTime) this.tokenCache.delete(key);
+        }
+      }
+
+      return authUser;
     } catch (err: any) {
       this.logger.error(`Error validating Supabase token: ${err?.message || err}`);
       return null;

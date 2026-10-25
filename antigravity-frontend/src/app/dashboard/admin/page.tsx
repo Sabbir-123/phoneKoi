@@ -755,18 +755,23 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4 font-mono font-bold text-indigo-950 tracking-wider">{report.imei}</td>
                            <td className="px-6 py-4">
-                             {report.extractedFromGd ? (
+                             {report.gdImage ? (
+                               <button
+                                 onClick={() => setViewingGdImage(report.gdImage || null)}
+                                 className="inline-flex items-center gap-1.5 font-bold text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full cursor-pointer hover:bg-indigo-100 transition-colors shadow-sm"
+                                 title="View Genuine Uploaded Police GD"
+                               >
+                                 <FileText className="w-3.5 h-3.5 text-indigo-500" /> GD Document
+                               </button>
+                             ) : report.extractedFromGd ? (
                                <button
                                  onClick={() => {
-                                   if (report.gdImage) {
-                                     setViewingGdImage(report.gdImage);
-                                   } else {
-                                     setViewingGdImage(`LEGACY_FALLBACK_${report.id}_${report.deviceName || 'Device'}_${report.imei}`);
-                                   }
+                                   setViewingGdImage(`LEGACY_FALLBACK_${report.id}_${report.deviceName || 'Device'}_${report.imei}`);
                                  }}
-                                 className="inline-flex items-center gap-1 font-bold text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full cursor-pointer hover:bg-indigo-100 transition-colors shadow-sm"
+                                 className="inline-flex items-center gap-1 font-bold text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-100 transition-colors shadow-sm"
+                                 title="View Legacy System Record"
                                >
-                                 <FileText className="w-3.5 h-3.5" /> GD Copy
+                                 <FileText className="w-3.5 h-3.5" /> Legacy GD
                                </button>
                              ) : (
                                <span className="font-semibold text-xs text-slate-400 select-none">Manual Entry</span>
@@ -2076,27 +2081,57 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })()
-                ) : viewingGdImage.startsWith("data:application/pdf;base64,") ? (
-                  <div className="py-24 text-center space-y-2">
-                    <FileText className="w-16 h-16 text-red-500 mx-auto animate-bounce" />
-                    <p className="text-sm font-bold text-slate-700">PDF Document Evidence</p>
-                    <a 
-                      href={viewingGdImage} 
-                      download="police_gd_evidence.pdf" 
-                      rel="noopener noreferrer"
-                      className="inline-block px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all mt-2"
-                    >
-                      Download PDF File
-                    </a>
+                ) : viewingGdImage.startsWith("data:application/pdf") || viewingGdImage.toLowerCase().includes(".pdf") ? (
+                  <div className="py-12 text-center space-y-4 w-full px-4">
+                    <FileText className="w-16 h-16 text-red-500 mx-auto animate-pulse" />
+                    <div>
+                      <p className="text-base font-bold text-slate-800">Official Police GD Document (PDF)</p>
+                      <p className="text-xs text-slate-500 mt-1">Uploaded directly by citizen as legal documentation</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 mt-4">
+                      <a 
+                        href={viewingGdImage} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl font-bold text-xs shadow-md transition-all"
+                      >
+                        <ExternalLink className="w-4 h-4" /> Open in New Tab
+                      </a>
+                      <a 
+                        href={viewingGdImage} 
+                        download="police_gd_evidence.pdf" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all"
+                      >
+                        <FileText className="w-4 h-4" /> Download PDF
+                      </a>
+                    </div>
                   </div>
-                ) : viewingGdImage.startsWith("data:image/jpeg;base64,") ||
-                    viewingGdImage.startsWith("data:image/png;base64,") ||
-                    viewingGdImage.startsWith("data:image/webp;base64,") ? (
-                  <img 
-                    src={viewingGdImage} 
-                    alt="Uploaded GD Copy Evidence" 
-                    className="max-w-full h-auto object-contain rounded-xl shadow-lg border border-slate-100" 
-                  />
+                ) : viewingGdImage.startsWith("data:image/") ||
+                    viewingGdImage.startsWith("http://") ||
+                    viewingGdImage.startsWith("https://") ? (
+                  <div className="flex flex-col items-center justify-center p-2 w-full">
+                    <div className="max-h-[60vh] overflow-auto rounded-xl border border-slate-200/80 shadow-md bg-white">
+                      <img 
+                        src={viewingGdImage} 
+                        alt="Uploaded GD Copy Evidence" 
+                        className="max-w-full max-h-[58vh] object-contain rounded-lg mx-auto" 
+                      />
+                    </div>
+                    <div className="mt-3 flex items-center justify-between w-full px-2 text-xs">
+                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold text-[11px] inline-flex items-center gap-1">
+                        ✓ Genuine Citizen Upload
+                      </span>
+                      <a 
+                        href={viewingGdImage} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Open Full Resolution
+                      </a>
+                    </div>
+                  </div>
                 ) : (
                   <div className="py-16 text-center space-y-2">
                     <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />

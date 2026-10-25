@@ -103,45 +103,41 @@ export class PoliceRecoveryService {
       }
     }
 
-    // 1. Transaction to create drive and all recovered devices
-    const createdDrive = await this.prisma.$transaction(async (tx) => {
-      const drive = await tx.policeRecoveryDrive.create({
-        data: {
-          title: dto.title,
-          agency: dto.agency,
-          policeStation: dto.policeStation || null,
-          caseNumber: dto.caseNumber || null,
-          officerName: dto.officerName || null,
-          officerContact: dto.officerContact || null,
-          mediaContact: dto.mediaContact || null,
-          claimInstructions: dto.claimInstructions || null,
-          sourceUrl: dto.sourceUrl || null,
-          driveDate: parsedDriveDate,
-          totalDevices: dto.devices.length,
-        },
-      });
-
-      const devicesData = dto.devices
-        .filter((d) => d.imei1 || d.imei2 || d.brand)
-        .map((d) => ({
-          driveId: drive.id,
-          brand: d.brand || 'Unknown',
-          model: d.model || 'Unknown',
-          imei1: d.imei1 ? String(d.imei1).replace(/\D/g, '').slice(0, 16) : null,
-          imei2: d.imei2 ? String(d.imei2).replace(/\D/g, '').slice(0, 16) : null,
-          serialNumber: d.serialNumber || null,
-          rawText: d.rawText || null,
-          status: 'IN_CUSTODY' as const,
-        }));
-
-      if (devicesData.length > 0) {
-        await tx.recoveredDevice.createMany({
-          data: devicesData,
-        });
-      }
-
-      return drive;
+    // 1. Create recovery drive
+    const createdDrive = await this.prisma.policeRecoveryDrive.create({
+      data: {
+        title: dto.title,
+        agency: dto.agency,
+        policeStation: dto.policeStation || null,
+        caseNumber: dto.caseNumber || null,
+        officerName: dto.officerName || null,
+        officerContact: dto.officerContact || null,
+        mediaContact: dto.mediaContact || null,
+        claimInstructions: dto.claimInstructions || null,
+        sourceUrl: dto.sourceUrl || null,
+        driveDate: parsedDriveDate,
+        totalDevices: dto.devices.length,
+      },
     });
+
+    const devicesData = dto.devices
+      .filter((d) => d.imei1 || d.imei2 || d.brand)
+      .map((d) => ({
+        driveId: createdDrive.id,
+        brand: d.brand || 'Unknown',
+        model: d.model || 'Unknown',
+        imei1: d.imei1 ? String(d.imei1).replace(/\D/g, '').slice(0, 16) : null,
+        imei2: d.imei2 ? String(d.imei2).replace(/\D/g, '').slice(0, 16) : null,
+        serialNumber: d.serialNumber || null,
+        rawText: d.rawText || null,
+        status: 'IN_CUSTODY' as const,
+      }));
+
+    if (devicesData.length > 0) {
+      await this.prisma.recoveredDevice.createMany({
+        data: devicesData,
+      });
+    }
 
     // 2. Cross-reference matched stolen reports in the system
     const recoveredImeis: string[] = [];

@@ -10,7 +10,7 @@ import { useDashboardStore } from "@/store/useDashboardStore";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 export default function ReportPage() {
-  const { language } = useDashboardStore();
+  const { profile, fetchProfile, language } = useDashboardStore();
   const [imei, setImei] = useState("");
   const [deviceName, setDeviceName] = useState("");
   const [description, setDescription] = useState("");
@@ -24,9 +24,14 @@ export default function ReportPage() {
   const [aiConfidence, setAiConfidence] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [isPro, setIsPro] = useState(false);
-  const [reportsLeft, setReportsLeft] = useState(0);
+  const isInitialPro = Boolean(
+    profile?.isPro ||
+    profile?.role === "ADMIN" ||
+    (typeof profile?.plan === "string" && profile.plan.toLowerCase().includes("pro"))
+  );
+  const [profileLoading, setProfileLoading] = useState(() => !profile);
+  const [isPro, setIsPro] = useState(() => (profile ? isInitialPro : true));
+  const [reportsLeft, setReportsLeft] = useState(() => (profile ? (profile.reportsLeft ?? 0) : 10));
 
   const [reportType, setReportType] = useState<"STOLEN" | "LOST">("STOLEN");
   const [brand, setBrand] = useState("Apple");
@@ -58,9 +63,9 @@ export default function ReportPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkUserQuota = async () => {
+    let isMounted = true;
+    const initData = async () => {
       try {
-        setProfileLoading(true);
         const { createClient } = require("@/utils/supabase/client");
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
@@ -70,22 +75,23 @@ export default function ReportPage() {
           return;
         }
 
-        const res = await authFetch(`${API_URL}/users/profile?email=${session.user.email}`);
-        if (res.ok) {
-          const data = await res.json();
-          const isProPlan = Boolean(
-            data.isPro || 
-            data.role === "ADMIN" || 
-            (typeof data.plan === "string" && data.plan.toLowerCase().includes("pro"))
-          );
-          setIsPro(isProPlan);
-          setReportsLeft(data.reportsLeft ?? 0);
-        }
+        // Run profile fetch and active-channels concurrently in parallel
+        const [profData, chanRes] = await Promise.all([
+          fetchProfile().catch(() => null),
+          fetch(`${API_URL}/notifications/active-channels`).catch(() => null),
+        ]);
 
-        // Fetch which notification channels are enabled by Admin
-        try {
-          const chanRes = await fetch(`${API_URL}/notifications/active-channels`);
-          if (chanRes.ok) {
+        if (isMounted) {
+          if (profData) {
+            const isProPlan = Boolean(
+              profData.isPro || 
+              profData.role === "ADMIN" || 
+              (typeof profData.plan === "string" && profData.plan.toLowerCase().includes("pro"))
+            );
+            setIsPro(isProPlan);
+            setReportsLeft(profData.reportsLeft ?? 0);
+          }
+          if (chanRes && chanRes.ok) {
             const channels = await chanRes.json();
             setActiveChannels(channels);
             setNotificationPreferences((prev) => ({
@@ -96,17 +102,17 @@ export default function ReportPage() {
               sms: Boolean(channels.sms),
             }));
           }
-        } catch (e) {
-          console.error("Could not load active channels:", e);
+          setProfileLoading(false);
         }
       } catch (err) {
-        console.error("Error checking user quota:", err);
-      } finally {
-        setProfileLoading(false);
+        console.error("Error loading user report context:", err);
+        if (isMounted) setProfileLoading(false);
       }
     };
-    checkUserQuota();
-  }, [router]);
+
+    initData();
+    return () => { isMounted = false; };
+  }, [router, fetchProfile]);
 
   const handleGdUpload = async (base64: string) => {
     setIsExtracting(true);
@@ -243,16 +249,16 @@ export default function ReportPage() {
     }
   };
 
-  if (profileLoading) {
+  if (profileLoading && !profile) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Validating safety credentials...</span>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-3">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
+        <span className="text-xs font-semibold text-slate-400">Loading report portal...</span>
       </div>
     );
   }
 
-  if (!isPro || reportsLeft <= 0) {
+  if (!profileLoading && (!isPro || reportsLeft <= 0)) {
     return (
       <div className="w-full max-w-2xl flex flex-col items-center justify-center py-12 px-6">
         {/* Ambient backgrounds */}

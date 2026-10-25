@@ -49,7 +49,7 @@ export default function Navbar() {
 
   const navItems = [
     { name: "Check IMEI", href: "/check", icon: Search },
-    { name: "Recovered Phones", href: "/recovered", icon: ShieldCheck },
+    { name: "Recovered", href: "/recovered", icon: ShieldCheck, badge: "DMP" },
     { name: "Report Stolen", href: "/report", icon: ShieldAlert },
     { name: "Pricing", href: "/pricing", icon: Sparkles },
     { name: "Dashboard", href: "/dashboard", icon: Activity },
@@ -61,17 +61,17 @@ export default function Navbar() {
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 right-0 z-50 flex justify-center px-4 py-4 pointer-events-none"
+        className="fixed top-0 left-0 right-0 z-50 flex justify-center px-3 sm:px-4 py-3 sm:py-4 pointer-events-none"
       >
         <div
-          className={`w-full max-w-5xl flex items-center justify-between pointer-events-auto rounded-2xl px-4 py-3 transition-all duration-300 ${
+          className={`w-full max-w-6xl flex items-center justify-between pointer-events-auto rounded-2xl px-3 sm:px-5 py-2.5 transition-all duration-300 ${
             scrolled || isOpen
-              ? "bg-white/80 backdrop-blur-xl shadow-lg shadow-indigo-100/50 border border-white/80"
+              ? "bg-white/85 backdrop-blur-xl shadow-lg shadow-indigo-100/50 border border-white/80"
               : "bg-transparent"
           }`}
         >
           {/* Official PhoneKoi Logo */}
-          <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center group py-0.5">
+          <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center group py-0.5 shrink-0">
             <motion.div
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
@@ -83,13 +83,13 @@ export default function Navbar() {
                 width={136}
                 height={36}
                 priority
-                className="h-8 md:h-9 w-auto object-contain transition-transform"
+                className="h-7 sm:h-8 md:h-9 w-auto object-contain transition-transform"
               />
             </motion.div>
           </Link>
 
           {/* Nav links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-1 bg-white/60 backdrop-blur-md border border-white/80 rounded-full px-2 py-1.5 shadow-sm">
+          <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 bg-white/70 backdrop-blur-md border border-white/80 rounded-full px-1.5 py-1 shadow-sm shrink-0">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -97,10 +97,10 @@ export default function Navbar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`relative px-4 py-1.5 text-sm font-medium transition-colors duration-200 flex items-center gap-2 rounded-full ${
+                  className={`relative px-2.5 lg:px-3.5 py-1.5 text-xs lg:text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 rounded-full whitespace-nowrap select-none shrink-0 ${
                     isActive
                       ? "text-indigo-700 bg-indigo-50"
-                      : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50"
+                      : "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50"
                   }`}
                 >
                   {isActive && (
@@ -110,9 +110,14 @@ export default function Navbar() {
                       transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                     />
                   )}
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    <Icon className="w-3.5 h-3.5" />
-                    {item.name}
+                  <span className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{item.name}</span>
+                    {item.badge && (
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60 leading-tight">
+                        {item.badge}
+                      </span>
+                    )}
                   </span>
                 </Link>
               );
@@ -120,30 +125,30 @@ export default function Navbar() {
           </nav>
 
           {/* Auth area (Desktop) */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0 whitespace-nowrap">
             {user ? (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/70 border border-slate-100 px-3 py-1.5 rounded-full">
-                  <User className="w-4 h-4 text-indigo-500" />
-                  <span className="hidden sm:inline-block max-w-[120px] truncate">{user.email}</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs lg:text-sm text-slate-600 bg-white/70 border border-slate-200/60 px-3 py-1.5 rounded-full shadow-xs">
+                  <User className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="max-w-[100px] lg:max-w-[140px] truncate">{user.email}</span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="text-slate-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                  className="text-slate-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
                   title="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <>
-                <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors">
+              <div className="flex items-center gap-2">
+                <Link href="/login" className="text-xs lg:text-sm font-semibold text-slate-600 hover:text-indigo-600 px-3 py-1.5 transition-colors">
                   Sign In
                 </Link>
-                <Link href="/signup" className="text-sm btn-primary px-5 py-2 rounded-full font-semibold shadow-sm">
+                <Link href="/signup" className="text-xs lg:text-sm btn-primary px-4 lg:px-5 py-1.5 lg:py-2 rounded-full font-semibold shadow-sm">
                   Sign Up
                 </Link>
-              </>
+              </div>
             )}
           </div>
 
@@ -184,8 +189,15 @@ export default function Navbar() {
                         : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600"
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    {item.name}
+                    <Icon className="w-4 h-4 text-indigo-600" />
+                    <span className="flex-1 flex items-center justify-between">
+                      <span>{item.name}</span>
+                      {item.badge && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          {item.badge}
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 );
               })}
