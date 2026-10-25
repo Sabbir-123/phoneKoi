@@ -420,6 +420,55 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
             {config.badgeText}
           </div>
 
+          {/* Police Recovery Official Banner */}
+          {backendData?.policeRecovery?.isRecovered && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 text-white shadow-xl border border-emerald-400/60 text-left space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-400/30">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                </span>
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
+                    পুলিশ কর্তৃক উদ্ধারকৃত ফোন (POLICE CUSTODY)
+                  </div>
+                  <div className="text-sm font-bold text-white">
+                    🎉 এই ফোনটি পুলিশ উদ্ধার করেছে!
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-200 space-y-1 bg-black/20 p-3 rounded-xl border border-white/10">
+                <p><strong>সংস্থা:</strong> {backendData.policeRecovery.agency} {backendData.policeRecovery.policeStation ? `(${backendData.policeRecovery.policeStation})` : ''}</p>
+                {backendData.policeRecovery.caseNumber && (
+                  <p><strong>জিডি/মামলা নং:</strong> {backendData.policeRecovery.caseNumber}</p>
+                )}
+                {backendData.policeRecovery.officerName && (
+                  <p><strong>দায়িত্বপ্রাপ্ত কর্মকর্তা:</strong> {backendData.policeRecovery.officerName}</p>
+                )}
+                {backendData.policeRecovery.officerContact && (
+                  <p className="flex items-center gap-2 pt-0.5">
+                    <strong>যোগাযোগ:</strong>
+                    <a href={`tel:${backendData.policeRecovery.officerContact}`} className="font-mono font-bold text-emerald-300 underline">
+                      {backendData.policeRecovery.officerContact}
+                    </a>
+                  </p>
+                )}
+              </div>
+
+              {backendData.policeRecovery.claimInstructions && (
+                <div className="text-[11px] text-emerald-200/90 leading-relaxed bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-500/20">
+                  <strong>ফোন ফেরত পাওয়ার নিয়ম:</strong> {backendData.policeRecovery.claimInstructions}
+                </div>
+              )}
+
+              <div className="text-right pt-1">
+                <Link href="/recovered" className="inline-flex items-center gap-1 text-xs text-emerald-300 hover:text-emerald-100 underline font-semibold">
+                  সকল উদ্ধারকৃত ড্রাইভ দেখুন →
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Prominent Required Stolen Device Warning */}
           {activeStatus === "stolen" && (
             <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-red-600 text-white shadow-md text-left space-y-1">

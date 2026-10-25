@@ -521,4 +521,111 @@ export class AlertDispatcherService {
       return { success: false, message: err?.message || 'Operation failed' };
     }
   }
+
+  /**
+   * Dispatches celebratory notification to device owners when their stolen phone is recovered by police
+   */
+  async sendPoliceRecoveryAlert(params: {
+    ownerEmail?: string;
+    ownerTelegramChatId?: string;
+    ownerPhone?: string;
+    device: {
+      brand?: string;
+      model?: string;
+      imei1?: string;
+      imei2?: string;
+    };
+    drive: {
+      title: string;
+      agency: string;
+      policeStation?: string;
+      caseNumber?: string;
+      officerName?: string;
+      officerContact?: string;
+      claimInstructions?: string;
+      sourceUrl?: string;
+    };
+  }): Promise<void> {
+    const config = await this.getGatewaysConfig();
+    const { ownerEmail, ownerTelegramChatId, device, drive } = params;
+
+    // Telegram
+    if (config.telegram?.enabled && config.telegram.botToken) {
+      const recipients: string[] = [];
+      if (ownerTelegramChatId) recipients.push(ownerTelegramChatId);
+      if (config.telegram.adminChatId) recipients.push(config.telegram.adminChatId);
+
+      const telegramMsg = [
+        `🎉 *ফোন উদ্ধার সুখবর! (POLICE RECOVERY ALERT)*`,
+        `==================================`,
+        `আপনার হারিয়ে যাওয়া বা চুরি হওয়া ফোনটি পুলিশ কর্তৃক উদ্ধার করা হয়েছে!`,
+        ``,
+        `📱 *ডিভাইস:* ${device.brand || ''} ${device.model || 'Handset'}`,
+        `🔢 *IMEI:* \`${device.imei1 || device.imei2 || ''}\``,
+        `🏢 *উদ্ধারকারী সংস্থা:* ${drive.agency}${drive.policeStation ? ` (${drive.policeStation})` : ''}`,
+        drive.caseNumber ? `📋 *জিডি/মামলা নং:* ${drive.caseNumber}` : '',
+        drive.officerName ? `👮 *দায়িত্বপ্রাপ্ত কর্মকর্তা:* ${drive.officerName}` : '',
+        drive.officerContact ? `📞 *যোগাযোগ নম্বর:* \`${drive.officerContact}\`` : '',
+        ``,
+        `⚖️ *ফোন ফেরত পাওয়ার নিয়ম:*`,
+        drive.claimInstructions || 'ফোনটির প্রকৃত মালিকানা প্রমাণের প্রয়োজনীয় কাগজপত্র (ক্রয় রশিদ, বক্স বা জাতীয় পরিচয়পত্র) ও জিডির কপি নিয়ে সংশ্লিষ্ট কর্মকর্তা বা বিজ্ঞ আদালতে জিম্মার আবেদন করুন।',
+        drive.sourceUrl ? `\n📰 [পুলিশের বিজ্ঞপ্তি দেখুন](${drive.sourceUrl})` : '',
+        `\n🌐 বিস্তারিত তথ্য যাচাই করুন PhoneKoi-তে।`,
+      ].filter(Boolean).join('\n');
+
+      for (const chatId of Array.from(new Set(recipients))) {
+        try {
+          await this.sendTelegramMessage(config.telegram.botToken, chatId, telegramMsg);
+        } catch (e: any) {
+          this.logger.warn(`Failed to send Telegram recovery notification: ${e?.message}`);
+        }
+      }
+    }
+
+    // Email
+    if (config.email?.enabled && config.email.resendApiKey && ownerEmail) {
+      try {
+        const resend = new Resend(config.email.resendApiKey);
+        const fromEmail = config.email.fromEmail || 'PhoneKoi Alerts <onboarding@resend.dev>';
+        await resend.emails.send({
+          from: fromEmail,
+          to: ownerEmail,
+          subject: `🎉 সুখবর! আপনার হারানো ফোন উদ্ধার করেছে পুলিশ - PhoneKoi Alert`,
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #0b0f19; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #10b981;">
+              <div style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); padding: 24px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">🎉 আপনার ফোন উদ্ধার করা হয়েছে!</h1>
+                <p style="margin: 8px 0 0 0; color: #a7f3d0; font-size: 14px;">পুলিশ কর্তৃক উদ্ধারকৃত ফোনের তালিকায় আপনার ডিভাইস পাওয়া গেছে</p>
+              </div>
+              <div style="padding: 24px;">
+                <div style="background: #111827; border: 1px solid #374151; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                  <h3 style="margin-top: 0; color: #34d399; font-size: 16px; border-bottom: 1px solid #374151; padding-bottom: 8px;">ডিভাইস তথ্য</h3>
+                  <p style="margin: 6px 0; font-size: 14px;"><strong>মডেল:</strong> ${device.brand || ''} ${device.model || 'Unknown'}</p>
+                  <p style="margin: 6px 0; font-size: 14px;"><strong>IMEI:</strong> <code style="background: #1f2937; padding: 2px 6px; border-radius: 4px; color: #10b981;">${device.imei1 || device.imei2 || ''}</code></p>
+                </div>
+                <div style="background: #111827; border: 1px solid #374151; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                  <h3 style="margin-top: 0; color: #60a5fa; font-size: 16px; border-bottom: 1px solid #374151; padding-bottom: 8px;">উদ্ধার সংক্রান্ত তথ্য</h3>
+                  <p style="margin: 6px 0; font-size: 14px;"><strong>সংস্থা / থানা:</strong> ${drive.agency}${drive.policeStation ? ` (${drive.policeStation})` : ''}</p>
+                  ${drive.caseNumber ? `<p style="margin: 6px 0; font-size: 14px;"><strong>জিডি / মামলা নম্বর:</strong> ${drive.caseNumber}</p>` : ''}
+                  ${drive.officerName ? `<p style="margin: 6px 0; font-size: 14px;"><strong>দায়িত্বপ্রাপ্ত কর্মকর্তা:</strong> ${drive.officerName}</p>` : ''}
+                  ${drive.officerContact ? `<p style="margin: 6px 0; font-size: 14px;"><strong>যোগাযোগ:</strong> <a href="tel:${drive.officerContact}" style="color: #38bdf8; text-decoration: underline;">${drive.officerContact}</a></p>` : ''}
+                </div>
+                <div style="background: #064e3b; border-left: 4px solid #10b981; padding: 14px; border-radius: 4px; margin-bottom: 24px;">
+                  <strong style="color: #6ee7b7; font-size: 14px;">ফোন ফেরত নেওয়ার পদ্ধতি:</strong>
+                  <p style="margin: 6px 0 0 0; color: #e2e8f0; font-size: 13px; line-height: 1.6;">
+                    ${drive.claimInstructions || 'মোবাইলের বৈধ মালিকানা প্রমাণের কাগজপত্র (ক্রয় রশিদ, ক্যাশ মেমো, মূল বক্স অথবা জাতীয় পরিচয়পত্র) এবং পূর্বের জিডির কপি সহ তদন্তকারী কর্মকর্তার সাথে যোগাযোগ করুন। বিজ্ঞ আদালতের অনুমতি সাপেক্ষে জিম্মায় ফোনটি আপনাকে হস্তান্তর করা হবে।'}
+                  </p>
+                </div>
+                <div style="text-align: center; font-size: 12px; color: #6b7280;">
+                  <p>নিরাপদ ও নির্ভরযোগ্য ডিভাইস ট্র্যাকিং প্ল্যাটফর্ম — PhoneKoi</p>
+                </div>
+              </div>
+            </div>
+          `,
+        });
+      } catch (err: any) {
+        this.logger.warn(`Failed to send recovery email to ${ownerEmail}: ${err?.message}`);
+      }
+    }
+  }
 }

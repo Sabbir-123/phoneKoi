@@ -134,6 +134,119 @@ ONLY return a valid JSON object, no markdown wrapper or extra text.
     }
   }
 
+  async extractPoliceRecoveryData(content: { text?: string; base64File?: string; mimeType?: string }): Promise<{
+    title: string;
+    agency: string;
+    policeStation?: string;
+    caseNumber?: string;
+    officerName?: string;
+    officerContact?: string;
+    mediaContact?: string;
+    claimInstructions?: string;
+    driveDate?: string;
+    devices: Array<{
+      brand?: string;
+      model?: string;
+      imei1?: string;
+      imei2?: string;
+      serialNumber?: string;
+      rawText?: string;
+    }>;
+  }> {
+    if (!this.model) {
+      throw new Error('AI Service (Gemini) is not initialized');
+    }
+
+    const systemPrompt = `
+You are an expert OCR and Police Evidence Data Extraction AI for Bangladesh Law Enforcement.
+Analyze the provided Bangladesh Police press release / recovery drive notice and extract structured information.
+
+Instructions:
+1. Extract metadata:
+   - "title": Clean Bangla/English title summarizing the drive (e.g. "ডিবি সাইবার কর্তৃক উদ্ধারকৃত ১১৭টি মোবাইল ফোন")
+   - "agency": e.g. "ডিবি সাইবার (ডিএমপি)" or "ঢাকা মেট্রোপলিটন পুলিশ (DMP)" or "র‌্যাব" or "সিআইডি"
+   - "policeStation": Police station / Thana name (e.g. "শাহবাগ থানা" or "Shahbag Police Station")
+   - "caseNumber": GD number, FIR number, or case number (e.g. "শাহবাগ থানার জিডি নং- ৪৭৪")
+   - "officerName": Name and rank of the investigating officer (e.g. "এসআই মোঃ মঞ্জিল সিদ্দিকী")
+   - "officerContact": Contact phone number(s) of the officer (e.g. "01676-271529")
+   - "mediaContact": DMP media or public relations number if mentioned
+   - "claimInstructions": Summary of court/magistrate release prayer instructions for victims to get their phone back
+   - "driveDate": Date of recovery or publication if mentioned
+
+2. Extract EVERY SINGLE recovered mobile device into the "devices" array:
+   - Convert all Bengali numbers (০, ১, ২, ৩, ৪, ৫, ৬, ৭, ৮, ৯) to standard English digits (0-9).
+   - "brand": Brand name (e.g. "Samsung", "Apple", "Xiaomi", "Vivo", "Oppo", "Nothing", "Realme", "Tecno", "Infinix", "Walton", etc.)
+   - "model": Model name (e.g. "Galaxy A52", "iPhone 13 Pro Max", "Redmi Note 11", etc.). If not explicitly separated from brand, extract brand and model appropriately.
+   - "imei1": Clean 14-16 digit numeric string for IMEI 1. Remove non-numeric characters.
+   - "imei2": Clean 14-16 digit numeric string for IMEI 2 (or null if not present). Remove non-numeric characters.
+   - "serialNumber": Serial number if mentioned (optional).
+   - "rawText": The original single-line text for this device from the post.
+
+CRITICAL: Extract ALL devices without omitting any. If there are 100+ devices, extract all of them into the "devices" array.
+Return ONLY a valid JSON object matching the requested schema, without markdown formatting or codeblocks.
+    `.trim();
+
+    try {
+      const parts: any[] = [systemPrompt];
+
+      if (content.base64File && content.mimeType) {
+        parts.push({
+          inlineData: {
+            data: content.base64File.split(',')[1] || content.base64File,
+            mimeType: content.mimeType,
+          },
+        });
+      }
+
+      if (content.text) {
+        parts.push(`\n\n--- DOCUMENT CONTENT ---\n${content.text}`);
+      }
+
+      const result = await this.model.generateContent(parts);
+      const response = await result.response;
+      const text = response.text().trim();
+
+      const jsonStr = text.replace(/```json\n?|\n?```/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+
+      const cleanNum = (str?: string) => {
+        if (!str) return undefined;
+        // convert bangla numerals to english digits
+        const banglaToEng: Record<string, string> = {
+          '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+          '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+        };
+        const converted = String(str).replace(/[০-৯]/g, (d) => banglaToEng[d] || d);
+        return converted.replace(/\D/g, '');
+      };
+
+      const devices = (parsed.devices || []).map((d: any) => ({
+        brand: d.brand ? String(d.brand).trim() : undefined,
+        model: d.model ? String(d.model).trim() : undefined,
+        imei1: cleanNum(d.imei1),
+        imei2: cleanNum(d.imei2),
+        serialNumber: d.serialNumber ? String(d.serialNumber).trim() : undefined,
+        rawText: d.rawText ? String(d.rawText).trim() : undefined,
+      })).filter((d: any) => d.imei1 || d.imei2 || d.brand);
+
+      return {
+        title: parsed.title || 'পুলিশ কর্তৃক উদ্ধারকৃত মোবাইল ফোন',
+        agency: parsed.agency || 'বাংলাদেশ পুলিশ',
+        policeStation: parsed.policeStation || undefined,
+        caseNumber: parsed.caseNumber || undefined,
+        officerName: parsed.officerName || undefined,
+        officerContact: parsed.officerContact || undefined,
+        mediaContact: parsed.mediaContact || undefined,
+        claimInstructions: parsed.claimInstructions || undefined,
+        driveDate: parsed.driveDate || undefined,
+        devices,
+      };
+    } catch (error) {
+      this.logger.error('Failed to extract police recovery data with AI', error);
+      throw error;
+    }
+  }
+
   private getMockExplanation(status: string, language: 'english' | 'banglish'): string {
     if (language === 'banglish') {
       if (status === 'CLEAN') return 'Safe mone hocche 👍 kinte paro';

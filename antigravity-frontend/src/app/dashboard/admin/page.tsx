@@ -26,7 +26,10 @@ import {
   Save,
   Sparkles,
   CheckCircle2,
-  Radio
+  Radio,
+  Loader2,
+  Building,
+  ExternalLink,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useDashboardStore } from '@/store/useDashboardStore';
@@ -92,7 +95,7 @@ export default function AdminDashboard() {
   const { profile, fetchProfile } = useDashboardStore();
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
   const [deviceReports, setDeviceReports] = useState<DeviceReport[]>([]);
-  const [activeTab, setActiveTab] = useState<'SUBSCRIPTIONS' | 'REPORTS' | 'GATEWAYS'>('SUBSCRIPTIONS');
+  const [activeTab, setActiveTab] = useState<'SUBSCRIPTIONS' | 'REPORTS' | 'GATEWAYS' | 'POLICE_RECOVERIES'>('SUBSCRIPTIONS');
   
   const [subFilter, setSubFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [reportFilter, setReportFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -114,6 +117,21 @@ export default function AdminDashboard() {
     whatsappNumber: '',
     smsNumber: '',
   });
+
+  // Police Recovery Drives State
+  const [recoveryDrives, setRecoveryDrives] = useState<any[]>([]);
+  const [recoveryDrivesLoading, setRecoveryDrivesLoading] = useState(false);
+  const [ingestMode, setIngestMode] = useState<'URL' | 'FILE' | 'TEXT'>('URL');
+  const [ingestUrl, setIngestUrl] = useState('');
+  const [ingestText, setIngestText] = useState('');
+  const [ingestFileBase64, setIngestFileBase64] = useState<string | null>(null);
+  const [ingestFileMime, setIngestFileMime] = useState<string>('application/pdf');
+  const [ingestFileName, setIngestFileName] = useState<string>('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishStats, setPublishStats] = useState<any | null>(null);
+  const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -244,6 +262,128 @@ export default function AdminDashboard() {
       setTestResult({ channel, message: e?.message || 'Network error during test', isError: true });
     } finally {
       setTestingChannel(null);
+    }
+  };
+
+  const fetchRecoveryDrives = useCallback(async () => {
+    try {
+      setRecoveryDrivesLoading(true);
+      const res = await authFetch(`${API_URL}/police-recovery/drives?limit=50`);
+      if (res.ok) {
+        const data = await res.json();
+        setRecoveryDrives(data.drives || []);
+      }
+    } catch (e) {
+      console.error('Error fetching recovery drives:', e);
+    } finally {
+      setRecoveryDrivesLoading(false);
+    }
+  }, []);
+
+  const handleExtractFromUrl = async () => {
+    if (!ingestUrl.trim()) {
+      alert('Please enter a valid police recovery article URL');
+      return;
+    }
+    try {
+      setIsExtracting(true);
+      setPublishStats(null);
+      const res = await authFetch(`${API_URL}/police-recovery/extract-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: ingestUrl.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setExtractedData(data);
+      } else {
+        const err = await res.json();
+        alert(err?.message || 'Failed to extract from URL');
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Network error extracting from URL');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleExtractFromDocument = async () => {
+    if (ingestMode === 'FILE' && !ingestFileBase64) {
+      alert('Please upload a PDF or image file');
+      return;
+    }
+    if (ingestMode === 'TEXT' && !ingestText.trim()) {
+      alert('Please enter or paste notice text');
+      return;
+    }
+    try {
+      setIsExtracting(true);
+      setPublishStats(null);
+      const res = await authFetch(`${API_URL}/police-recovery/extract-document`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: ingestMode === 'TEXT' ? ingestText.trim() : undefined,
+          base64File: ingestMode === 'FILE' ? ingestFileBase64 : undefined,
+          mimeType: ingestMode === 'FILE' ? ingestFileMime : undefined,
+          fileName: ingestMode === 'FILE' ? ingestFileName : undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setExtractedData(data);
+      } else {
+        const err = await res.json();
+        alert(err?.message || 'Failed to extract from document');
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Network error extracting from document');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handlePublishDrive = async () => {
+    if (!extractedData || !extractedData.devices || extractedData.devices.length === 0) {
+      alert('No extracted devices to publish');
+      return;
+    }
+    try {
+      setIsPublishing(true);
+      const res = await authFetch(`${API_URL}/police-recovery/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(extractedData),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setPublishStats(result);
+        setExtractedData(null);
+        fetchRecoveryDrives();
+      } else {
+        const err = await res.json();
+        alert(err?.message || 'Failed to publish drive');
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Network error publishing drive');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleDeleteDrive = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this recovery drive and all its devices?')) return;
+    try {
+      const res = await authFetch(`${API_URL}/police-recovery/drives/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchRecoveryDrives();
+      } else {
+        alert('Failed to delete drive');
+      }
+    } catch (e) {
+      alert('Network error deleting drive');
     }
   };
 
@@ -382,6 +522,17 @@ export default function AdminDashboard() {
           >
             <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
             Alert Gateways
+          </button>
+          <button
+            onClick={() => { setActiveTab('POLICE_RECOVERIES'); fetchRecoveryDrives(); }}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-1.5 ${
+              activeTab === 'POLICE_RECOVERIES'
+                ? 'bg-white text-emerald-950 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            পুলিশ উদ্ধারকৃত ড্রাইভ
           </button>
         </div>
       </div>
@@ -1282,6 +1433,475 @@ export default function AdminDashboard() {
               </GlassCard>
 
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'POLICE_RECOVERIES' && (
+          <motion.div
+            key="police_recoveries"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    পুলিশ উদ্ধারকৃত ফোন ইনজেশন ও ম্যানেজমেন্ট
+                  </h2>
+                  <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    AI Auto-Extraction
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 max-w-2xl">
+                  ডিবি সাইবার, সিআইডি, র‍্যাব বা থানা পুলিশের প্রেস রিলিজ (যেমন DMP News) থেকে এক ক্লিকে ১০০+ মোবাইল ফোনের IMEI, ব্র্যান্ড এবং তদন্ত কর্মকর্তার তথ্য অটোমেটিক স্ক্যান করে রেজিস্ট্রি ডাটাবেসে যুক্ত করুন।
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchRecoveryDrives}
+                  disabled={recoveryDrivesLoading}
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${recoveryDrivesLoading ? 'animate-spin' : ''}`} />
+                  রিফ্রেশ তালিকা
+                </button>
+              </div>
+            </div>
+
+            {/* Ingestion Tool Card */}
+            <GlassCard className="p-6 space-y-6 bg-white/80 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  নতুন উদ্ধার ড্রাইভ যুক্ত করুন (AI OCR Ingestion)
+                </h3>
+                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                  <button
+                    onClick={() => setIngestMode('URL')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      ingestMode === 'URL' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    🌐 URL ইনপুট
+                  </button>
+                  <button
+                    onClick={() => setIngestMode('FILE')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      ingestMode === 'FILE' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    📄 PDF / ছবি আপলোড
+                  </button>
+                  <button
+                    onClick={() => setIngestMode('TEXT')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      ingestMode === 'TEXT' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    📝 টেক্সট পেস্ট
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode 1: URL Input */}
+              {ingestMode === 'URL' && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    পুলিশের প্রেস রিলিজ / খবরের লিংক (DMP News URL)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={ingestUrl}
+                      onChange={(e) => setIngestUrl(e.target.value)}
+                      placeholder="https://dmpnews.org/%e0%a6%a1%e0%a6%bf%e0%a6%ac%e0%a6%bf-..."
+                      className="flex-1 text-xs px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      onClick={handleExtractFromUrl}
+                      disabled={isExtracting || !ingestUrl.trim()}
+                      className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+                    >
+                      {isExtracting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Gemini স্ক্যান করছে...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          AI দিয়ে স্ক্যান করুন
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[11px] text-slate-400">দ্রুত পরীক্ষার জন্য:</span>
+                    <button
+                      onClick={() =>
+                        setIngestUrl(
+                          'https://dmpnews.org/%e0%a6%a1%e0%a6%bf%e0%a6%ac%e0%a6%bf-%e0%a6%b8%e0%a6%be%e0%a6%87%e0%a6%ac%e0%a6%be%e0%a6%b0-%e0%a6%85%e0%a7%8d%e0%a6%af%e0%a6%be%e0%a6%a8%e0%a7%8d%e0%a6%a1-%e0%a6%b8%e0%a7%8d%e0%a6%aa%e0%a7%87/?fbclid=IwdGRzaAVKfPdjbGNrBUp84WV4dG4DYWVtAjExAHBkb2YFc3J0YwZhcHBfaWQMMzUwNjg1NTMxNzI4AAEeRZCMlHILuytvatMFMqgKqAVqUaBiXVp_TjaZpQ88TgZb4BJOaA-pnet84L0_aem_fGQjEwgF1Dgeg7LHCeGBeQ&sfnsn=wa'
+                        )
+                      }
+                      className="text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 font-semibold transition-all"
+                    >
+                      🔗 ডিবি সাইবার ১১৭টি মোবাইল উদ্ধার লিংক পেস্ট করুন
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mode 2: File Upload */}
+              {ingestMode === 'FILE' && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    প্রেস রিলিজের PDF কপি অথবা ছবি আপলোড করুন
+                  </label>
+                  <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-all text-center">
+                    <input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIngestFileName(file.name);
+                          setIngestFileMime(file.type || 'application/pdf');
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setIngestFileBase64(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                    />
+                    {ingestFileName && (
+                      <p className="text-xs text-emerald-700 font-bold mt-2">
+                        নির্বাচিত ফাইল: {ingestFileName}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleExtractFromDocument}
+                    disabled={isExtracting || !ingestFileBase64}
+                    className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isExtracting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        ডকুমেন্ট স্ক্যান হচ্ছে...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        AI OCR দিয়ে স্ক্যান করুন
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Mode 3: Raw Text Input */}
+              {ingestMode === 'TEXT' && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    পুলিশের প্রেস রিলিজের বিবরণ ও উদ্ধারকৃত ফোনের তালিকা পেস্ট করুন
+                  </label>
+                  <textarea
+                    rows={6}
+                    value={ingestText}
+                    onChange={(e) => setIngestText(e.target.value)}
+                    placeholder="১। Nothing Phone — IMEI-1: 355235048744323; IMEI-2: ...&#10;২। TECNO Spark — IMEI-1: 352512131156166..."
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                  <button
+                    onClick={handleExtractFromDocument}
+                    disabled={isExtracting || !ingestText.trim()}
+                    className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isExtracting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        টেক্সট স্ক্যান হচ্ছে...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        AI দিয়ে ডাটা এক্সট্রাক্ট করুন
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </GlassCard>
+
+            {/* Published Success Alert */}
+            {publishStats && (
+              <div className="p-5 rounded-2xl bg-emerald-950 text-white border border-emerald-500/40 shadow-xl space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-sm">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>ড্রাইভ সফলভাবে ডাটাবেসে পাবলিশ ও রেজিস্ট্রিভুক্ত হয়েছে!</span>
+                </div>
+                <div className="text-xs text-slate-300 space-y-1">
+                  <p>• মোট উদ্ধারকৃত ডিভাইসের সংখ্যা: <strong>{publishStats.totalDevices}</strong> টি</p>
+                  <p className="text-emerald-300 font-bold">
+                    • PhoneKoi-তে পূর্বে রিপোর্টকৃত চুরির সাথে ম্যাচ করেছে: {publishStats.matchedReportsCount} টি ডিভাইস!
+                  </p>
+                  {publishStats.matchedReportsCount > 0 && (
+                    <p className="text-cyan-300">
+                      🔔 ম্যাচ করা ভিকটিমদের কাছে টেলিগ্রাম ও ইমেইল মাধ্যমে স্বয়ংক্রিয় সুখবর পৌঁছে গেছে।
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* AI Extracted Preview & Editing Card */}
+            {extractedData && (
+              <GlassCard className="p-6 space-y-6 bg-white/90 border-2 border-emerald-500 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                      সফল স্ক্যান: {extractedData.devices?.length || 0} টি ডিভাইস শনাক্ত হয়েছে
+                    </span>
+                    <h3 className="text-base font-bold text-slate-900 mt-2">
+                      এক্সট্রাকশন ফলাফল যাচাই ও পাবলিশ
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setExtractedData(null)}
+                      className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition-all"
+                    >
+                      বাতিল করুন
+                    </button>
+                    <button
+                      onClick={handlePublishDrive}
+                      disabled={isPublishing}
+                      className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2"
+                    >
+                      {isPublishing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          পাবলিশ হচ্ছে...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          পাবলিশ ও এলার্ট পাঠান
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Metadata Form */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500">ড্রাইভ শিরোনাম (Title)</label>
+                    <input
+                      type="text"
+                      value={extractedData.title || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, title: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500">উদ্ধারকারী সংস্থা (Agency)</label>
+                    <input
+                      type="text"
+                      value={extractedData.agency || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, agency: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500">সংশ্লিষ্ট থানা (Police Station)</label>
+                    <input
+                      type="text"
+                      value={extractedData.policeStation || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, policeStation: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500">জিডি / মামলা নম্বর (Case No)</label>
+                    <input
+                      type="text"
+                      value={extractedData.caseNumber || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, caseNumber: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500">তদন্ত কর্মকর্তা (Officer Name)</label>
+                    <input
+                      type="text"
+                      value={extractedData.officerName || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, officerName: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500">যোগাযোগ নম্বর (Officer Contact)</label>
+                    <input
+                      type="text"
+                      value={extractedData.officerContact || ''}
+                      onChange={(e) => setExtractedData({ ...extractedData, officerContact: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-500">আদালতে জিম্মার আবেদন নির্দেশিকা (Claim Instructions)</label>
+                  <textarea
+                    rows={2}
+                    value={extractedData.claimInstructions || ''}
+                    onChange={(e) => setExtractedData({ ...extractedData, claimInstructions: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-medium"
+                  />
+                </div>
+
+                {/* Table search and summary */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">
+                      উদ্ধারকৃত হ্যান্ডসেটের তালিকা ({extractedData.devices?.length || 0} টি)
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="মডেল বা IMEI দিয়ে ফিল্টার করুন..."
+                      value={deviceSearchQuery}
+                      onChange={(e) => setDeviceSearchQuery(e.target.value)}
+                      className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white w-64"
+                    />
+                  </div>
+
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-80 overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold uppercase sticky top-0 border-b border-slate-200">
+                        <tr>
+                          <th className="py-2.5 px-3">#</th>
+                          <th className="py-2.5 px-3">ব্র্যান্ড ও মডেল</th>
+                          <th className="py-2.5 px-3">IMEI 1</th>
+                          <th className="py-2.5 px-3">IMEI 2 / সিরিয়াল</th>
+                          <th className="py-2.5 px-3 text-right">একশন</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {(extractedData.devices || [])
+                          .filter((d: any) => {
+                            if (!deviceSearchQuery.trim()) return true;
+                            const q = deviceSearchQuery.toLowerCase();
+                            return (
+                              d.brand?.toLowerCase().includes(q) ||
+                              d.model?.toLowerCase().includes(q) ||
+                              d.imei1?.includes(q) ||
+                              d.imei2?.includes(q) ||
+                              d.serialNumber?.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((d: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-slate-50/70">
+                              <td className="py-2.5 px-3 text-slate-400 font-mono">{idx + 1}</td>
+                              <td className="py-2.5 px-3 font-semibold text-slate-800">
+                                {d.brand || 'Unknown'} {d.model || ''}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono text-emerald-700 font-medium">
+                                {d.imei1 || '-'}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono text-slate-600">
+                                {d.imei2 || d.serialNumber || '-'}
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <button
+                                  onClick={() => {
+                                    const filtered = extractedData.devices.filter((_: any, i: number) => i !== idx);
+                                    setExtractedData({ ...extractedData, devices: filtered });
+                                  }}
+                                  className="text-red-500 hover:text-red-700 font-bold text-[11px]"
+                                >
+                                  মুছুন
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* Published Drives List */}
+            <GlassCard className="p-6 space-y-4 bg-white/70 border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Building className="w-4 h-4 text-emerald-600" />
+                  পূর্বে প্রকাশিত উদ্ধার ড্রাইভের তালিকা ({recoveryDrives.length} টি)
+                </h3>
+              </div>
+
+              {recoveryDrivesLoading ? (
+                <div className="py-12 flex justify-center text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                </div>
+              ) : recoveryDrives.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  কোনো রিকভারি ড্রাইভ ডাটাবেসে পাওয়া যায়নি।
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {recoveryDrives.map((drive) => (
+                    <div key={drive.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            {drive.deviceCount} টি হ্যান্ডসেট
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {new Date(drive.driveDate).toLocaleDateString('bn-BD')}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900 leading-snug">{drive.title}</h4>
+                        <p className="text-xs text-slate-500">
+                          {drive.agency} {drive.policeStation ? `• ${drive.policeStation}` : ''}{' '}
+                          {drive.officerName ? `• অফিসার: ${drive.officerName} (${drive.officerContact || ''})` : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        {drive.sourceUrl && (
+                          <a
+                            href={drive.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-slate-400 hover:text-emerald-700 rounded-xl hover:bg-slate-100 text-xs flex items-center gap-1 font-semibold"
+                            title="মূল প্রেস রিলিজ দেখুন"
+                          >
+                            প্রেস রিলিজ <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDeleteDrive(drive.id)}
+                          className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-all"
+                        >
+                          মুছে ফেলুন
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
           </motion.div>
         )}
       </AnimatePresence>

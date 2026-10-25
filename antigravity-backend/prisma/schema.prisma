@@ -197,3 +197,45 @@ model SystemSetting {
   value     Json
   updatedAt DateTime @updatedAt
 }
+
+model PoliceRecoveryDrive {
+  id                String            @id @default(uuid())
+  title             String
+  agency            String            // e.g. "DMP DB Cyber & Special Crime (North)"
+  policeStation     String?           // e.g. "Shahbag Police Station"
+  caseNumber        String?
+  officerName       String?           // e.g. "এসআই (নিঃ) মো. মনজিল সিদ্দিকী"
+  officerContact    String?           // e.g. "01676-271529"
+  mediaContact      String?           // e.g. "01320-038001"
+  claimInstructions String?           @db.Text // Full legal claim procedure
+  sourceUrl         String?
+  driveDate         DateTime          @default(now())
+  totalDevices      Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  devices           RecoveredDevice[]
+
+  @@index([driveDate])
+}
+
+model RecoveredDevice {
+  id           String              @id @default(uuid())
+  driveId      String
+  drive        PoliceRecoveryDrive @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  imei1        String?
+  imei2        String?
+  serialNumber String?
+  brand        String?
+  model        String?
+  rawText      String?
+  status       String              @default("IN_POLICE_CUSTODY") // "IN_POLICE_CUSTODY", "CLAIMED_BY_OWNER"
+  claimedBy    String?
+  claimedAt    DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([imei1])
+  @@index([imei2])
+  @@index([driveId])
+}

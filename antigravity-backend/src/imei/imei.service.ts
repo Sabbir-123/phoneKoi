@@ -82,6 +82,41 @@ export class ImeiService {
       }
     }
 
+    // Check if device is recovered in police custody
+    let recoveredRecord: any = null;
+    try {
+      recoveredRecord = await this.prisma.recoveredDevice.findFirst({
+        where: {
+          OR: [{ imei1: imei }, { imei2: imei }],
+        },
+        include: {
+          drive: true,
+        },
+      });
+    } catch (recErr: any) {
+      this.logger.warn(`Could not check police recovered devices for ${imei}: ${recErr?.message}`);
+    }
+
+    const policeRecovery = recoveredRecord
+      ? {
+          isRecovered: true,
+          driveId: recoveredRecord.driveId,
+          driveTitle: recoveredRecord.drive.title,
+          agency: recoveredRecord.drive.agency,
+          policeStation: recoveredRecord.drive.policeStation,
+          caseNumber: recoveredRecord.drive.caseNumber,
+          recoveryDate: recoveredRecord.drive.recoveryDate,
+          officerName: recoveredRecord.drive.officerName,
+          officerContact: recoveredRecord.drive.officerContact,
+          mediaContact: recoveredRecord.drive.mediaContact,
+          sourceUrl: recoveredRecord.drive.sourceUrl,
+          claimInstructions: recoveredRecord.drive.claimInstructions,
+          status: recoveredRecord.status,
+          brand: recoveredRecord.brand,
+          model: recoveredRecord.model,
+        }
+      : null;
+
     const isStolen = (device && device.status === DeviceStatus.STOLEN) || (activeReport && activeReport.status === 'APPROVED');
 
     // Handle authenticated user quota deduction via database
@@ -146,25 +181,38 @@ export class ImeiService {
     const maskedImei = imei.length === 15 ? `${imei.slice(0, 6)}*****${imei.slice(11)}` : `***********${imei.slice(-4)}`;
 
     if (!device && !activeReport) {
-      // Return clean default state with strict advisory
+      // Check if device was found in police custody drive
       let explanation = language === 'banglish' 
-        ? 'Eti ekta clean device. Kono churi ba GD report paowa jayni.' 
-        : 'No theft reports, active police GD complaints, or suspicious patterns detected for this IMEI. Format is authentic and safe to proceed.';
-      try {
-        explanation = await this.aiService.generateRiskExplanation(DeviceStatus.CLEAN, 0, language);
-      } catch (aiErr: any) {
-        this.logger.warn(`AI risk explanation fallback: ${aiErr?.message || aiErr}`);
+        ? (policeRecovery 
+            ? '🎉 Ei device-ti police uddhar koreche ebong police hefazote royeche!' 
+            : 'Eti ekta clean device. Kono churi ba GD report paowa jayni.')
+        : (policeRecovery 
+            ? '🎉 FOUND IN POLICE CUSTODY! This device was recovered in a law enforcement operation.'
+            : 'No theft reports, active police GD complaints, or suspicious patterns detected for this IMEI. Format is authentic and safe to proceed.');
+
+      if (!policeRecovery) {
+        try {
+          explanation = await this.aiService.generateRiskExplanation(DeviceStatus.CLEAN, 0, language);
+        } catch (aiErr: any) {
+          this.logger.warn(`AI risk explanation fallback: ${aiErr?.message || aiErr}`);
+        }
       }
 
       return {
         imei,
         maskedImei,
-        risk_score: 0,
+        risk_score: policeRecovery ? 15 : 0,
         risk_level: RiskLevel.LOW,
         status: DeviceStatus.CLEAN,
         explanation,
-        advisory: 'No theft or loss reports currently registered for this IMEI. However, this does not guarantee the device is genuine, free of debt, or legally owned. Always verify the original physical invoice, box serial, and seller credentials.',
+        advisory: policeRecovery
+          ? 'This device is currently listed in official police custody. If you are the rightful owner, review the claim instructions and contact the investigating officer to retrieve your phone.'
+          : 'No theft or loss reports currently registered for this IMEI. However, this does not guarantee the device is genuine, free of debt, or legally owned. Always verify the original physical invoice, box serial, and seller credentials.',
         ownerAlertDispatched: false,
+        brand: policeRecovery?.brand || 'Mobile Device',
+        model: policeRecovery?.model || 'Standard Model',
+        deviceName: `${policeRecovery?.brand || ''} ${policeRecovery?.model || ''}`.trim() || 'Mobile Device',
+        policeRecovery,
       };
     }
 
@@ -173,10 +221,16 @@ export class ImeiService {
     const riskLevel = isStolen ? RiskLevel.HIGH : (device?.riskLevel || RiskLevel.LOW);
 
     let explanation = 'Device status evaluated.';
-    try {
-      explanation = await this.aiService.generateRiskExplanation(deviceStatus, riskScore, language);
-    } catch (aiErr: any) {
-      this.logger.warn(`AI risk explanation fallback: ${aiErr?.message || aiErr}`);
+    if (policeRecovery && isStolen) {
+      explanation = language === 'banglish'
+        ? '🎉 Shukhhobor! Apnar churi jaowa phone-ti police uddhar koreche! Firot pete nicher tothye jogajog korun.'
+        : '🎉 GREAT NEWS! This reported stolen device has been recovered by Police and is currently in official custody.';
+    } else {
+      try {
+        explanation = await this.aiService.generateRiskExplanation(deviceStatus, riskScore, language);
+      } catch (aiErr: any) {
+        this.logger.warn(`AI risk explanation fallback: ${aiErr?.message || aiErr}`);
+      }
     }
 
     // Check if the current user is an admin or the legitimate owner of the report
@@ -218,19 +272,24 @@ export class ImeiService {
       contactNumber: displayContactNumber,
       ownerWhatsappNumber: isStolen ? rawOwnerContact : null,
       warningMessage: isStolen
-        ? 'WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.'
+        ? (policeRecovery
+            ? 'NOTICE: This reported device was recovered in a police operation. See custody and claim details below.'
+            : 'WARNING: This device has been reported lost or stolen. Do not purchase this phone until its ownership has been verified.')
         : undefined,
       ownerAlertDispatched: isStolen,
-      brand: activeReport?.brand || activeReport?.deviceName?.split(' ')[0] || 'Mobile Device',
-      model: activeReport?.model || activeReport?.deviceName || 'Standard Model',
-      deviceName: activeReport?.deviceName || 'Reported Handset',
+      brand: activeReport?.brand || activeReport?.deviceName?.split(' ')[0] || policeRecovery?.brand || 'Mobile Device',
+      model: activeReport?.model || activeReport?.deviceName || policeRecovery?.model || 'Standard Model',
+      deviceName: activeReport?.deviceName || `${policeRecovery?.brand || ''} ${policeRecovery?.model || ''}`.trim() || 'Reported Handset',
       lossDate: activeReport?.lossDate || activeReport?.date || null,
-      policeGdNumber: displayPoliceGd,
-      policeStation: activeReport?.policeStation || null,
+      policeGdNumber: displayPoliceGd || policeRecovery?.caseNumber || null,
+      policeStation: activeReport?.policeStation || policeRecovery?.policeStation || null,
       allowContact: isStolen,
       safetyGuidance: isStolen
-        ? 'Law Enforcement Advice: Do not confront the seller directly. Note down their phone number or shop location and immediately inform your local police station.'
+        ? (policeRecovery
+            ? 'Official Court Claim Advice: Contact the designated investigating officer with your original purchase receipt/box and submit an application to the Metropolitan Magistrate Court for custody handover.'
+            : 'Law Enforcement Advice: Do not confront the seller directly. Note down their phone number or shop location and immediately inform your local police station.')
         : undefined,
+      policeRecovery,
     };
   }
 }
