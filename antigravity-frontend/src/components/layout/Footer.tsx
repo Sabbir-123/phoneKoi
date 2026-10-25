@@ -4,11 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ShieldCheck, Search, ShieldAlert, Sparkles, MapPin, Lock, CheckCircle2 } from "lucide-react";
-import { useTranslation } from "@/lib/useTranslation";
 
 export default function Footer() {
   const pathname = usePathname();
-  const { t, isBn } = useTranslation();
 
   // Do not render footer on dashboard pages
   if (pathname?.startsWith("/dashboard")) {
@@ -39,53 +37,48 @@ export default function Footer() {
             </Link>
             
             <p className="text-sm text-slate-500 max-w-sm leading-relaxed font-normal">
-              {t.footer.tagline}
+              Bangladesh&apos;s #1 community-driven IMEI verification network &amp; stolen device registry. 
+              Know the truth before you buy through real-time Police GD records, Luhn integrity checks, and dynamic fraud risk scoring.
             </p>
 
             <div className="flex items-center gap-3 text-xs flex-wrap">
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-emerald-700 font-semibold shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {t.footer.liveNetwork}
+                Live Verification Network
               </span>
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 font-medium shadow-xs">
                 <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                {t.footer.location}
+                Dhaka, Bangladesh
               </span>
             </div>
           </div>
 
           {/* Quick Verification Services */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">{t.footer.servicesTitle}</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">Services</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/check" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors flex items-center gap-2">
                   <Search className="w-3.5 h-3.5 text-indigo-500" />
-                  {t.footer.checkImei}
+                  Check IMEI Number
                 </Link>
               </li>
               <li>
                 <Link href="/report" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors flex items-center gap-2">
                   <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-                  {t.footer.reportStolen}
-                </Link>
-              </li>
-              <li>
-                <Link href="/recovered" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  {t.footer.recoveredDb}
+                  Report Stolen Phone
                 </Link>
               </li>
               <li>
                 <Link href="/pricing" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                  {t.footer.pricingPlans}
+                  Pricing &amp; Plans
                 </Link>
               </li>
               <li>
                 <Link href="/dashboard" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  {t.footer.trustDashboard}
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Trust Dashboard
                 </Link>
               </li>
             </ul>
@@ -93,13 +86,13 @@ export default function Footer() {
 
           {/* Supported Devices */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">{t.footer.supportedDevicesTitle}</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">Supported Devices</h4>
             <ul className="space-y-2.5 text-sm text-slate-600 font-medium">
               <li className="flex items-center gap-2">
                 <span>🍎</span> Apple iPhone (11 – 18 Pro Max)
               </li>
               <li className="flex items-center gap-2">
-                <span>📱</span> Samsung Galaxy (S26 Ultra, S-series, A-series)
+                <span>📱</span> Samsung Galaxy (S26 ultra, S26, A-series, all series)
               </li>
               <li className="flex items-center gap-2">
                 <span>⚡</span> Xiaomi, Redmi &amp; Poco
@@ -112,19 +105,19 @@ export default function Footer() {
 
           {/* Legal & Security */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">{t.footer.securityTitle}</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">Security &amp; Protocol</h4>
             <ul className="space-y-2.5 text-sm text-slate-600 font-medium">
               <li className="flex items-center gap-2 text-xs">
                 <Lock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>{t.footer.privacyProtected}</span>
+                <span>100% Privacy Protected Queries</span>
               </li>
               <li className="flex items-center gap-2 text-xs">
                 <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                <span>{t.footer.policeVerified}</span>
+                <span>Police GD Verified Records</span>
               </li>
               <li className="flex items-center gap-2 text-xs">
                 <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                <span>{t.footer.oneNumberPolicy}</span>
+                <span>1-Number per Account Policy</span>
               </li>
             </ul>
           </div>
@@ -133,11 +126,11 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {currentYear} PhoneKoi. {t.footer.copyright}</p>
+          <p>© {currentYear} PhoneKoi. All rights reserved. Built for consumer safety in Bangladesh.</p>
           <div className="flex items-center gap-6 font-medium">
-            <Link href="/check" className="hover:text-indigo-600 transition-colors">{t.nav.checkImei}</Link>
-            <Link href="/report" className="hover:text-indigo-600 transition-colors">{t.nav.reportStolen}</Link>
-            <Link href="/pricing" className="hover:text-indigo-600 transition-colors">{t.nav.pricing}</Link>
+            <Link href="/check" className="hover:text-indigo-600 transition-colors">IMEI Engine</Link>
+            <Link href="/report" className="hover:text-indigo-600 transition-colors">Theft Database</Link>
+            <Link href="/pricing" className="hover:text-indigo-600 transition-colors">Pro Membership</Link>
           </div>
         </div>
       </div>

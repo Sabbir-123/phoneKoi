@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { API_URL, authFetch } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
 
-export type Language = 'english' | 'bangla' | 'banglish';
+export type Language = 'english' | 'banglish';
 export type AiMode = 'simple' | 'detailed' | 'technical';
 
 export interface UserProfile {

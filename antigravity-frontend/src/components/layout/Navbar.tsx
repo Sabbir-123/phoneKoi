@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShieldAlert, ShieldCheck, Activity, User, LogOut, Sparkles, Menu, X, Globe } from "lucide-react";
+import { Search, ShieldAlert, ShieldCheck, Activity, User, LogOut, Sparkles, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useDashboardStore } from "@/store/useDashboardStore";
-import { useTranslation } from "@/lib/useTranslation";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -16,7 +15,6 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { profile, fetchProfile } = useDashboardStore();
-  const { t, isBn, toggleLanguage } = useTranslation();
 
   useEffect(() => {
     const supabase = createClient();
@@ -87,11 +85,11 @@ export default function Navbar() {
   }
 
   const navItems = [
-    { name: t.nav.checkImei, href: "/check", icon: Search },
-    { name: t.nav.recovered, href: "/recovered", icon: ShieldCheck, badge: "DMP" },
-    { name: t.nav.reportStolen, href: "/report", icon: ShieldAlert },
-    { name: t.nav.pricing, href: "/pricing", icon: Sparkles },
-    { name: t.nav.dashboard, href: "/dashboard", icon: Activity },
+    { name: "Check IMEI", href: "/check", icon: Search },
+    { name: "Recovered", href: "/recovered", icon: ShieldCheck, badge: "DMP" },
+    { name: "Report Stolen", href: "/report", icon: ShieldAlert },
+    { name: "Pricing", href: "/pricing", icon: Sparkles },
+    { name: "Dashboard", href: "/dashboard", icon: Activity },
   ];
 
   return (
@@ -134,7 +132,7 @@ export default function Navbar() {
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.href}
+                  key={item.name}
                   href={item.href}
                   className={`relative px-2.5 lg:px-3.5 py-1.5 text-xs lg:text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 rounded-full whitespace-nowrap select-none shrink-0 ${
                     isActive
@@ -163,21 +161,8 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Auth area + Language Switcher (Desktop) */}
+          {/* Auth area (Desktop) */}
           <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0 whitespace-nowrap">
-            {/* Language Switcher Pill */}
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-xs font-bold text-slate-700 hover:text-indigo-700 shadow-xs transition-all duration-200 group cursor-pointer"
-              title={isBn ? t.nav.switchToEnglish : t.nav.switchToBangla}
-            >
-              <Globe className="w-3.5 h-3.5 text-indigo-600 group-hover:rotate-12 transition-transform" />
-              <span className="font-extrabold tracking-tight">
-                {isBn ? "EN" : "বাংলা"}
-              </span>
-            </button>
-
             {user ? (
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <Link
@@ -206,7 +191,7 @@ export default function Navbar() {
                 <button
                   onClick={handleLogout}
                   className="text-slate-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
-                  title={t.nav.signOut}
+                  title="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -214,30 +199,20 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login" className="text-xs lg:text-sm font-semibold text-slate-600 hover:text-indigo-600 px-3 py-1.5 transition-colors">
-                  {t.nav.signIn}
+                  Sign In
                 </Link>
                 <Link href="/signup" className="text-xs lg:text-sm btn-primary px-4 lg:px-5 py-1.5 lg:py-2 rounded-full font-semibold shadow-sm">
-                  {t.nav.signUp}
+                  Sign Up
                 </Link>
               </div>
             )}
           </div>
 
-          {/* Mobile menu trigger & Quick language toggle */}
-          <div className="flex md:hidden items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="px-2.5 py-1.5 rounded-xl bg-white/70 backdrop-blur-md border border-slate-200/80 text-xs font-bold text-indigo-700 shadow-sm flex items-center gap-1"
-              title={isBn ? t.nav.switchToEnglish : t.nav.switchToBangla}
-            >
-              <Globe className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{isBn ? "EN" : "বাং"}</span>
-            </button>
+          {/* Mobile menu trigger */}
+          <div className="flex md:hidden items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-xl bg-white/60 backdrop-blur-md border border-slate-100/50 hover:bg-slate-50 text-slate-600 transition-colors pointer-events-auto shadow-sm"
-              aria-label="Toggle Menu"
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -255,28 +230,13 @@ export default function Navbar() {
             transition={{ duration: 0.3 }}
             className="fixed top-24 left-4 right-4 bg-white/95 backdrop-blur-2xl border border-slate-100 rounded-3xl p-6 shadow-2xl z-50 flex flex-col gap-6 md:hidden pointer-events-auto"
           >
-            {/* Language Switcher inside Mobile Drawer */}
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-              <span className="text-xs font-bold text-slate-600 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-indigo-600" />
-                Language / ভাষা
-              </span>
-              <button
-                type="button"
-                onClick={toggleLanguage}
-                className="px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-xs hover:bg-indigo-700 transition-colors"
-              >
-                {isBn ? "English Version" : "বাংলা ভার্সন"}
-              </button>
-            </div>
-
             <nav className="flex flex-col gap-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
                 return (
                   <Link
-                    key={item.href}
+                    key={item.name}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
                     className={`px-4 py-3 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-colors ${
@@ -334,7 +294,7 @@ export default function Navbar() {
                     className="w-full py-3 bg-red-50 hover:bg-red-100 border border-red-200/50 text-red-600 rounded-2xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                   >
                     <LogOut className="w-4 h-4" />
-                    {t.nav.signOut}
+                    Sign Out
                   </button>
                 </div>
               ) : (
@@ -344,14 +304,14 @@ export default function Navbar() {
                     onClick={() => setIsOpen(false)}
                     className="w-full py-3 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors border border-slate-100"
                   >
-                    {t.nav.signIn}
+                    Sign In
                   </Link>
                   <Link
                     href="/signup"
                     onClick={() => setIsOpen(false)}
                     className="w-full py-3.5 text-center text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl shadow-md transition-all flex items-center justify-center"
                   >
-                    {t.nav.signUp}
+                    Sign Up
                   </Link>
                 </div>
               )}

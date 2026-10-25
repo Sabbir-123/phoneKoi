@@ -40,27 +40,11 @@ export default function LanguageModal() {
               <Globe className="w-8 h-8 text-indigo-400" />
             </div>
             
-            <h2 className="text-2xl font-bold text-white mb-2">Welcome to PhoneKoi / ফোনকই</h2>
-            <p className="text-slate-400 mb-8">Please select your preferred language. You can easily change this anytime in settings.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Welcome to Phone Koi</h2>
+            <p className="text-slate-400 mb-8">Please select your preferred dashboard language. You can change this later in settings.</p>
 
             <div className="w-full flex flex-col gap-4">
               <button 
-                type="button"
-                onClick={() => {
-                  setLanguage('bangla');
-                  setHasSelectedLanguage(true);
-                }}
-                className="w-full p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all text-left flex items-center justify-between group"
-              >
-                <div>
-                  <div className="font-bold text-white mb-1 group-hover:text-emerald-300 transition-colors">বাংলা (Bangla)</div>
-                  <div className="text-xs text-slate-300">সম্পূর্ণ ওয়েবসাইট বাংলায় ব্যবহার করুন</div>
-                </div>
-                <div className="text-2xl">🇧🇩</div>
-              </button>
-
-              <button 
-                type="button"
                 onClick={() => {
                   setLanguage('english');
                   setHasSelectedLanguage(true);
@@ -69,9 +53,23 @@ export default function LanguageModal() {
               >
                 <div>
                   <div className="font-bold text-white mb-1 group-hover:text-indigo-300 transition-colors">English</div>
-                  <div className="text-xs text-slate-400">Continue with standard English</div>
+                  <div className="text-xs text-slate-500">Continue with standard English</div>
                 </div>
-                <div className="text-2xl">🇬🇧</div>
+                <div className="text-xl">🇺🇸</div>
+              </button>
+
+              <button 
+                onClick={() => {
+                  setLanguage('banglish');
+                  setHasSelectedLanguage(true);
+                }}
+                className="w-full p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all text-left flex items-center justify-between group"
+              >
+                <div>
+                  <div className="font-bold text-white mb-1 group-hover:text-emerald-300 transition-colors">Banglish</div>
+                  <div className="text-xs text-slate-500">Dashboard er vasha Banglish e hobe</div>
+                </div>
+                <div className="text-xl">🇧🇩</div>
               </button>
             </div>
           </div>

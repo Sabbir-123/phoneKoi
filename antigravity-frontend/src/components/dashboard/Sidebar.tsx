@@ -1,7 +1,8 @@
 'use client';
+import { API_URL, authFetch } from '@/utils/api';
+
 
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { useTranslation } from '@/lib/useTranslation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,8 +12,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
-  const { sidebarOpen, toggleSidebar, profile, fetchProfile } = useDashboardStore();
-  const { t, isBn } = useTranslation();
+  const { sidebarOpen, toggleSidebar, language, profile, fetchProfile } = useDashboardStore();
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -30,17 +30,20 @@ export default function Sidebar() {
   }, [fetchProfile]);
 
   const isAdmin = profile?.role === 'ADMIN';
+  const searchesLeft = profile?.searchesLeft !== undefined ? profile.searchesLeft : null;
+
+  const pricingLabel = language === 'banglish' ? 'Check Quota' : 'Check Quota';
 
   const navItems = [
-    { name: t.dashboard.sidebar.home, href: '/', icon: Home },
-    { name: t.dashboard.sidebar.dashboard, href: '/dashboard', icon: LayoutDashboard },
-    { name: t.dashboard.sidebar.reportedDevices, href: '/dashboard/devices', icon: Smartphone },
-    { name: t.dashboard.sidebar.alerts, href: '/dashboard/alerts', icon: Bell },
-    { name: t.dashboard.sidebar.history, href: '/dashboard/history', icon: History },
-    { name: t.dashboard.sidebar.quota, href: '/dashboard/quota', icon: CreditCard },
-    { name: t.dashboard.sidebar.profile, href: '/dashboard/profile', icon: UserCircle },
-    { name: t.dashboard.sidebar.settings, href: '/dashboard/settings', icon: Settings },
-    ...(isAdmin ? [{ name: t.dashboard.sidebar.adminPanel, href: '/dashboard/admin', icon: ShieldCheck }] : []),
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Reported Devices', href: '/dashboard/devices', icon: Smartphone },
+    { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
+    { name: 'History', href: '/dashboard/history', icon: History },
+    { name: pricingLabel, href: '/dashboard/quota', icon: CreditCard },
+    { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    ...(isAdmin ? [{ name: 'Admin panel', href: '/dashboard/admin', icon: ShieldCheck }] : []),
   ];
 
   const handleLogout = async () => {
@@ -83,7 +86,7 @@ export default function Sidebar() {
 
         <div className="flex-1 overflow-y-auto py-8 px-4 flex flex-col gap-2">
           <div className="px-4 mb-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
-            {t.dashboard.sidebar.yourDashboard}
+            {language === 'banglish' ? 'Apanar Dashboard' : 'Your Dashboard'}
           </div>
           
           {navItems.map((item) => {
@@ -95,7 +98,7 @@ export default function Sidebar() {
             
             return (
               <Link 
-                key={item.href} 
+                key={item.name} 
                 href={item.href}
                 onClick={() => typeof window !== 'undefined' && window.innerWidth < 1024 && toggleSidebar()}
                 className={`relative flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group ${
@@ -114,10 +117,10 @@ export default function Sidebar() {
         <div className="p-4 border-t border-slate-100 mt-auto">
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors group cursor-pointer"
+            className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors group"
           >
             <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-semibold">{t.dashboard.sidebar.logOut}</span>
+            <span className="font-semibold">{language === 'banglish' ? 'Log Out Korun' : 'Log Out'}</span>
           </button>
         </div>
       </motion.aside>

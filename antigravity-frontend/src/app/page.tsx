@@ -28,7 +28,6 @@ import {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useDashboardStore } from "@/store/useDashboardStore";
-import { useTranslation } from "@/lib/useTranslation";
 
 // Luhn check algorithm
 const validateLuhn = (imei: string): boolean => {
@@ -52,7 +51,6 @@ export default function Home() {
   const [heroLuhnValid, setHeroLuhnValid] = useState<boolean | null>(null);
 
   const { profile, fetchProfile } = useDashboardStore();
-  const { t, isBn } = useTranslation();
   const hasClaimedPromo = Boolean(profile?.hasClaimedPromo || profile?.plan === '6 Months Pro');
 
   useEffect(() => {
@@ -132,33 +130,21 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-md border border-indigo-100 shadow-sm text-xs font-bold text-indigo-700">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <ShieldCheck className="w-4 h-4 text-indigo-600" />
-              <span>{t.home.badge}</span>
+              <span>Bangladesh&apos;s #1 Community IMEI Verification &amp; Stolen Phone Registry</span>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-indigo-950">
-              {isBn ? (
-                <>
-                  কেনার আগেই{" "}
-                  <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-500 bg-clip-text text-transparent drop-shadow-sm">
-                    আসল সত্য
-                  </span>
-                  <br />জেনে নিন।
-                </>
-              ) : (
-                <>
-                  Know the{" "}
-                  <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-500 bg-clip-text text-transparent drop-shadow-sm">
-                    truth
-                  </span>
-                  <br />before you buy.
-                </>
-              )}
+              Know the{" "}
+              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-500 bg-clip-text text-transparent drop-shadow-sm">
+                truth
+              </span>
+              <br />before you buy.
             </h1>
 
             {/* Subtitle */}
             <p className="text-lg sm:text-xl text-slate-500 max-w-xl leading-relaxed font-normal">
-              {t.home.heroSubtitle}
+              Real-time IMEI risk scoring powered by verified Police GD records and community reports. Never buy a stolen, cloned, or blacklisted phone in Bangladesh again.
             </p>
 
             {/* Quick Live IMEI Search Form */}
@@ -174,17 +160,17 @@ export default function Home() {
                     maxLength={15}
                     value={heroImei}
                     onChange={(e) => setHeroImei(e.target.value.replace(/\D/g, ""))}
-                    placeholder={t.home.searchPlaceholder}
+                    placeholder="Enter 15-digit IMEI (dial *#06#)"
                     className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm sm:text-base font-mono tracking-wider font-semibold"
                   />
                   {heroLuhnValid === true && (
                     <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {isBn ? "সঠিক" : "Valid"}
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Valid
                     </span>
                   )}
                   {heroLuhnValid === false && (
                     <span className="text-xs font-bold text-red-500 flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
-                      <AlertTriangle className="w-3.5 h-3.5" /> {isBn ? "ভুল চেকসাম" : "Invalid"}
+                      <AlertTriangle className="w-3.5 h-3.5" /> Invalid
                     </span>
                   )}
                 </div>
@@ -193,7 +179,7 @@ export default function Home() {
                   type="submit"
                   className="btn-primary py-3.5 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-indigo-500/25 transition-all shrink-0 cursor-pointer"
                 >
-                  <span>{t.home.verifyButton}</span>
+                  <span>Verify Now</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
@@ -201,16 +187,16 @@ export default function Home() {
               {/* Secondary CTA links */}
               <div className="flex items-center gap-4 mt-3 px-1 text-xs text-slate-500 flex-wrap">
                 <span className="flex items-center gap-1 font-medium text-slate-600">
-                  <Lock className="w-3.5 h-3.5 text-indigo-500" /> {isBn ? "১০০% ফ্রি লুহন চেক" : "100% Free Format Check"}
+                  <Lock className="w-3.5 h-3.5 text-indigo-500" /> 100% Free Format Check
                 </span>
                 <span>•</span>
                 <Link href="/report" className="font-semibold text-amber-700 hover:text-amber-800 transition-colors flex items-center gap-1 underline underline-offset-4">
                   <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                  {t.home.reportLostButton}
+                  Report a Stolen Phone
                 </Link>
                 <span>•</span>
                 <Link href="/check" className="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
-                  {isBn ? "অ্যাডভান্সড ইঞ্জিন" : "Advanced Check Engine"}
+                  Advanced Check Engine
                 </Link>
               </div>
             </div>
@@ -218,7 +204,7 @@ export default function Home() {
             {/* Supported Brands Bar */}
             <div className="pt-2 flex flex-col gap-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                {isBn ? "যেসব ব্রান্ডের হ্যান্ডসেট যাচাই করা যাবে:" : "Instant Verification Supported For:"}
+                Instant Verification Supported For:
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="px-3 py-1.5 rounded-xl bg-white/80 border border-slate-200 shadow-xs text-xs font-semibold text-slate-700 flex items-center gap-1.5">
@@ -441,15 +427,13 @@ export default function Home() {
       <section className="py-24 px-6 relative max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3">
-            <CheckCircle2 className="w-3.5 h-3.5" /> {isBn ? "সহজ ৩টি ধাপ" : "Simple Protocol"}
+            <CheckCircle2 className="w-3.5 h-3.5" /> Simple Protocol
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-indigo-950 tracking-tight">
-            {t.home.howItWorksTitle}
+            How PhoneKoi Protects Buyers
           </h2>
           <p className="text-slate-500 text-base sm:text-lg mt-3">
-            {isBn 
-              ? "বাংলাদেশে সেকেন্ডহ্যান্ড মোবাইল ক্রয়-বিক্রয়ের আগে এই ৩টি সহজ নিয়ম মেনে চলুন।"
-              : "Follow three straightforward steps before exchanging cash or signing used mobile deals in Bangladesh."}
+            Follow three straightforward steps before exchanging cash or signing used mobile deals in Bangladesh.
           </p>
         </div>
 
@@ -950,11 +934,11 @@ export default function Home() {
             </div>
 
             <h2 className="text-3xl sm:text-5xl font-extrabold text-indigo-950 tracking-tight">
-              {t.home.ctaTitle}
+              Ready to verify a phone in Bangladesh?
             </h2>
 
             <p className="text-slate-500 text-base sm:text-lg">
-              {t.home.ctaSubtitle}
+              Don&apos;t risk purchasing stolen goods or dealing with police seizures. Enter any IMEI number now to verify authenticity before you pay.
             </p>
 
             <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
@@ -962,14 +946,14 @@ export default function Home() {
                 href="/check"
                 className="btn-primary py-4 px-8 rounded-2xl font-bold text-sm sm:text-base flex items-center gap-2 shadow-xl hover:shadow-indigo-500/25 transition-all cursor-pointer"
               >
-                <span>{t.home.ctaButton}</span>
+                <span>Check IMEI Now</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/report"
                 className="py-4 px-8 rounded-2xl font-bold text-sm sm:text-base text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
               >
-                {t.home.reportLostButton}
+                Report Stolen Phone
               </Link>
             </div>
           </div>

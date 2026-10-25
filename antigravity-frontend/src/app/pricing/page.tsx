@@ -9,7 +9,6 @@ import { ShieldCheck, Sparkles, AlertCircle, Copy, Check, Send } from 'lucide-re
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { useTranslation } from '@/lib/useTranslation';
 
 export interface SubscriptionPlan {
   name: string;
@@ -107,7 +106,6 @@ export default function PricingPage() {
   const router = useRouter();
 
   const { profile, fetchProfile } = useDashboardStore();
-  const { t, isBn } = useTranslation();
 
   useEffect(() => {
     fetchProfile();
@@ -221,15 +219,7 @@ export default function PricingPage() {
           transition={{ delay: 0.1 }}
           className="text-4xl md:text-5xl font-extrabold text-indigo-950 tracking-tight leading-tight"
         >
-          {isBn ? (
-            <>
-              আনলক করুন <span className="text-indigo-600">প্রো মেম্বারশিপ</span>
-            </>
-          ) : (
-            <>
-              Unlock <span className="text-indigo-600">Pro Watcher</span> Standing
-            </>
-          )}
+          Unlock <span className="text-indigo-600">Pro Watcher</span> Standing
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 15 }}
@@ -237,9 +227,7 @@ export default function PricingPage() {
           transition={{ delay: 0.15 }}
           className="text-slate-500 text-base font-medium leading-relaxed"
         >
-          {isBn
-            ? "আপনার প্রয়োজন অনুযায়ী সেরা প্ল্যান বেছে নিন—আনলিমিটেড IMEI সার্চ, জিডি অ্যালার্ট ও ট্র্যাকিং সুবিধা।"
-            : "Upgrade your plan to run queries, protect purchases in real-time, and get unlimited device track alerts."}
+          Upgrade your plan to run queries, protect purchases in real-time, and get unlimited device track alerts.
         </motion.p>
 
         {/* Promo announcement */}
@@ -251,15 +239,7 @@ export default function PricingPage() {
         >
           <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>
-            {isBn ? (
-              <>
-                🎉 <strong>লঞ্চ অফার:</strong> ৩১ জানুয়ারি ২০২৭ পর্যন্ত সাইন আপ করলেই <strong>৬ মাসের প্রো প্যাকেজ পাচ্ছেন সম্পূর্ণ ফ্রিতে!</strong>
-              </>
-            ) : (
-              <>
-                🎉 <strong>Early Adopter Special:</strong> Sign up until <strong>January 31, 2027</strong> to receive the <strong>6 Months Pro Package for FREE</strong>!
-              </>
-            )}
+            🎉 <strong>Early Adopter Special:</strong> Sign up until <strong>January 31, 2027</strong> to receive the <strong>6 Months Pro Package for FREE</strong>!
           </span>
         </motion.div>
       </div>

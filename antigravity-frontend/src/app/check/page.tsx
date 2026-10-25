@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, CheckCircle2, AlertTriangle, Loader2, Shield } from "lucide-react";
+import { Search, CheckCircle2, AlertTriangle, Loader2, Shield, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTranslation } from "@/lib/useTranslation";
 
 const validateLuhn = (imei: string): boolean => {
   if (!/^\d{15}$/.test(imei)) return false;
@@ -23,7 +22,6 @@ export default function CheckPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
-  const { t, isBn } = useTranslation();
 
   useEffect(() => {
     if (imei.length === 0) { setIsValid(null); setIsTyping(false); return; }
@@ -33,6 +31,8 @@ export default function CheckPage() {
     else setIsValid(false);
     return () => clearTimeout(t);
   }, [imei]);
+
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
 
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,14 +74,12 @@ export default function CheckPage() {
       >
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm font-medium mb-4">
           <Search className="w-4 h-4" />
-          {t.checkPage.badge}
+          Device Authenticity
         </div>
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-indigo-950">
-          {t.checkPage.title}
+          Check & Verify Before You Buy
         </h1>
-        <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-          {t.checkPage.subtitle}
-        </p>
+        <p className="text-slate-500 text-lg">Is this phone safe to purchase? Enter the 15-digit IMEI to check global records.</p>
       </motion.div>
 
       <motion.form
@@ -97,10 +95,10 @@ export default function CheckPage() {
           {/* Label and Counter Row */}
           <div className="flex justify-between items-center px-1">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              {t.checkPage.inputLabel}
+              Device IMEI
             </span>
             <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100/40 px-2.5 py-0.5 rounded-full">
-              {imei.length}/15 {isBn ? 'সংখ্যা' : 'digits'}
+              {imei.length}/15 digits
             </span>
           </div>
 
@@ -138,7 +136,7 @@ export default function CheckPage() {
           </div>
         </motion.div>
 
-        {/* Action Button Row */}
+        {/* Action Button Row (Outside the Box) */}
         <AnimatePresence>
           {imei.length === 15 && (
             <motion.div
@@ -151,13 +149,13 @@ export default function CheckPage() {
               <button
                 type="submit"
                 disabled={isSearching}
-                className="w-full btn-primary py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-indigo-100/30 hover:shadow-indigo-200/50 hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                className="w-full btn-primary py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-indigo-100/30 hover:shadow-indigo-200/50 hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               >
                 {isSearching ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <Search className="w-5 h-5" /> {t.checkPage.checkButton}
+                    <Search className="w-5 h-5" /> Check Status
                   </>
                 )}
               </button>
@@ -166,11 +164,8 @@ export default function CheckPage() {
         </AnimatePresence>
 
         {imei.length === 15 && !isValid && (
-          <div className="text-center text-xs text-amber-600 font-semibold animate-pulse max-w-md mx-auto leading-relaxed px-2">
-            {isBn 
-              ? '⚠️ লুহন চেকসামের অমিল পাওয়া গেছে। ফোনটি ডাটাবেজে চুরি হিসেবে তালিকাভুক্ত থাকলে তাও সার্চ অব্যাহত থাকবে।'
-              : '⚠️ Luhn checksum mismatch. If this device is already reported in our registry, search will still proceed.'
-            }
+          <div className="text-center text-xs text-amber-500 font-semibold animate-pulse max-w-md mx-auto leading-relaxed px-2">
+            ⚠️ Luhn checksum mismatch. If this device is already reported in our registry, search will still proceed.
           </div>
         )}
 
@@ -178,13 +173,10 @@ export default function CheckPage() {
         <div className="mt-4 p-4 rounded-2xl bg-white/50 backdrop-blur-md border border-slate-200/60 text-left space-y-2 shadow-sm">
           <div className="flex items-center gap-2 text-indigo-900 font-extrabold text-xs">
             <Shield className="w-4 h-4 text-indigo-600" />
-            <span>{isBn ? 'নিরাপদ অনুসন্ধান ও মালিকের গোপনীয়তা সুরক্ষা' : 'Search Security & Owner Alert Guarantee'}</span>
+            <span>Search Security & Owner Alert Guarantee</span>
           </div>
           <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-            {isBn 
-              ? 'ফোনকই থানা জিডি ও জাতীয় চুরির রিপোর্টের সাথে মিলিয়ে সঠিক তথ্য প্রদান করে। যেকোনো অনুসন্ধানে ক্রেতা ও বৈধ মালিক উভয়ের ব্যক্তিগত তথ্য শতভাগ সুরক্ষিত থাকে।'
-              : 'PhoneKoi securely verifies device records against police complaints and active loss reports. Search inquiries protect legitimate handset owners while strictly safeguarding your personal privacy.'
-            }
+            PhoneKoi securely verifies device records against police complaints and active loss reports. Search inquiries protect legitimate handset owners while strictly safeguarding your personal privacy.
           </p>
         </div>
       </motion.form>
