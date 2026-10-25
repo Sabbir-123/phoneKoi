@@ -92,10 +92,10 @@ export default function RecoveredPhonesPortal() {
         const data = await res.json();
         setSearchResult(data);
       } else {
-        setSearchResult({ found: false, message: "সার্ভার থেকে তথ্য পাওয়া যায়নি।" });
+        setSearchResult({ found: false, message: "Unable to retrieve data from server." });
       }
     } catch (e) {
-      setSearchResult({ found: false, message: "সার্চ করতে ত্রুটি হয়েছে। পুনরায় চেষ্টা করুন।" });
+      setSearchResult({ found: false, message: "Search failed. Please check your connection and try again." });
     } finally {
       setSearching(false);
     }
@@ -131,18 +131,18 @@ export default function RecoveredPhonesPortal() {
       >
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold uppercase tracking-wider shadow-sm">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          বাংলাদেশ পুলিশ উদ্ধারকৃত হ্যান্ডসেট রেজিস্ট্রি
+          Bangladesh Police Recovered Handset Registry
         </div>
 
         <h1 className="text-3xl md:text-5xl font-extrabold text-indigo-950 tracking-tight leading-tight">
-          পুলিশের উদ্ধারকৃত ফোনে <br className="hidden sm:inline" />
+          Check If Your Lost Phone <br className="hidden sm:inline" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600">
-            আপনার ফোনটি আছে কি না খুঁজুন
+            Has Been Recovered by Police
           </span>
         </h1>
 
         <p className="text-slate-600 text-sm md:text-base leading-relaxed">
-          ডিবি (DB Cyber), সিআইডি, র‍্যাব ও ঢাকা মেট্রোপলিটন পুলিশ (DMP) সহ দেশের বিভিন্ন থানার বিশেষ অভিযানে উদ্ধারকৃত শত শত মোবাইল ফোনের আইএমইআই নম্বর সহজেই মিলিয়ে দেখুন।
+          Easily search and match IMEI numbers against hundreds of mobile devices recovered across special police operations by DB Cyber, CID, RAB, DMP, and district police units nationwide.
         </p>
       </motion.div>
 
@@ -157,7 +157,7 @@ export default function RecoveredPhonesPortal() {
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              ডিভাইসের ১৫ সংখ্যার IMEI নম্বর লিখুন
+              Enter 15-digit Device IMEI Number
             </span>
             <span className="text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
               {searchImei.length}/15 digits
@@ -170,7 +170,7 @@ export default function RecoveredPhonesPortal() {
                 type="text"
                 value={searchImei}
                 onChange={(e) => setSearchImei(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                placeholder="যেমন: 355235048744323"
+                placeholder="e.g. 355235048744323"
                 className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 rounded-2xl px-4 py-3.5 text-lg font-mono tracking-widest text-indigo-950 placeholder:text-slate-300 outline-none transition-all"
               />
             </div>
@@ -183,12 +183,12 @@ export default function RecoveredPhonesPortal() {
               {searching ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  অনুসন্ধান হচ্ছে...
+                  Searching...
                 </>
               ) : (
                 <>
                   <Search className="w-5 h-5" />
-                  অনুসন্ধান করুন
+                  Search Database
                 </>
               )}
             </button>
@@ -217,10 +217,10 @@ export default function RecoveredPhonesPortal() {
                   </span>
                   <div>
                     <span className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">
-                      সফল শনাক্তকরণ (FOUND IN POLICE CUSTODY)
+                      MATCH CONFIRMED (IN POLICE CUSTODY)
                     </span>
                     <h3 className="text-2xl font-black text-white">
-                      🎉 আপনার ফোনটি পুলিশ হেফাজতে রয়েছে!
+                      🎉 Your device has been found in police custody!
                     </h3>
                   </div>
                 </div>
@@ -228,13 +228,13 @@ export default function RecoveredPhonesPortal() {
                 {/* Device Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-6 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
                   <div>
-                    <span className="text-xs text-slate-400">ডিভাইস মডেল</span>
+                    <span className="text-xs text-slate-400">Device Model</span>
                     <p className="font-bold text-slate-100 text-base">
-                      {searchResult.device?.brand || ""} {searchResult.device?.model || "হ্যান্ডসেট"}
+                      {searchResult.device?.brand || ""} {searchResult.device?.model || "Handset"}
                     </p>
                   </div>
                   <div>
-                    <span className="text-xs text-slate-400">আইএমইআই (IMEI)</span>
+                    <span className="text-xs text-slate-400">IMEI Number</span>
                     <p className="font-mono font-semibold text-emerald-400 text-sm">
                       {searchResult.device?.imei1 || searchResult.device?.imei2}
                     </p>
@@ -246,7 +246,7 @@ export default function RecoveredPhonesPortal() {
                   <div className="flex items-start gap-2.5 text-slate-300">
                     <Building className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
-                      <strong>সংস্থা / থানা:</strong> {searchResult.drive.agency}{" "}
+                      <strong>Agency / Station:</strong> {searchResult.drive.agency}{" "}
                       {searchResult.drive.policeStation ? `(${searchResult.drive.policeStation})` : ""}
                     </span>
                   </div>
@@ -255,7 +255,7 @@ export default function RecoveredPhonesPortal() {
                     <div className="flex items-start gap-2.5 text-slate-300">
                       <FileText className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                       <span>
-                        <strong>জিডি / মামলা নম্বর:</strong> {searchResult.drive.caseNumber}
+                        <strong>GD / Case Number:</strong> {searchResult.drive.caseNumber}
                       </span>
                     </div>
                   )}
@@ -264,7 +264,7 @@ export default function RecoveredPhonesPortal() {
                     <div className="flex items-start gap-2.5 text-slate-300">
                       <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                       <span>
-                        <strong>তদন্তকারী কর্মকর্তা:</strong> {searchResult.drive.officerName}
+                        <strong>Investigating Officer:</strong> {searchResult.drive.officerName}
                       </span>
                     </div>
                   )}
@@ -272,7 +272,7 @@ export default function RecoveredPhonesPortal() {
                   {searchResult.drive.officerContact && (
                     <div className="flex items-center gap-2.5 text-emerald-300 pt-1">
                       <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span className="font-bold">যোগাযোগ নম্বর:</span>
+                      <span className="font-bold">Contact Phone:</span>
                       <a
                         href={`tel:${searchResult.drive.officerContact}`}
                         className="font-mono font-bold underline bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30"
@@ -286,11 +286,11 @@ export default function RecoveredPhonesPortal() {
                 {/* Claim Instructions */}
                 <div className="mt-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-1.5 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" /> ফোন ফেরত পাওয়ার আইনি নির্দেশিকা
+                    <Sparkles className="w-3.5 h-3.5" /> Legal Claim & Retrieval Instructions
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {searchResult.drive.claimInstructions ||
-                      "আপনার মোবাইলের প্রকৃত ক্রয় রশিদ (Cash Memo), মূল বক্স ও জাতীয় পরিচয়পত্র (NID) এবং পূর্বের জিডির কপি নিয়ে সংশ্লিষ্ট কর্মকর্তা বা বিজ্ঞ আদালতে জিম্মার আবেদন করুন। আদালতের অনুমোদনক্রমে বৈধ মালিক হিসেবে ফোনটি আপনাকে হস্তান্তর করা হবে।"}
+                      "Please visit the designated police officer or submit a custody petition (জিম্মার আবেদন) to the competent court along with original cash memo/invoice, retail box, National ID (NID), and copy of your Police GD. Upon verification, the device will be legally handed over to the rightful owner."}
                   </p>
                 </div>
 
@@ -302,7 +302,7 @@ export default function RecoveredPhonesPortal() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs text-emerald-300 hover:text-emerald-200 underline font-medium"
                     >
-                      পুলিশের মূল প্রেস বিজ্ঞপ্তি দেখুন <ExternalLink className="w-3.5 h-3.5" />
+                      View Official Police Press Release <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
                 )}
@@ -314,10 +314,10 @@ export default function RecoveredPhonesPortal() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    এই মুহূর্তে উদ্ধারকৃত তালিকায় পাওয়া যায়নি
+                    Not Found in Current Police Recovery Drives
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                    আপনার প্রদত্ত IMEI নম্বরটি সাম্প্রতিক পুলিশ প্রেস বিজ্ঞপ্তির তালিকায় এখনো অন্তর্ভুক্ত হয়নি।
+                    The provided IMEI does not match any devices published in recent police recovery press releases.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -325,7 +325,7 @@ export default function RecoveredPhonesPortal() {
                     href="/report"
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all"
                   >
-                    PhoneKoi-তে চুরির রিপোর্ট বা জিডি এন্ট্রি করুন <ChevronRight className="w-4 h-4" />
+                    File a Stolen Report or Record GD on PhoneKoi <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
@@ -339,10 +339,10 @@ export default function RecoveredPhonesPortal() {
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-indigo-950 flex items-center gap-2">
             <Building className="w-6 h-6 text-emerald-600" />
-            সাম্প্রতিক পুলিশ উদ্ধার অভিযানসমূহ
+            Recent Police Recovery Drives
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            আইনশৃঙ্খলা বাহিনী কর্তৃক প্রকাশিত প্রেস রিলিজ ও মোবাইল উদ্ধারের বিজ্ঞপ্তি তালিকা
+            Official press releases and recovered mobile registries published by law enforcement agencies
           </p>
         </div>
       </div>
@@ -351,11 +351,11 @@ export default function RecoveredPhonesPortal() {
       {drivesLoading ? (
         <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-          <span className="text-sm font-medium">উদ্ধার অভিযানসমূহ লোড হচ্ছে...</span>
+          <span className="text-sm font-medium">Loading recovery drives...</span>
         </div>
       ) : drives.length === 0 ? (
         <div className="w-full py-16 text-center bg-white rounded-3xl border border-slate-100 p-8 text-slate-400">
-          <p className="text-sm font-medium">বর্তমানে কোনো প্রকাশিত উদ্ধার ড্রাইভ নেই।</p>
+          <p className="text-sm font-medium">No published recovery drives available at the moment.</p>
         </div>
       ) : (
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-5 mb-16">
@@ -369,11 +369,15 @@ export default function RecoveredPhonesPortal() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-extrabold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-100 flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    {drive.deviceCount} টি উদ্ধারকৃত ডিভাইস
+                    {drive.deviceCount} Recovered Devices
                   </span>
                   <span className="text-xs text-slate-400 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
-                    {new Date(drive.driveDate).toLocaleDateString("bn-BD")}
+                    {new Date(drive.driveDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
 
@@ -383,16 +387,16 @@ export default function RecoveredPhonesPortal() {
 
                 <div className="text-xs text-slate-500 space-y-1">
                   <p>
-                    <strong>সংস্থা:</strong> {drive.agency}
+                    <strong>Agency:</strong> {drive.agency}
                   </p>
                   {drive.policeStation && (
                     <p>
-                      <strong>থানা:</strong> {drive.policeStation}
+                      <strong>Police Station:</strong> {drive.policeStation}
                     </p>
                   )}
                   {drive.officerName && (
                     <p>
-                      <strong>তদন্ত কর্মকর্তা:</strong> {drive.officerName}{" "}
+                      <strong>Officer:</strong> {drive.officerName}{" "}
                       {drive.officerContact ? `(${drive.officerContact})` : ""}
                     </p>
                   )}
@@ -407,7 +411,7 @@ export default function RecoveredPhonesPortal() {
                     rel="noopener noreferrer"
                     className="text-xs text-slate-500 hover:text-emerald-700 flex items-center gap-1"
                   >
-                    মূল বিজ্ঞপ্তি <ExternalLink className="w-3 h-3" />
+                    Official Release <ExternalLink className="w-3 h-3" />
                   </a>
                 ) : <span />}
 
@@ -415,7 +419,7 @@ export default function RecoveredPhonesPortal() {
                   onClick={() => openDriveModal(drive.id)}
                   className="px-4 py-2 bg-indigo-50 hover:bg-emerald-600 hover:text-white text-indigo-900 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
                 >
-                  ডিভাইস তালিকা দেখুন <ChevronRight className="w-3.5 h-3.5" />
+                  View Device List <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </motion.div>
@@ -438,7 +442,7 @@ export default function RecoveredPhonesPortal() {
                 <div className="space-y-1 pr-6">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      {selectedDrive.devices?.length || 0} টি ডিভাইস উদ্ধার
+                      {selectedDrive.devices?.length || 0} Devices Recovered
                     </span>
                     <span className="text-xs text-slate-500">{selectedDrive.agency}</span>
                   </div>
@@ -447,7 +451,7 @@ export default function RecoveredPhonesPortal() {
                   </h3>
                   {selectedDrive.officerName && (
                     <p className="text-xs text-slate-600">
-                      যোগাযোগ: <strong>{selectedDrive.officerName}</strong> ({selectedDrive.officerContact})
+                      Contact: <strong>{selectedDrive.officerName}</strong> ({selectedDrive.officerContact})
                     </p>
                   )}
                 </div>
@@ -466,7 +470,7 @@ export default function RecoveredPhonesPortal() {
                   type="text"
                   value={deviceFilter}
                   onChange={(e) => setDeviceFilter(e.target.value)}
-                  placeholder="ব্র্যান্ড, মডেল বা IMEI দিয়ে খুঁজুন..."
+                  placeholder="Search by brand, model, or IMEI..."
                   className="w-full text-xs outline-none bg-transparent"
                 />
                 {deviceFilter && (
@@ -482,9 +486,9 @@ export default function RecoveredPhonesPortal() {
                   <thead className="bg-slate-50 text-slate-500 font-bold uppercase sticky top-0 border-b border-slate-200">
                     <tr>
                       <th className="py-2.5 px-3">#</th>
-                      <th className="py-2.5 px-3">ব্র্যান্ড ও মডেল</th>
+                      <th className="py-2.5 px-3">Brand & Model</th>
                       <th className="py-2.5 px-3">IMEI 1</th>
-                      <th className="py-2.5 px-3">IMEI 2 / সিরিয়াল</th>
+                      <th className="py-2.5 px-3">IMEI 2 / Serial</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -520,12 +524,12 @@ export default function RecoveredPhonesPortal() {
 
               {/* Modal Footer */}
               <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
-                <span>প্রয়োজনে সংশ্লিষ্ট কর্মকর্তার সাথে সরাসরি যোগাযোগ করুন।</span>
+                <span>Contact the designated investigating officer for legal claim verification.</span>
                 <button
                   onClick={() => setSelectedDrive(null)}
                   className="px-4 py-2 bg-slate-200 hover:bg-slate-300 font-bold text-slate-800 rounded-xl"
                 >
-                  বন্ধ করুন
+                  Close
                 </button>
               </div>
             </motion.div>
