@@ -54,10 +54,15 @@ export default function SearchEventsMap({ events, selectedEventId, onSelectEvent
         attributionControl: false,
       });
 
-      // Use clean modern CartoDB Positron / OSM style tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      // Use free OpenStreetMap tiles by default (no API key required), or Carto if an API key is configured
+      const cartoKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+      const tileUrl = cartoKey
+        ? `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${cartoKey}`
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+      L.tileLayer(tileUrl, {
         maxZoom: 19,
-        subdomains: 'abcd',
+        subdomains: cartoKey ? 'abcd' : 'abc',
       }).addTo(map);
 
       // Attribution
