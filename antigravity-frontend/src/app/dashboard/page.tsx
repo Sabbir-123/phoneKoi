@@ -12,8 +12,8 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 function DashboardHomeContent() {
-  const { language } = useDashboardStore();
-  const [name, setName] = useState('User');
+  const { language, profile, fetchProfile } = useDashboardStore();
+  const [name, setName] = useState(profile?.displayName || 'User');
   const [email, setEmail] = useState('');
   const [profileWarning, setProfileWarning] = useState(false);
   const searchParams = useSearchParams();
@@ -26,6 +26,13 @@ function DashboardHomeContent() {
   const [realSearchHistory, setRealSearchHistory] = useState<any[]>([]);
 
   useEffect(() => {
+    if (profile?.displayName) {
+      setName(profile.displayName);
+    }
+  }, [profile?.displayName]);
+
+  useEffect(() => {
+    fetchProfile(true);
     // Check Supabase to get the user's name and email
     const { createClient } = require("@/utils/supabase/client");
     const supabase = createClient();
@@ -33,17 +40,24 @@ function DashboardHomeContent() {
       if (session?.user?.email) {
         const userEmail = session.user.email;
         setEmail(userEmail);
-        if (session.user.user_metadata?.displayName) {
-          setName(session.user.user_metadata.displayName.split(' ')[0]);
+        
+        // Initial fallback
+        if (profile?.displayName) {
+          setName(profile.displayName);
+        } else if (session.user.user_metadata?.displayName || session.user.user_metadata?.full_name) {
+          setName(session.user.user_metadata.displayName || session.user.user_metadata.full_name);
         } else {
           setName(userEmail.split('@')[0]);
         }
 
-        // Check profile completeness from PostgreSQL database
+        // Check profile completeness and real displayName from PostgreSQL database
         try {
           const profileRes = await authFetch(`${API_URL}/users/profile?email=${encodeURIComponent(userEmail)}`);
           if (profileRes.ok) {
             const profileData = await profileRes.json();
+            if (profileData.displayName) {
+              setName(profileData.displayName);
+            }
             const isComplete = Boolean(profileData.isProfileComplete && profileData.phone && profileData.address);
             setProfileWarning(!isComplete);
           }

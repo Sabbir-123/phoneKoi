@@ -63,6 +63,12 @@ export default function Navbar() {
     user?.user_metadata?.avatar || 
     null;
 
+  const resolvedAvatar = avatarUrl 
+    ? (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('data:image/'))
+      ? avatarUrl
+      : `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kguumjcsdevprwevgpcq.supabase.co'}/storage/v1/object/public/${avatarUrl.startsWith('/') ? avatarUrl.slice(1) : avatarUrl}`
+    : null;
+
   const initials = displayName
     ? displayName
         .trim()
@@ -165,9 +171,9 @@ export default function Navbar() {
                   title={`Signed in as ${displayName} (${user.email})`}
                 >
                   {/* Round Profile Picture / Avatar */}
-                  {avatarUrl ? (
+                  {resolvedAvatar ? (
                     <img
-                      src={avatarUrl}
+                      src={resolvedAvatar}
                       alt={displayName}
                       className="w-6 h-6 rounded-full object-cover border border-indigo-200/80 shadow-xs shrink-0"
                     />
@@ -264,9 +270,9 @@ export default function Navbar() {
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 p-3 rounded-2xl hover:bg-slate-100/70 transition-colors"
                   >
-                    {avatarUrl ? (
+                    {resolvedAvatar ? (
                       <img
-                        src={avatarUrl}
+                        src={resolvedAvatar}
                         alt={displayName}
                         className="w-10 h-10 rounded-full object-cover border border-indigo-200 shadow-sm shrink-0"
                       />

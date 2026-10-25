@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X, CreditCard, ShieldCheck } from 'lucide-react';
+import { Home, LayoutDashboard, Smartphone, Bell, History, Settings, UserCircle, LogOut, X, CreditCard, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 
@@ -35,7 +35,8 @@ export default function Sidebar() {
   const pricingLabel = language === 'banglish' ? 'Check Quota' : 'Check Quota';
 
   const navItems = [
-    { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Reported Devices', href: '/dashboard/devices', icon: Smartphone },
     { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
     { name: 'History', href: '/dashboard/history', icon: History },
@@ -89,7 +90,11 @@ export default function Sidebar() {
           </div>
           
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            const isActive = item.href === '/'
+              ? pathname === '/'
+              : item.href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname === item.href || pathname.startsWith(item.href);
             
             return (
               <Link 

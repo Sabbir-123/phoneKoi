@@ -9,6 +9,7 @@ import CompleteProfileModal from '@/components/dashboard/CompleteProfileModal';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { Menu } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -17,12 +18,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { toggleSidebar, fetchProfile, profile } = useDashboardStore();
 
   useEffect(() => {
-    fetchProfile();
+    fetchProfile(true);
   }, [fetchProfile]);
 
   const plan = profile?.plan || 'FREE';
   const isPro = Boolean(profile?.isPro || (profile?.plan && profile.plan.includes('Pro')));
   const isProMember = isPro || plan === 'PRO' || (typeof plan === 'string' && plan.includes('Pro'));
+
+  const displayName = profile?.displayName || profile?.email?.split('@')[0] || 'My Account';
+  const avatarUrl = profile?.avatar || profile?.avatarUrl || null;
+  const resolvedAvatar = avatarUrl 
+    ? (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('data:image/'))
+      ? avatarUrl
+      : `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kguumjcsdevprwevgpcq.supabase.co'}/storage/v1/object/public/${avatarUrl.startsWith('/') ? avatarUrl.slice(1) : avatarUrl}`
+    : null;
+
+  const initials = displayName
+    ? displayName
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .map((part: string) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'U';
 
   return (
     <AuthGuard>
@@ -61,8 +81,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              <div className={`h-8 sm:h-10 px-2.5 sm:px-4 rounded-full flex items-center justify-center border transition-all ${
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <div className={`h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-full flex items-center justify-center border transition-all ${
                 isProMember 
                   ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200/80 shadow-xs' 
                   : 'bg-slate-50 border-slate-200'
@@ -88,6 +108,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )}
                 </span>
               </div>
+
+              {/* User Avatar + Display Name pill */}
+              <Link
+                href="/dashboard/profile"
+                className="flex items-center gap-2 bg-white/90 hover:bg-white border border-slate-200/80 hover:border-indigo-200 pl-1.5 pr-3 py-1 rounded-full shadow-xs transition-all duration-200 group"
+                title="Manage Profile"
+              >
+                {resolvedAvatar ? (
+                  <img
+                    src={resolvedAvatar}
+                    alt={displayName}
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-indigo-200/80 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-[10px] sm:text-xs flex items-center justify-center shadow-xs shrink-0 ring-1 ring-white">
+                    {initials}
+                  </div>
+                )}
+                <span className="font-semibold text-xs sm:text-sm text-slate-700 group-hover:text-indigo-950 max-w-[80px] sm:max-w-[120px] truncate tracking-tight">
+                  {displayName}
+                </span>
+              </Link>
             </div>
           </header>
           

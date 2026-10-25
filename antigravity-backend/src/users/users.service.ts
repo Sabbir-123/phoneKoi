@@ -192,13 +192,22 @@ export class UsersService {
 
     const hasClaimedPromo = Boolean(user.hasClaimedPromo || user.plan === '6 Months Pro');
 
+    let resolvedAvatar = user.avatarUrl || '';
+    if (resolvedAvatar && !resolvedAvatar.startsWith('http') && !resolvedAvatar.startsWith('data:')) {
+      const publicUrl = this.supabaseService.getPublicUrl('avatars', resolvedAvatar);
+      if (publicUrl) {
+        resolvedAvatar = publicUrl;
+      }
+    }
+
     const profile = {
       ...user,
       phone: user.phone || '',
       whatsapp: user.whatsapp || '',
       address: user.address || '',
       displayName: user.displayName || user.email?.split('@')[0] || '',
-      avatar: user.avatarUrl || '',
+      avatar: resolvedAvatar,
+      avatarUrl: resolvedAvatar,
       isProfileComplete: Boolean(user.isProfileComplete && user.phone && user.address),
       promoRewarded: isPromoActive && user.role !== 'ADMIN',
       hasClaimedPromo,

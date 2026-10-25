@@ -10,7 +10,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 export default function ProfilePage() {
-  const { language } = useDashboardStore();
+  const { language, setProfile, fetchProfile } = useDashboardStore();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [avatar, setAvatar] = useState('');
@@ -225,6 +225,8 @@ export default function ProfilePage() {
         if (data.user.whatsapp) setWhatsapp(data.user.whatsapp);
         if (data.user.address) setAddress(data.user.address);
         if (data.user.avatar || data.user.avatarUrl) setAvatar(data.user.avatar || data.user.avatarUrl);
+        setProfile(data.user);
+        fetchProfile(true);
       }
 
       // Dispatch event to automatically dismiss mandatory modal
