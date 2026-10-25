@@ -30,6 +30,7 @@ import {
   Loader2,
   Building,
   ExternalLink,
+  CreditCard,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useDashboardStore } from '@/store/useDashboardStore';
@@ -99,6 +100,9 @@ export default function AdminDashboard() {
   
   const [subFilter, setSubFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [reportFilter, setReportFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+
+  const pendingSubsCount = requests.filter((r) => r.status === 'PENDING').length;
+  const pendingReportsCount = deviceReports.filter((r) => r.status === 'PENDING').length;
   
   const [gateways, setGateways] = useState<GatewaySettings>({
     telegram: { enabled: false, botToken: '', botUsername: 'PhoneKoiAlertBot', adminChatId: '' },
@@ -479,67 +483,102 @@ export default function AdminDashboard() {
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-100/10 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/60 pb-5">
         <div>
-          <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight flex items-center gap-3">
-            <ShieldCheck className="w-8 h-8 text-indigo-600" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-950 tracking-tight flex items-center gap-3">
+            <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600" />
             Admin Verification Control
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">
-            Review user subscriptions and verify reported device theft GD evidence.
+          <p className="text-slate-500 mt-1.5 text-xs sm:text-sm font-medium">
+            Review user subscriptions, verify reported device theft GD evidence, and configure telemetry dispatchers.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50 self-start shadow-inner flex-wrap gap-1">
+        {/* Admin Badge */}
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50/80 border border-indigo-100/80 text-[11px] font-bold text-indigo-700 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Admin Control Center
+          </div>
+        </div>
+      </div>
+
+      {/* Sleek Dedicated Segmented Navigation Tab Bar (4 options) */}
+      <div className="overflow-x-auto no-scrollbar -mx-2 sm:mx-0 px-2 sm:px-0">
+        <div className="inline-flex items-center p-1.5 bg-slate-100/90 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-inner gap-1 min-w-max">
+          {/* 1. Subscription Requests */}
           <button
-            onClick={() => setActiveTab('SUBSCRIPTIONS')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative ${
+            onClick={() => { setActiveTab('SUBSCRIPTIONS'); fetchRequests(); }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'SUBSCRIPTIONS'
-                ? 'bg-white text-indigo-950 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-indigo-950 shadow-sm ring-1 ring-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            Subscription Requests
+            <CreditCard className="w-4 h-4 text-indigo-600" />
+            <span>Subscription Requests</span>
+            {pendingSubsCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-700 border border-amber-200">
+                {pendingSubsCount}
+              </span>
+            )}
           </button>
+
+          {/* 2. Device Reports */}
           <button
-            onClick={() => setActiveTab('REPORTS')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative ${
+            onClick={() => { setActiveTab('REPORTS'); fetchDeviceReports(); }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'REPORTS'
-                ? 'bg-white text-indigo-950 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-indigo-950 shadow-sm ring-1 ring-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            Device Reports
+            <Smartphone className="w-4 h-4 text-indigo-600" />
+            <span>Device Reports</span>
+            {pendingReportsCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">
+                {pendingReportsCount}
+              </span>
+            )}
           </button>
+
+          {/* 3. Alert Gateways */}
           <button
             onClick={() => { setActiveTab('GATEWAYS'); fetchGateways(); }}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-1.5 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'GATEWAYS'
-                ? 'bg-white text-indigo-950 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-indigo-950 shadow-sm ring-1 ring-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-            Alert Gateways
+            <Radio className="w-4 h-4 text-indigo-600 animate-pulse" />
+            <span>Alert Gateways</span>
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+              Live
+            </span>
           </button>
+
+          {/* 4. পুলিশ উদ্ধারকৃত ড্রাইভ */}
           <button
             onClick={() => { setActiveTab('POLICE_RECOVERIES'); fetchRecoveryDrives(); }}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-1.5 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'POLICE_RECOVERIES'
-                ? 'bg-white text-emerald-950 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-emerald-950 shadow-sm ring-1 ring-emerald-200/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            পুলিশ উদ্ধারকৃত ড্রাইভ
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>পুলিশ উদ্ধারকৃত ড্রাইভ</span>
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              AI DB
+            </span>
           </button>
         </div>
       </div>
 
       {/* Main Tab Views */}
       <AnimatePresence mode="wait">
-        {activeTab === 'SUBSCRIPTIONS' ? (
+        {activeTab === 'SUBSCRIPTIONS' && (
           <motion.div
             key="subs"
             initial={{ opacity: 0, y: 15 }}
@@ -676,7 +715,9 @@ export default function AdminDashboard() {
               )}
             </GlassCard>
           </motion.div>
-        ) : (
+        )}
+
+        {activeTab === 'REPORTS' && (
           <motion.div
             key="reports"
             initial={{ opacity: 0, y: 15 }}
