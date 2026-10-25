@@ -4,7 +4,7 @@ import { API_URL, authFetch } from '@/utils/api';
 
 import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles, Phone, MessageSquare, Copy, Check, X, MapPin, Flag, FileText, BellRing, Info, Shield } from "lucide-react";
+import { ShieldCheck, ShieldAlert, AlertOctagon, ArrowLeft, Sparkles, Phone, MessageSquare, Copy, Check, X, MapPin, Flag, FileText, BellRing, Info, Shield, Building, PhoneCall, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
@@ -39,6 +39,42 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
   const [locationShareError, setLocationShareError] = useState<string | null>(null);
   const [sharedAccuracy, setSharedAccuracy] = useState<number | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Police Station & Law Enforcement Assistance State
+  const [nearestStation, setNearestStation] = useState<any>(null);
+  const [nearbyStations, setNearbyStations] = useState<any[]>([]);
+  const [policeLoading, setPoliceLoading] = useState(false);
+  const [showAllStationsModal, setShowAllStationsModal] = useState(false);
+  const [thanaSearchQuery, setThanaSearchQuery] = useState("");
+  const [searchedStations, setSearchedStations] = useState<any[]>([]);
+
+  const fetchPoliceStations = async (lat?: number, lng?: number, query?: string) => {
+    try {
+      setPoliceLoading(true);
+      const qParams = new URLSearchParams();
+      if (lat && lng) {
+        qParams.set('lat', lat.toString());
+        qParams.set('lng', lng.toString());
+      }
+      if (query) {
+        qParams.set('query', query);
+      }
+      const res = await fetch(`${API_URL}/police-recovery/nearest-station?${qParams.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (query) {
+          setSearchedStations(data.nearbyStations || []);
+        } else {
+          setNearestStation(data.nearestStation || null);
+          setNearbyStations(data.nearbyStations || []);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load nearest police stations:", e);
+    } finally {
+      setPoliceLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,6 +156,9 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         if (res.ok) {
           const data = await res.json();
           setBackendData(data);
+          if (data.status === 'STOLEN' || data.reportType === 'STOLEN') {
+            fetchPoliceStations(undefined, undefined, data.policeStation || '');
+          }
         }
       } catch (err: any) {
         console.error("Database request failed:", err);
@@ -349,6 +388,7 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
         if (res.ok) {
           setLocationSharedSuccess(true);
           setSharedAccuracy(accuracy);
+          fetchPoliceStations(lat, lng);
         } else {
           const data = await res.json().catch(() => null);
           setLocationShareError(data?.message || "Failed to transmit location to owner.");
@@ -627,6 +667,91 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
                   <Shield className="w-3.5 h-3.5 text-indigo-600" />
                   Safety Guide
                 </button>
+              </div>
+
+              {/* 🚨 Emergency Police & Thana Assistance Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl border border-indigo-500/30 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 shrink-0">
+                      <Building className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-200">
+                        নিকটস্থ পুলিশ ও আইনি সহায়তা
+                      </h4>
+                      <span className="text-[10px] text-slate-400">Official Police Emergency Assistance</span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse shrink-0">
+                    🚨 24/7 Live
+                  </span>
+                </div>
+
+                {nearestStation && (
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-white">{nearestStation.nameBn}</span>
+                          <span className="text-[10px] text-indigo-300 font-mono">({nearestStation.unit})</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-snug mt-0.5">
+                          📍 {nearestStation.address}
+                        </p>
+                        {nearestStation.distanceKm !== null && (
+                          <span className="inline-block mt-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                            ⚡ আপনার বর্তমান অবস্থান থেকে ~{nearestStation.distanceKm} কিমি
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <a
+                        href={`tel:${nearestStation.dutyOfficerPhone}`}
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-bold shadow-md transition-all cursor-pointer"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>ডিউটি অফিসার</span>
+                      </a>
+
+                      <a
+                        href="tel:999"
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.98] text-white text-xs font-bold shadow-md transition-all cursor-pointer"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 animate-pulse" />
+                        <span>জরুরি ৯৯৯</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {backendData?.policeGdNumber && (
+                  <div className="p-2.5 rounded-xl bg-indigo-950/50 border border-indigo-400/20 text-[11px] text-indigo-200 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span><strong>মূল জিডি রেকর্ড:</strong> {backendData.policeGdNumber} {backendData.policeStation ? `(${backendData.policeStation})` : ''}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10.5px] text-amber-200 leading-relaxed">
+                  ⚠️ <strong>নিরাপত্তা পরামর্শ:</strong> বিক্রেতার সাথে কোনো বাকবিতণ্ডায় জড়াবেন না। নিরাপদ দূরত্বে গিয়ে থানায় অথবা ৯৯৯-এ জিডি নম্বর জানিয়ে সহায়তা নিন।
+                </div>
+
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAllStationsModal(true);
+                      fetchPoliceStations(undefined, undefined, thanaSearchQuery || '');
+                    }}
+                    className="text-[11px] text-indigo-300 hover:text-white underline font-semibold transition-colors cursor-pointer"
+                  >
+                    অন্যান্য থানা বা হটলাইন খুঁজুন →
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -921,6 +1046,112 @@ export default function ResultPage(props: { params: Promise<{ imei: string }> })
               >
                 I Understand
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. All Police Stations & Directory Search Modal */}
+      <AnimatePresence>
+        {showAllStationsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAllStationsModal(false)}
+              className="absolute inset-0 bg-indigo-950/50 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 overflow-hidden z-10 space-y-4 max-h-[85vh] flex flex-col"
+            >
+              <button
+                onClick={() => setShowAllStationsModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Building className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-base font-bold text-indigo-950">বাংলাদেশ পুলিশ থানা ডিরেক্টরি</h3>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">থানার নাম বা এলাকা লিখে সার্চ করে সরাসরি ডিউটি অফিসারে কল করুন</p>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="থানার নাম লিখুন (যেমন: ধানমন্ডি, মিরপুর, গুলশান, উত্তরা, চট্টগ্রাম)..."
+                  value={thanaSearchQuery}
+                  onChange={(e) => {
+                    const q = e.target.value;
+                    setThanaSearchQuery(q);
+                    fetchPoliceStations(currentCoords?.lat, currentCoords?.lng, q);
+                  }}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              {/* Emergency Banner */}
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-red-900 block">জাতীয় জরুরি হেল্পলাইন</span>
+                  <span className="text-[10px] text-red-700">২৪ ঘণ্টা পুলিশ, ফায়ার ও অ্যাম্বুলেন্স সেবা</span>
+                </div>
+                <a
+                  href="tel:999"
+                  className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  কল ৯৯৯
+                </a>
+              </div>
+
+              {/* Stations List */}
+              <div className="overflow-y-auto space-y-2 flex-1 pr-1">
+                {(thanaSearchQuery ? searchedStations : nearbyStations).map((st) => (
+                  <div
+                    key={st.id}
+                    className="p-3 rounded-xl border border-slate-200 hover:border-indigo-300 bg-slate-50/50 hover:bg-white transition-all space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-900">{st.nameBn}</span>
+                          <span className="text-[10px] font-mono text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded">
+                            {st.unit}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{st.address}</p>
+                        {st.distanceKm !== null && (
+                          <span className="text-[10px] text-emerald-600 font-bold">
+                            দূরত্ব: ~{st.distanceKm} কিমি
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <a
+                          href={`tel:${st.dutyOfficerPhone}`}
+                          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1"
+                          title="কল ডিউটি অফিসার"
+                        >
+                          <PhoneCall className="w-3 h-3" />
+                          <span>কল ডিউটি অফিসার</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           </div>
         )}

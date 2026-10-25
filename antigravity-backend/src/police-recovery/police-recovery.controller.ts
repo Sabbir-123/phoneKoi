@@ -20,6 +20,21 @@ export class PoliceRecoveryController {
   }
 
   /**
+   * Public: Get nearest police station and emergency contacts based on coordinates
+   */
+  @Public()
+  @Get('nearest-station')
+  async getNearestStation(
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('query') query?: string,
+  ) {
+    const parsedLat = lat ? parseFloat(lat) : undefined;
+    const parsedLng = lng ? parseFloat(lng) : undefined;
+    return this.policeRecoveryService.getNearestStations(parsedLat, parsedLng, query);
+  }
+
+  /**
    * Public: List published police recovery drives
    */
   @Public()
