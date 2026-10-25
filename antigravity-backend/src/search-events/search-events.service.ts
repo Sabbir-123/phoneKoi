@@ -150,6 +150,9 @@ export class SearchEventsService {
       },
     ];
 
+    const isExactGps = locationSource === 'BROWSER_GPS' && latitude !== null && longitude !== null;
+    const alertType = isExactGps ? 'GPS_PINPOINT' : 'INITIAL_SEARCH';
+
     try {
       const dispatched = await this.alertDispatcherService.dispatchSearchAlert({
         imei,
@@ -164,16 +167,18 @@ export class SearchEventsService {
         searchResult,
         timestamp: now,
         ip: clientIp,
-        latitude,
-        longitude,
-        accuracyRadius,
-        locationName,
+        latitude: isExactGps ? latitude : null,
+        longitude: isExactGps ? longitude : null,
+        accuracyRadius: isExactGps ? accuracyRadius : null,
+        locationName: isExactGps ? locationName : 'Pending GPS permission from searcher',
         policeGdNumber: activeReport.policeGdNumber || '',
         ownerEmail,
         ownerPhone: activeReport.contactNumber || activeReport.user?.phone || undefined,
         ownerWhatsapp: activeReport.user?.whatsapp || activeReport.contactNumber || undefined,
         ownerTelegramChatId: activeReport.user?.telegramChatId || undefined,
         notificationPreferences: activeReport.notificationPreferences || [],
+        alertType,
+        isExactGps,
       });
       if (dispatched && dispatched.length > 0) {
         notifications = dispatched;

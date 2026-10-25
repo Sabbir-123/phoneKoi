@@ -50,6 +50,8 @@ export interface SearchAlertPayload {
   ownerWhatsapp?: string;
   ownerTelegramChatId?: string;
   notificationPreferences?: string[];
+  alertType?: 'INITIAL_SEARCH' | 'GPS_PINPOINT';
+  isExactGps?: boolean;
 }
 
 export interface DeliveryChannelStatus {

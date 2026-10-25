@@ -158,25 +158,48 @@ export class AlertDispatcherService {
         if (config.telegram.adminChatId) recipients.push(config.telegram.adminChatId);
 
         if (recipients.length > 0) {
-          const mapLink = payload.latitude && payload.longitude
-            ? `https://www.google.com/maps?q=${payload.latitude},${payload.longitude}`
-            : null;
+          let text: string;
 
-          const text = [
-            `🚨 *PhoneKoi Security Alert!*`,
-            `--------------------------------`,
-            `Your reported *${payload.deviceBrand || ''} ${payload.deviceModel || 'device'}* was just searched in the PhoneKoi Registry.`,
-            ``,
-            `📱 *Device:* ${payload.deviceName || 'Mobile Device'}`,
-            `🔢 *IMEI:* \`${payload.maskedImei}\``,
-            `⏰ *Time:* ${payload.timestamp.toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })} (BST)`,
-            `🌐 *IP Address:* \`${payload.ip || 'Unknown'}\``,
-            `📍 *Approximate Location:* ${payload.locationName || 'Unknown'}`,
-            payload.policeGdNumber ? `📋 *Police GD:* ${payload.policeGdNumber}` : '',
-            mapLink ? `\n🗺️ [View on Google Maps](${mapLink})` : '',
-            ``,
-            `🔐 Track full live telemetry in your [PhoneKoi Dashboard](https://phone-koi.vercel.app/dashboard/alerts).`,
-          ].filter(Boolean).join('\n');
+          if (payload.isExactGps && payload.latitude && payload.longitude) {
+            const mapLink = `https://www.google.com/maps?q=${payload.latitude},${payload.longitude}`;
+            const accuracyText = payload.accuracyRadius
+              ? `Within ±${Math.round(payload.accuracyRadius)}m`
+              : 'High Accuracy';
+
+            text = [
+              `🎯 *HIGH-PRECISION GPS LOCK ACQUIRED!*`,
+              `--------------------------------`,
+              `Exact satellite coordinates received for your searched *${payload.deviceBrand || ''} ${payload.deviceModel || 'device'}*!`,
+              ``,
+              `📱 *Device:* ${payload.deviceName || 'Mobile Device'}`,
+              `🔢 *IMEI:* \`${payload.maskedImei}\``,
+              `🎯 *Accuracy:* ${accuracyText}`,
+              `⏰ *Time:* ${payload.timestamp.toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })} (BST)`,
+              `🌐 *Searcher IP:* \`${payload.ip || 'Unknown'}\``,
+              payload.policeGdNumber ? `📋 *Police GD:* ${payload.policeGdNumber}` : '',
+              ``,
+              `🗺️ [View Exact Location on Google Maps](${mapLink})`,
+              ``,
+              `⚠️ *Action:* Share this verified Google Maps pin immediately with your local police investigating officer (IO).`,
+              `🔐 Dashboard: https://phone-koi.vercel.app/dashboard/alerts`,
+            ].filter(Boolean).join('\n');
+          } else {
+            // Initial Search Alert: No misleading map link, only verified searcher IP and status
+            text = [
+              `🚨 *PhoneKoi Security Alert!*`,
+              `--------------------------------`,
+              `Your reported *${payload.deviceBrand || ''} ${payload.deviceModel || 'device'}* was just searched in the PhoneKoi Registry.`,
+              ``,
+              `📱 *Device:* ${payload.deviceName || 'Mobile Device'}`,
+              `🔢 *IMEI:* \`${payload.maskedImei}\``,
+              `⏰ *Time:* ${payload.timestamp.toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })} (BST)`,
+              `🌐 *Searcher IP:* \`${payload.ip || 'Unknown'}\``,
+              `📍 *Location:* ⏳ Awaiting GPS permission from searcher (IP logged)`,
+              payload.policeGdNumber ? `📋 *Police GD:* ${payload.policeGdNumber}` : '',
+              ``,
+              `🔐 Track live telemetry in your [PhoneKoi Dashboard](https://phone-koi.vercel.app/dashboard/alerts).`,
+            ].filter(Boolean).join('\n');
+          }
 
           for (const chatId of Array.from(new Set(recipients))) {
             await this.sendTelegramMessage(config.telegram.botToken, chatId, text);
@@ -281,20 +304,37 @@ export class AlertDispatcherService {
   async sendResendEmail(apiKey: string, fromEmail: string, toEmail: string, payload: SearchAlertPayload): Promise<boolean> {
     const resend = new Resend(apiKey);
     const timeFormatted = payload.timestamp.toLocaleString('en-US', { timeZone: 'Asia/Dhaka' });
-    const mapLink = payload.latitude && payload.longitude
+    const isExact = Boolean(payload.isExactGps && payload.latitude && payload.longitude);
+    const mapLink = isExact
       ? `https://www.google.com/maps?q=${payload.latitude},${payload.longitude}`
       : null;
 
+    const subject = isExact
+      ? `🎯 High-Precision GPS Location: ${payload.deviceBrand || ''} ${payload.deviceModel || 'device'} (IMEI: ${payload.maskedImei})`
+      : `🚨 Alert: Search detected for your ${payload.deviceBrand || ''} ${payload.deviceModel || 'device'} (IMEI: ${payload.maskedImei})`;
+
+    const bannerHeader = isExact
+      ? `🎯 Exact GPS Satellite Pinpoint!`
+      : `🚨 PhoneKoi Security Alert!`;
+
+    const bannerSubtitle = isExact
+      ? `High-accuracy satellite coordinates received for your searched device`
+      : `Someone just searched for your lost/stolen device in PhoneKoi`;
+
+    const bannerBg = isExact
+      ? `linear-gradient(135deg, #059669 0%, #047857 100%)`
+      : `linear-gradient(135deg, #ef4444 0%, #dc2626 100%)`;
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-        <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 18px 24px; border-radius: 12px; color: #ffffff; text-align: center;">
-          <h2 style="margin: 0; font-size: 20px;">🚨 PhoneKoi Security Alert!</h2>
-          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9;">Someone just searched for your lost/stolen device</p>
+        <div style="background: ${bannerBg}; padding: 18px 24px; border-radius: 12px; color: #ffffff; text-align: center;">
+          <h2 style="margin: 0; font-size: 20px;">${bannerHeader}</h2>
+          <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9;">${bannerSubtitle}</p>
         </div>
 
         <div style="padding: 24px 0;">
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            A query was executed against the PhoneKoi database for your registered device:
+            ${isExact ? 'High-accuracy GPS coordinates have been acquired through browser consent:' : 'A query was executed against the PhoneKoi database for your registered device:'}
           </p>
 
           <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0;">
@@ -314,22 +354,29 @@ export class AlertDispatcherService {
               <td style="padding: 8px 0; color: #64748b;"><strong>Searcher IP:</strong></td>
               <td style="padding: 8px 0; color: #0f172a; font-family: monospace;">${payload.ip || 'Unknown'}</td>
             </tr>
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 8px 0; color: #64748b;"><strong>Approximate Location:</strong></td>
-              <td style="padding: 8px 0; color: #0f172a;">${payload.locationName || 'Location unavailable'}</td>
-            </tr>
+            ${isExact ? `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 0; color: #64748b;"><strong>GPS Accuracy:</strong></td>
+                <td style="padding: 8px 0; color: #059669; font-weight: bold;">🎯 Within ±${Math.round(payload.accuracyRadius || 15)}m (Satellite Verified)</td>
+              </tr>
+            ` : `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 0; color: #64748b;"><strong>Location Status:</strong></td>
+                <td style="padding: 8px 0; color: #64748b;">⏳ Awaiting GPS permission from searcher (IP logged)</td>
+              </tr>
+            `}
           </table>
 
           ${mapLink ? `
             <div style="text-align: center; margin: 24px 0;">
-              <a href="${mapLink}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
-                🗺️ View Search Location on Map
+              <a href="${mapLink}" style="background-color: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+                🗺️ View Exact Location on Google Maps
               </a>
             </div>
           ` : ''}
 
           <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 6px; font-size: 12px; color: #475569; margin-top: 20px;">
-            <strong>Next Steps:</strong> If this search was not conducted by you or local law enforcement, please review your <a href="https://phone-koi.vercel.app/dashboard/alerts" style="color: #4f46e5;">PhoneKoi Alerts Dashboard</a> and keep your Police GD record handy.
+            <strong>Next Steps:</strong> Review your <a href="https://phone-koi.vercel.app/dashboard/alerts" style="color: #4f46e5;">PhoneKoi Alerts Dashboard</a> and keep your Police GD record handy.
           </div>
         </div>
 
@@ -342,7 +389,7 @@ export class AlertDispatcherService {
     const { error } = await resend.emails.send({
       from: fromEmail,
       to: [toEmail],
-      subject: `🚨 Alert: Search detected for your ${payload.deviceBrand || ''} ${payload.deviceModel || 'device'} (IMEI: ${payload.maskedImei})`,
+      subject,
       html,
     });
 
@@ -366,7 +413,11 @@ export class AlertDispatcherService {
 
   async sendWhatsAppAlert(whatsappConfig: NotificationGatewaysConfig['whatsapp'], toPhone: string, payload: SearchAlertPayload): Promise<boolean> {
     const cleanPhone = toPhone.replace(/[^0-9]/g, '');
-    const msg = `🚨 *PhoneKoi Alert!* Your reported device (${payload.deviceBrand || ''} ${payload.deviceModel || 'Phone'}, IMEI: ${payload.maskedImei}) was just searched on PhoneKoi.\nLocation: ${payload.locationName || 'Unknown'}\nIP: ${payload.ip || 'Unknown'}\nCheck your dashboard: https://phone-koi.vercel.app/dashboard/alerts`;
+    const isExact = Boolean(payload.isExactGps && payload.latitude && payload.longitude);
+    const mapLink = isExact ? `\nExact Map: https://www.google.com/maps?q=${payload.latitude},${payload.longitude}` : '';
+    const msg = isExact
+      ? `🎯 *PhoneKoi Verified GPS Alert!*\nYour reported device (${payload.deviceBrand || ''} ${payload.deviceModel || 'Phone'}, IMEI: ${payload.maskedImei}) exact satellite location was captured.\nAccuracy: ±${Math.round(payload.accuracyRadius || 15)}m\nSearcher IP: ${payload.ip || 'Unknown'}${mapLink}\nDashboard: https://phone-koi.vercel.app/dashboard/alerts`
+      : `🚨 *PhoneKoi Alert!*\nYour reported device (${payload.deviceBrand || ''} ${payload.deviceModel || 'Phone'}, IMEI: ${payload.maskedImei}) was just searched on PhoneKoi.\nSearcher IP: ${payload.ip || 'Unknown'}\nLocation: Awaiting GPS consent\nDashboard: https://phone-koi.vercel.app/dashboard/alerts`;
 
     if (whatsappConfig.provider === 'ULTRAMSG') {
       const url = `https://api.ultramsg.com/${whatsappConfig.instanceId}/messages/chat`;
