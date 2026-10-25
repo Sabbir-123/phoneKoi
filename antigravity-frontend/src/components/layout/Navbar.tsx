@@ -7,12 +7,14 @@ import Image from "next/image";
 import { Search, ShieldAlert, ShieldCheck, Activity, User, LogOut, Sparkles, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useDashboardStore } from "@/store/useDashboardStore";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { profile, fetchProfile } = useDashboardStore();
 
   useEffect(() => {
     const supabase = createClient();
@@ -21,11 +23,17 @@ export default function Navbar() {
     const getSupabaseUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
+      if (session?.user) {
+        fetchProfile();
+      }
     };
     getSupabaseUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user || null);
+      if (session?.user) {
+        fetchProfile();
+      }
     });
 
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -35,13 +43,36 @@ export default function Navbar() {
       authListener.subscription.unsubscribe();
       window.removeEventListener("scroll", onScroll);
     };
-  }, []);
+  }, [fetchProfile]);
 
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = "/";
   };
+
+  const displayName = profile?.displayName || 
+    user?.user_metadata?.displayName || 
+    user?.user_metadata?.full_name || 
+    user?.user_metadata?.name || 
+    (user?.email ? user.email.split('@')[0] : 'My Account');
+
+  const avatarUrl = profile?.avatar || 
+    profile?.avatarUrl || 
+    user?.user_metadata?.avatar_url || 
+    user?.user_metadata?.avatar || 
+    null;
+
+  const initials = displayName
+    ? displayName
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .map((part: string) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'U';
 
   if (pathname?.startsWith("/dashboard")) {
     return null;
@@ -127,11 +158,30 @@ export default function Navbar() {
           {/* Auth area (Desktop) */}
           <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0 whitespace-nowrap">
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 text-xs lg:text-sm text-slate-600 bg-white/70 border border-slate-200/60 px-3 py-1.5 rounded-full shadow-xs">
-                  <User className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="max-w-[100px] lg:max-w-[140px] truncate">{user.email}</span>
-                </div>
+              <div className="flex items-center gap-1.5 lg:gap-2">
+                <Link
+                  href="/dashboard"
+                  className="group flex items-center gap-2 text-xs lg:text-[13px] text-slate-700 hover:text-indigo-950 bg-white/80 hover:bg-white border border-slate-200/80 hover:border-indigo-200 pl-1.5 pr-3 py-1 rounded-full shadow-xs transition-all duration-200"
+                  title={`Signed in as ${displayName} (${user.email})`}
+                >
+                  {/* Round Profile Picture / Avatar */}
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={displayName}
+                      className="w-6 h-6 rounded-full object-cover border border-indigo-200/80 shadow-xs shrink-0"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs shrink-0 ring-1 ring-white">
+                      {initials}
+                    </div>
+                  )}
+                  {/* User Name in small, clean text */}
+                  <span className="font-semibold max-w-[90px] lg:max-w-[130px] truncate tracking-tight">
+                    {displayName}
+                  </span>
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   className="text-slate-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
@@ -209,10 +259,27 @@ export default function Navbar() {
             <div className="flex flex-col gap-3">
               {user ? (
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2.5 text-sm text-slate-600 bg-slate-50 border border-slate-100 px-4 py-3 rounded-2xl">
-                    <User className="w-4 h-4 text-indigo-500" />
-                    <span className="truncate">{user.email}</span>
-                  </div>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 p-3 rounded-2xl hover:bg-slate-100/70 transition-colors"
+                  >
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={displayName}
+                        className="w-10 h-10 rounded-full object-cover border border-indigo-200 shadow-sm shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-sm flex items-center justify-center shadow-sm shrink-0">
+                        {initials}
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-sm text-slate-800 truncate">{displayName}</span>
+                      <span className="text-xs text-slate-400 truncate">{user.email}</span>
+                    </div>
+                  </Link>
                   <button
                     onClick={() => {
                       handleLogout();
