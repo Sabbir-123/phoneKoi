@@ -1,0 +1,281 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Generate comprehensive all-Bangladesh police stations dataset
+// Covering DMP 50 thanas + all 64 District Sadar / Metropolitan / Major Upazila Thanas across all 8 divisions
+
+interface PoliceStation {
+  id: string;
+  nameEn: string;
+  nameBn: string;
+  unit: string;
+  district: string;
+  division: string;
+  dutyOfficerPhone: string;
+  ocPhone?: string;
+  tntPhone?: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+const stations: PoliceStation[] = [
+  // ==========================================
+  // 1. DHAKA DIVISION (DMP + 13 Districts)
+  // ==========================================
+  // DMP Ramna Division
+  { id: 'dmp_ramna', nameEn: 'Ramna Model Thana', nameBn: 'রমনা মডেল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320038888', ocPhone: '01320038880', address: 'Near Kakrail Mosque, Ramna, Dhaka', latitude: 23.7388, longitude: 90.4072 },
+  { id: 'dmp_shahbagh', nameEn: 'Shahbagh Thana', nameBn: 'শাহবাগ থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320039288', ocPhone: '01320039280', address: 'Near Dhaka University, Shahbagh, Dhaka', latitude: 23.7314, longitude: 90.3957 },
+  { id: 'dmp_new_market', nameEn: 'New Market Thana', nameBn: 'নিউ মার্কেট থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320039688', ocPhone: '01320039680', address: 'Near Nilkhet, New Market, Dhaka', latitude: 23.7335, longitude: 90.3848 },
+  { id: 'dmp_dhanmondi', nameEn: 'Dhanmondi Model Thana', nameBn: 'ধানমন্ডি মডেল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320040188', ocPhone: '01320040180', address: 'Road 6, Dhanmondi R/A, Dhaka', latitude: 23.7461, longitude: 90.3742 },
+  { id: 'dmp_kalabagan', nameEn: 'Kalabagan Thana', nameBn: 'কলাবাগান থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320040588', ocPhone: '01320040580', address: 'Dolphin Goli, Kalabagan, Dhaka', latitude: 23.7485, longitude: 90.3824 },
+
+  // DMP Tejgaon Division
+  { id: 'dmp_tejgaon', nameEn: 'Tejgaon Model Thana', nameBn: 'তেজগাঁও মডেল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320040888', ocPhone: '01320040880', address: 'Farmgate, Tejgaon, Dhaka', latitude: 23.7588, longitude: 90.3908 },
+  { id: 'dmp_tejgaon_ind', nameEn: 'Tejgaon Industrial Thana', nameBn: 'তেজগাঁও শিল্পাঞ্চল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320041288', ocPhone: '01320041280', address: 'Tejgaon I/A, Nabiketu, Dhaka', latitude: 23.7667, longitude: 90.4022 },
+  { id: 'dmp_hatirjheel', nameEn: 'Hatirjheel Thana', nameBn: 'হাতিরঝিল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320041688', ocPhone: '01320041680', address: 'Modhubagh, Hatirjheel, Dhaka', latitude: 23.7533, longitude: 90.4105 },
+  { id: 'dmp_sherebangla', nameEn: 'Sher-e-Bangla Nagar Thana', nameBn: 'শেরেবাংলা নগর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320042088', ocPhone: '01320042080', address: 'National Assembly, Sher-e-Bangla Nagar, Dhaka', latitude: 23.7712, longitude: 90.3789 },
+  { id: 'dmp_mohammadpur', nameEn: 'Mohammadpur Thana', nameBn: 'মোহাম্মদপুর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320042488', ocPhone: '01320042480', address: 'Town Hall, Mohammadpur, Dhaka', latitude: 23.7592, longitude: 90.3621 },
+  { id: 'dmp_adabor', nameEn: 'Adabor Thana', nameBn: 'আদাবর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320042888', ocPhone: '01320042880', address: 'Ring Road, Adabor, Dhaka', latitude: 23.7705, longitude: 90.3552 },
+
+  // DMP Gulshan Division
+  { id: 'dmp_gulshan', nameEn: 'Gulshan Thana', nameBn: 'গুলশান থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320043188', ocPhone: '01320043180', address: 'Road 113, Gulshan-2, Dhaka', latitude: 23.7925, longitude: 90.4167 },
+  { id: 'dmp_banani', nameEn: 'Banani Thana', nameBn: 'বনানী থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320043588', ocPhone: '01320043580', address: 'Kakoli, Banani, Dhaka', latitude: 23.7937, longitude: 90.4042 },
+  { id: 'dmp_badda', nameEn: 'Badda Thana', nameBn: 'বাড্ডা থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320043988', ocPhone: '01320043980', address: 'Pragoti Sarani, Badda, Dhaka', latitude: 23.7801, longitude: 90.4268 },
+  { id: 'dmp_bhatara', nameEn: 'Bhatara Thana', nameBn: 'ভাটারা থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320044388', ocPhone: '01320044380', address: 'Kuril Bishwa Road, Bhatara, Dhaka', latitude: 23.8092, longitude: 90.4312 },
+  { id: 'dmp_khilkhet', nameEn: 'Khilkhet Thana', nameBn: 'খিলক্ষেত থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320044788', ocPhone: '01320044780', address: 'Airport Road, Khilkhet, Dhaka', latitude: 23.8295, longitude: 90.4208 },
+  { id: 'dmp_cantonment', nameEn: 'Cantonment Thana', nameBn: 'ক্যান্টনমেন্ট থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320045188', ocPhone: '01320045180', address: 'ECB Chattar, Cantonment, Dhaka', latitude: 23.8182, longitude: 90.3951 },
+
+  // DMP Mirpur Division
+  { id: 'dmp_mirpur', nameEn: 'Mirpur Model Thana', nameBn: 'মিরপুর মডেল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320045488', ocPhone: '01320045480', address: 'Mirpur-2, Dhaka', latitude: 23.8071, longitude: 90.3687 },
+  { id: 'dmp_pallabi', nameEn: 'Pallabi Thana', nameBn: 'পল্লবী থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320045888', ocPhone: '01320045880', address: 'Mirpur-12, Pallabi, Dhaka', latitude: 23.8267, longitude: 90.3644 },
+  { id: 'dmp_kafrul', nameEn: 'Kafrul Thana', nameBn: 'কাফরুল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320046288', ocPhone: '01320046280', address: 'Mirpur-13/14, Kafrul, Dhaka', latitude: 23.7992, longitude: 90.3855 },
+  { id: 'dmp_darussalam', nameEn: 'Darus Salam Thana', nameBn: 'দারুস সালাম থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320046688', ocPhone: '01320046680', address: 'Technical Mor, Darus Salam, Dhaka', latitude: 23.7915, longitude: 90.3541 },
+  { id: 'dmp_shahali', nameEn: 'Shah Ali Thana', nameBn: 'শাহ আলী থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320047088', ocPhone: '01320047080', address: 'Mirpur-1, Shah Ali, Dhaka', latitude: 23.8012, longitude: 90.3524 },
+  { id: 'dmp_rupnagar', nameEn: 'Rupnagar Thana', nameBn: 'রূপনগর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320047488', ocPhone: '01320047480', address: 'Shiyalbari, Rupnagar, Mirpur, Dhaka', latitude: 23.8195, longitude: 90.3582 },
+  { id: 'dmp_bhashantek', nameEn: 'Bhashantek Thana', nameBn: 'ভাষানটেক থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320047888', ocPhone: '01320047880', address: 'Bhashantek, Mirpur-14, Dhaka', latitude: 23.8115, longitude: 90.3892 },
+
+  // DMP Uttara Division
+  { id: 'dmp_uttara_east', nameEn: 'Uttara East Thana', nameBn: 'উত্তরা পূর্ব থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320048188', ocPhone: '01320048180', address: 'Sector 4, Uttara, Dhaka', latitude: 23.8685, longitude: 90.4015 },
+  { id: 'dmp_uttara_west', nameEn: 'Uttara West Thana', nameBn: 'উত্তরা পশ্চিম থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320048588', ocPhone: '01320048580', address: 'Sector 7, Uttara, Dhaka', latitude: 23.8712, longitude: 90.3921 },
+  { id: 'dmp_turag', nameEn: 'Turag Thana', nameBn: 'তুরাগ থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320048988', ocPhone: '01320048980', address: 'Dhour, Turag, Dhaka', latitude: 23.8895, longitude: 90.3752 },
+  { id: 'dmp_airport', nameEn: 'Airport Thana', nameBn: 'বিমানবন্দর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320049388', ocPhone: '01320049380', address: 'Near HSIA, Airport, Dhaka', latitude: 23.8512, longitude: 90.4082 },
+  { id: 'dmp_dakshinkhan', nameEn: 'Dakshinkhan Thana', nameBn: 'দক্ষিণখান থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320049788', ocPhone: '01320049780', address: 'Dakshinkhan Bazar, Dhaka', latitude: 23.8624, longitude: 90.4265 },
+  { id: 'dmp_uttarkhan', nameEn: 'Uttarkhan Thana', nameBn: 'উত্তরখান থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320050188', ocPhone: '01320050180', address: 'Uttarkhan Mazar, Dhaka', latitude: 23.8821, longitude: 90.4342 },
+
+  // DMP Motijheel Division
+  { id: 'dmp_motijheel', nameEn: 'Motijheel Thana', nameBn: 'মতিঝিল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320050488', ocPhone: '01320050480', address: 'Arambagh, Motijheel, Dhaka', latitude: 23.7311, longitude: 90.4182 },
+  { id: 'dmp_paltan', nameEn: 'Paltan Model Thana', nameBn: 'পল্টন মডেল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320050888', ocPhone: '01320050880', address: 'Naya Paltan, Dhaka', latitude: 23.7368, longitude: 90.4135 },
+  { id: 'dmp_khilgaon', nameEn: 'Khilgaon Thana', nameBn: 'খিলগাঁও থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320051288', ocPhone: '01320051280', address: 'Taltola, Khilgaon, Dhaka', latitude: 23.7512, longitude: 90.4248 },
+  { id: 'dmp_rampura', nameEn: 'Rampura Thana', nameBn: 'রামপুরা থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320051688', ocPhone: '01320051680', address: 'DIT Road, Rampura, Dhaka', latitude: 23.7621, longitude: 90.4195 },
+  { id: 'dmp_shahjahanpur', nameEn: 'Shahjahanpur Thana', nameBn: 'শাহজাহানপুর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320052088', ocPhone: '01320052080', address: 'Shahjahanpur Mor, Dhaka', latitude: 23.7445, longitude: 90.4189 },
+  { id: 'dmp_sabujbagh', nameEn: 'Sabujbagh Thana', nameBn: 'সবুজবাগ থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320052488', ocPhone: '01320052480', address: 'Basabo, Sabujbagh, Dhaka', latitude: 23.7412, longitude: 90.4325 },
+  { id: 'dmp_mugda', nameEn: 'Mugda Thana', nameBn: 'মুগদা থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320052888', ocPhone: '01320052880', address: 'Mugda Medical Road, Dhaka', latitude: 23.7335, longitude: 90.4285 },
+
+  // DMP Lalbagh & Wari Divisions
+  { id: 'dmp_lalbagh', nameEn: 'Lalbagh Thana', nameBn: 'লালবাগ থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320053188', ocPhone: '01320053180', address: 'Lalbagh Fort Road, Dhaka', latitude: 23.7198, longitude: 90.3882 },
+  { id: 'dmp_kotwali_dhaka', nameEn: 'Kotwali Thana (Dhaka)', nameBn: 'কোতোয়ালি থানা (ঢাকা)', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320053588', ocPhone: '01320053580', address: 'Near Sadarghat, Kotwali, Dhaka', latitude: 23.7085, longitude: 90.4085 },
+  { id: 'dmp_bangshal', nameEn: 'Bangshal Thana', nameBn: 'বংশাল থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320053988', ocPhone: '01320053980', address: 'Bangshal Road, Old Dhaka', latitude: 23.7175, longitude: 90.4048 },
+  { id: 'dmp_chawkbazar', nameEn: 'Chawkbazar Thana', nameBn: 'চকবাজার থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320054388', ocPhone: '01320054380', address: 'Chawkbazar Shahi Masjid Area, Dhaka', latitude: 23.7155, longitude: 90.3955 },
+  { id: 'dmp_kamrangirchar', nameEn: 'Kamrangirchar Thana', nameBn: 'কামরাঙ্গীরচর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320054488', ocPhone: '01320054480', address: 'Roni Market, Kamrangirchar, Dhaka', latitude: 23.7151, longitude: 90.3755 },
+  { id: 'dmp_wari', nameEn: 'Wari Thana', nameBn: 'ওয়ারী থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320054788', ocPhone: '01320054780', address: 'Rankin Street, Wari, Dhaka', latitude: 23.7185, longitude: 90.4175 },
+  { id: 'dmp_sutrapur', nameEn: 'Sutrapur Thana', nameBn: 'সূত্রাপুর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320054888', ocPhone: '01320054880', address: 'Malitola, Sutrapur, Dhaka', latitude: 23.7102, longitude: 90.4178 },
+  { id: 'dmp_gendaria', nameEn: 'Gendaria Thana', nameBn: 'গেন্ডারিয়া থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320054988', ocPhone: '01320054980', address: 'Doyaganj, Gendaria, Dhaka', latitude: 23.7115, longitude: 90.4235 },
+  { id: 'dmp_jatrabari', nameEn: 'Jatrabari Thana', nameBn: 'যাত্রাবাড়ী থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320055188', ocPhone: '01320055180', address: 'Jatrabari Chowrasta, Dhaka', latitude: 23.7112, longitude: 90.4352 },
+  { id: 'dmp_demra', nameEn: 'Demra Thana', nameBn: 'ডেমরা থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320055288', ocPhone: '01320055280', address: 'Sarulia, Demra, Dhaka', latitude: 23.7188, longitude: 90.4952 },
+  { id: 'dmp_shyampur', nameEn: 'Shyampur Thana', nameBn: 'শ্যামপুর থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320055388', ocPhone: '01320055380', address: 'Jurain, Shyampur, Dhaka', latitude: 23.6965, longitude: 90.4352 },
+  { id: 'dmp_kadamtali', nameEn: 'Kadamtali Thana', nameBn: 'কদমতলী থানা', unit: 'DMP', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320055488', ocPhone: '01320055480', address: 'Dholaipar, Kadamtali, Dhaka', latitude: 23.6985, longitude: 90.4412 },
+
+  // Dhaka District Outside Metros
+  { id: 'dhaka_savar', nameEn: 'Savar Model Thana', nameBn: 'সাভার মডেল থানা', unit: 'Dhaka District Police', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320087188', ocPhone: '01320087180', address: 'Savar Bazar Bus Stand, Savar, Dhaka', latitude: 23.8582, longitude: 90.2667 },
+  { id: 'dhaka_ashulia', nameEn: 'Ashulia Thana', nameBn: 'আশুলিয়া থানা', unit: 'Dhaka District Police', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320087288', ocPhone: '01320087280', address: 'Baipail, Ashulia, Savar, Dhaka', latitude: 23.9312, longitude: 90.2789 },
+  { id: 'dhaka_dhamrai', nameEn: 'Dhamrai Thana', nameBn: 'ধামরাই থানা', unit: 'Dhaka District Police', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320087388', ocPhone: '01320087380', address: 'Dhamrai Bazar, Dhaka', latitude: 23.9185, longitude: 90.2152 },
+  { id: 'dhaka_keraniganj_model', nameEn: 'Keraniganj Model Thana', nameBn: 'কেরানীগঞ্জ মডেল থানা', unit: 'Dhaka District Police', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320087488', ocPhone: '01320087480', address: 'Konakhola, Keraniganj, Dhaka', latitude: 23.7025, longitude: 90.3341 },
+  { id: 'dhaka_south_keraniganj', nameEn: 'South Keraniganj Thana', nameBn: 'দক্ষিণ কেরানীগঞ্জ থানা', unit: 'Dhaka District Police', district: 'Dhaka', division: 'Dhaka', dutyOfficerPhone: '01320087588', ocPhone: '01320087580', address: 'Hasnabad, South Keraniganj, Dhaka', latitude: 23.6821, longitude: 90.4125 },
+
+  // Gazipur (GMP & District)
+  { id: 'gmp_joydebpur', nameEn: 'Joydebpur / Sadar Thana (Gazipur)', nameBn: 'জয়দেবপুর / সদর থানা (গাজীপুর)', unit: 'GMP', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320061088', ocPhone: '01320061080', address: 'Shibbari Mor, Gazipur Sadar', latitude: 23.9982, longitude: 90.4255 },
+  { id: 'gmp_tongi_east', nameEn: 'Tongi East Thana', nameBn: 'টঙ্গী পূর্ব থানা', unit: 'GMP', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320061488', ocPhone: '01320061480', address: 'Station Road, Tongi, Gazipur', latitude: 23.8985, longitude: 90.4085 },
+  { id: 'gmp_tongi_west', nameEn: 'Tongi West Thana', nameBn: 'টঙ্গী পশ্চিম থানা', unit: 'GMP', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320061588', ocPhone: '01320061580', address: 'Cherag Ali, Tongi, Gazipur', latitude: 23.9015, longitude: 90.3952 },
+  { id: 'gmp_bason', nameEn: 'Bason Thana', nameBn: 'বাসন থানা', unit: 'GMP', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320061688', ocPhone: '01320061680', address: 'Vogra Bypass, Gazipur', latitude: 23.9685, longitude: 90.3985 },
+  { id: 'gmp_konabari', nameEn: 'Konabari Thana', nameBn: 'কোনাবাড়ী থানা', unit: 'GMP', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320061788', ocPhone: '01320061780', address: 'Konabari, Gazipur', latitude: 24.0125, longitude: 90.3215 },
+  { id: 'gazipur_sreepur', nameEn: 'Sreepur Thana', nameBn: 'শ্রীপুর থানা', unit: 'Gazipur District Police', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320089188', ocPhone: '01320089180', address: 'Mawna Chowrasta, Sreepur, Gazipur', latitude: 24.2025, longitude: 90.4685 },
+  { id: 'gazipur_kaliakair', nameEn: 'Kaliakair Thana', nameBn: 'কালিয়াকৈর থানা', unit: 'Gazipur District Police', district: 'Gazipur', division: 'Dhaka', dutyOfficerPhone: '01320089288', ocPhone: '01320089280', address: 'Kaliakair Bus Stand, Gazipur', latitude: 24.0725, longitude: 90.2215 },
+
+  // Narayanganj
+  { id: 'narayanganj_sadar', nameEn: 'Narayanganj Sadar Thana', nameBn: 'নারায়ণগঞ্জ সদর থানা', unit: 'Narayanganj District Police', district: 'Narayanganj', division: 'Dhaka', dutyOfficerPhone: '01320090188', ocPhone: '01320090180', address: 'Chashara, Narayanganj', latitude: 23.6238, longitude: 90.5005 },
+  { id: 'narayanganj_fatullah', nameEn: 'Fatullah Model Thana', nameBn: 'ফতুল্লা মডেল থানা', unit: 'Narayanganj District Police', district: 'Narayanganj', division: 'Dhaka', dutyOfficerPhone: '01320090288', ocPhone: '01320090280', address: 'Fatullah, Narayanganj', latitude: 23.6521, longitude: 90.4852 },
+  { id: 'narayanganj_siddhirganj', nameEn: 'Siddhirganj Thana', nameBn: 'সিদ্ধিরগঞ্জ থানা', unit: 'Narayanganj District Police', district: 'Narayanganj', division: 'Dhaka', dutyOfficerPhone: '01320090388', ocPhone: '01320090380', address: 'Chittagong Road, Siddhirganj, Narayanganj', latitude: 23.6852, longitude: 90.5215 },
+  { id: 'narayanganj_sonargaon', nameEn: 'Sonargaon Thana', nameBn: 'সোনারগাঁ থানা', unit: 'Narayanganj District Police', district: 'Narayanganj', division: 'Dhaka', dutyOfficerPhone: '01320090488', ocPhone: '01320090480', address: 'Mograpara, Sonargaon, Narayanganj', latitude: 23.6512, longitude: 90.6125 },
+  { id: 'narayanganj_rupganj', nameEn: 'Rupganj Thana', nameBn: 'রূপগঞ্জ থানা', unit: 'Narayanganj District Police', district: 'Narayanganj', division: 'Dhaka', dutyOfficerPhone: '01320090588', ocPhone: '01320090580', address: 'Bhulta, Rupganj, Narayanganj', latitude: 23.7852, longitude: 90.5685 },
+
+  // Narsingdi, Manikganj, Munshiganj, Tangail, Kishoreganj, Faridpur, Gopalganj, Madaripur, Rajbari, Shariatpur
+  { id: 'narsingdi_sadar', nameEn: 'Narsingdi Model Thana', nameBn: 'নরসিংদী মডেল থানা', unit: 'Narsingdi District Police', district: 'Narsingdi', division: 'Dhaka', dutyOfficerPhone: '01320091188', ocPhone: '01320091180', address: 'Velanagar, Narsingdi', latitude: 23.9192, longitude: 90.7175 },
+  { id: 'manikganj_sadar', nameEn: 'Manikganj Sadar Thana', nameBn: 'মানিকগঞ্জ সদর থানা', unit: 'Manikganj District Police', district: 'Manikganj', division: 'Dhaka', dutyOfficerPhone: '01320092188', ocPhone: '01320092180', address: 'Khalpar, Manikganj', latitude: 23.8617, longitude: 90.0003 },
+  { id: 'munshiganj_sadar', nameEn: 'Munshiganj Sadar Thana', nameBn: 'মুন্সীগঞ্জ সদর থানা', unit: 'Munshiganj District Police', district: 'Munshiganj', division: 'Dhaka', dutyOfficerPhone: '01320093188', ocPhone: '01320093180', address: 'Courtgaon, Munshiganj', latitude: 23.5422, longitude: 90.5305 },
+  { id: 'tangail_sadar', nameEn: 'Tangail Sadar Thana', nameBn: 'টাঙ্গাইল সদর থানা', unit: 'Tangail District Police', district: 'Tangail', division: 'Dhaka', dutyOfficerPhone: '01320094188', ocPhone: '01320094180', address: 'Victoria Road, Tangail', latitude: 24.2513, longitude: 89.9167 },
+  { id: 'kishoreganj_sadar', nameEn: 'Kishoreganj Model Thana', nameBn: 'কিশোরগঞ্জ মডেল থানা', unit: 'Kishoreganj District Police', district: 'Kishoreganj', division: 'Dhaka', dutyOfficerPhone: '01320095188', ocPhone: '01320095180', address: 'Gouranga Bazar, Kishoreganj', latitude: 24.4449, longitude: 90.7766 },
+  { id: 'faridpur_kotwali', nameEn: 'Kotwali Thana (Faridpur)', nameBn: 'কোতোয়ালি থানা (ফরিদপুর)', unit: 'Faridpur District Police', district: 'Faridpur', division: 'Dhaka', dutyOfficerPhone: '01320096188', ocPhone: '01320096180', address: 'Goalchamot, Faridpur', latitude: 23.6071, longitude: 89.8429 },
+  { id: 'gopalganj_sadar', nameEn: 'Gopalganj Sadar Thana', nameBn: 'গোপালগঞ্জ সদর থানা', unit: 'Gopalganj District Police', district: 'Gopalganj', division: 'Dhaka', dutyOfficerPhone: '01320097188', ocPhone: '01320097180', address: 'Gopalganj Sadar', latitude: 23.0052, longitude: 89.8266 },
+  { id: 'madaripur_sadar', nameEn: 'Madaripur Sadar Thana', nameBn: 'মাদারীপুর সদর থানা', unit: 'Madaripur District Police', district: 'Madaripur', division: 'Dhaka', dutyOfficerPhone: '01320098188', ocPhone: '01320098180', address: 'Puraton Bazar, Madaripur', latitude: 23.1641, longitude: 90.1897 },
+  { id: 'rajbari_sadar', nameEn: 'Rajbari Sadar Thana', nameBn: 'রাজবাড়ী সদর থানা', unit: 'Rajbari District Police', district: 'Rajbari', division: 'Dhaka', dutyOfficerPhone: '01320099188', ocPhone: '01320099180', address: 'Bazar Road, Rajbari', latitude: 23.7574, longitude: 89.6445 },
+  { id: 'shariatpur_sadar', nameEn: 'Palong / Shariatpur Sadar Thana', nameBn: 'পালং / শরীয়তপুর সদর থানা', unit: 'Shariatpur District Police', district: 'Shariatpur', division: 'Dhaka', dutyOfficerPhone: '01320100188', ocPhone: '01320100180', address: 'Palong, Shariatpur', latitude: 23.2106, longitude: 90.3497 },
+
+  // ==========================================
+  // 2. CHITTAGONG DIVISION (CMP + 11 Districts)
+  // ==========================================
+  // CMP (Chattogram Metropolitan Police)
+  { id: 'cmp_kotwali', nameEn: 'Kotwali Thana (Chittagong)', nameBn: 'কোতোয়ালি থানা (চট্টগ্রাম)', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320057088', ocPhone: '01320057080', address: 'Laldighi, Kotwali, Chattogram', latitude: 22.3382, longitude: 91.8375 },
+  { id: 'cmp_panchlaish', nameEn: 'Panchlaish Thana', nameBn: 'পাঁচলাইশ থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320057488', ocPhone: '01320057480', address: 'Prabartak Mor, Panchlaish, Chattogram', latitude: 22.3615, longitude: 91.8262 },
+  { id: 'cmp_pahartali', nameEn: 'Pahartali Thana', nameBn: 'পাহাড়তলী থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320057888', ocPhone: '01320057880', address: 'Noyabazar, Pahartali, Chattogram', latitude: 22.3652, longitude: 91.7821 },
+  { id: 'cmp_doublemooring', nameEn: 'Double Mooring Thana', nameBn: 'ডবলমুরিং থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320058288', ocPhone: '01320058280', address: 'Agrabad, Double Mooring, Chattogram', latitude: 22.3325, longitude: 91.8125 },
+  { id: 'cmp_halishahar', nameEn: 'Halishahar Thana', nameBn: 'হালিশহর থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320058688', ocPhone: '01320058680', address: 'B-Block, Halishahar, Chattogram', latitude: 22.3212, longitude: 91.7752 },
+  { id: 'cmp_patenga', nameEn: 'Patenga Thana', nameBn: 'পতেঙ্গা থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320059088', ocPhone: '01320059080', address: 'Airport Road, Patenga, Chattogram', latitude: 22.2512, longitude: 91.8025 },
+  { id: 'cmp_khulshi', nameEn: 'Khulshi Thana', nameBn: 'খুলশী থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320059488', ocPhone: '01320059480', address: 'GEC Mor, Khulshi, Chattogram', latitude: 22.3601, longitude: 91.8152 },
+  { id: 'cmp_bayazid', nameEn: 'Bayazid Bostami Thana', nameBn: 'বায়েজিদ বোস্তামী থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320059888', ocPhone: '01320059880', address: 'Bayazid, Chattogram', latitude: 22.3852, longitude: 91.8215 },
+  { id: 'cmp_chandgaon', nameEn: 'Chandgaon Thana', nameBn: 'চান্দগাঁও থানা', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320060288', ocPhone: '01320060280', address: 'Bahaddarhat, Chandgaon, Chattogram', latitude: 22.3712, longitude: 91.8485 },
+  { id: 'cmp_chawkbazar', nameEn: 'Chawkbazar Thana (Chattogram)', nameBn: 'চকবাজার থানা (চট্টগ্রাম)', unit: 'CMP', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320060688', ocPhone: '01320060680', address: 'Chawkbazar, Chattogram', latitude: 22.3552, longitude: 91.8385 },
+
+  // Chattogram District Thanas
+  { id: 'ctg_hathazari', nameEn: 'Hathazari Model Thana', nameBn: 'হাটহাজারী মডেল থানা', unit: 'Chattogram District Police', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320108188', ocPhone: '01320108180', address: 'Hathazari Bus Stand, Chattogram', latitude: 22.5052, longitude: 91.8052 },
+  { id: 'ctg_sitakunda', nameEn: 'Sitakunda Model Thana', nameBn: 'সীতাকুণ্ড মডেল থানা', unit: 'Chattogram District Police', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320108288', ocPhone: '01320108280', address: 'Sitakunda Bazar, Chattogram', latitude: 22.6185, longitude: 91.6612 },
+  { id: 'ctg_patiya', nameEn: 'Patiya Thana', nameBn: 'পটিয়া থানা', unit: 'Chattogram District Police', district: 'Chattogram', division: 'Chattogram', dutyOfficerPhone: '01320108388', ocPhone: '01320108380', address: 'Patiya Bazar, Chattogram', latitude: 22.2985, longitude: 91.9812 },
+
+  // Cox's Bazar
+  { id: 'cox_sadar', nameEn: "Cox's Bazar Model Thana", nameBn: 'কক্সবাজার সদর মডেল থানা', unit: "Cox's Bazar District Police", district: "Cox's Bazar", division: 'Chattogram', dutyOfficerPhone: '01320109188', ocPhone: '01320109180', address: 'Jhawtala, Cox\'s Bazar', latitude: 21.4344, longitude: 91.9798 },
+  { id: 'cox_teknaf', nameEn: 'Teknaf Model Thana', nameBn: 'টেকনাফ মডেল থানা', unit: "Cox's Bazar District Police", district: "Cox's Bazar", division: 'Chattogram', dutyOfficerPhone: '01320109288', ocPhone: '01320109280', address: 'Teknaf Bazar, Cox\'s Bazar', latitude: 20.8652, longitude: 92.2985 },
+  { id: 'cox_ramu', nameEn: 'Ramu Thana', nameBn: 'রামু থানা', unit: "Cox's Bazar District Police", district: "Cox's Bazar", division: 'Chattogram', dutyOfficerPhone: '01320109388', ocPhone: '01320109380', address: 'Ramu Chowmuhani, Cox\'s Bazar', latitude: 21.4425, longitude: 92.0985 },
+
+  // Cumilla, Feni, Brahmanbaria, Noakhali, Lakshmipur, Chandpur, Hill Tracts
+  { id: 'cumilla_kotwali', nameEn: 'Kotwali Model Thana (Cumilla)', nameBn: 'কোতোয়ালি মডেল থানা (কুমিল্লা)', unit: 'Cumilla District Police', district: 'Cumilla', division: 'Chattogram', dutyOfficerPhone: '01320110188', ocPhone: '01320110180', address: 'Kandirpar, Cumilla', latitude: 23.4607, longitude: 91.1809 },
+  { id: 'feni_model', nameEn: 'Feni Model Thana', nameBn: 'ফেনী মডেল থানা', unit: 'Feni District Police', district: 'Feni', division: 'Chattogram', dutyOfficerPhone: '01320111188', ocPhone: '01320111180', address: 'Trunk Road, Feni', latitude: 23.0186, longitude: 91.3966 },
+  { id: 'brahmanbaria_sadar', nameEn: 'Brahmanbaria Sadar Thana', nameBn: 'ব্রাহ্মণবাড়িয়া সদর থানা', unit: 'Brahmanbaria District Police', district: 'Brahmanbaria', division: 'Chattogram', dutyOfficerPhone: '01320112188', ocPhone: '01320112180', address: 'Court Road, Brahmanbaria', latitude: 23.9608, longitude: 91.1115 },
+  { id: 'noakhali_sudharam', nameEn: 'Sudharam Model Thana (Noakhali)', nameBn: 'সুধারাম মডেল থানা (নোয়াখালী)', unit: 'Noakhali District Police', district: 'Noakhali', division: 'Chattogram', dutyOfficerPhone: '01320113188', ocPhone: '01320113180', address: 'Maijdee Court, Noakhali', latitude: 22.8696, longitude: 91.0995 },
+  { id: 'lakshmipur_sadar', nameEn: 'Lakshmipur Sadar Thana', nameBn: 'লক্ষ্মীপুর সদর থানা', unit: 'Lakshmipur District Police', district: 'Lakshmipur', division: 'Chattogram', dutyOfficerPhone: '01320114188', ocPhone: '01320114180', address: 'Jhumur Cinema Hall Road, Lakshmipur', latitude: 22.9447, longitude: 90.8282 },
+  { id: 'chandpur_sadar', nameEn: 'Chandpur Sadar Model Thana', nameBn: 'চাঁদপুর সদর মডেল থানা', unit: 'Chandpur District Police', district: 'Chandpur', division: 'Chattogram', dutyOfficerPhone: '01320115188', ocPhone: '01320115180', address: 'Natun Bazar, Chandpur', latitude: 23.2333, longitude: 90.6667 },
+  { id: 'rangamati_kotwali', nameEn: 'Kotwali Thana (Rangamati)', nameBn: 'কোতোয়ালি থানা (রাঙ্গামাটি)', unit: 'Rangamati District Police', district: 'Rangamati', division: 'Chattogram', dutyOfficerPhone: '01320116188', ocPhone: '01320116180', address: 'Reserve Bazar, Rangamati', latitude: 22.6533, longitude: 92.1753 },
+  { id: 'khagrachhari_sadar', nameEn: 'Khagrachhari Sadar Thana', nameBn: 'খাগড়াছড়ি সদর থানা', unit: 'Khagrachhari District Police', district: 'Khagrachhari', division: 'Chattogram', dutyOfficerPhone: '01320117188', ocPhone: '01320117180', address: 'Court Road, Khagrachhari', latitude: 23.1079, longitude: 91.9702 },
+  { id: 'bandarban_sadar', nameEn: 'Bandarban Sadar Thana', nameBn: 'বান্দরবান সদর থানা', unit: 'Bandarban District Police', district: 'Bandarban', division: 'Chattogram', dutyOfficerPhone: '01320118188', ocPhone: '01320118180', address: 'Traffic Mor, Bandarban', latitude: 22.1953, longitude: 92.2184 },
+
+  // ==========================================
+  // 3. SYLHET DIVISION (SMP + 4 Districts)
+  // ==========================================
+  // SMP (Sylhet Metropolitan Police)
+  { id: 'smp_kotwali', nameEn: 'Kotwali Model Thana (Sylhet)', nameBn: 'কোতোয়ালি মডেল থানা (সিলেট)', unit: 'SMP', district: 'Sylhet', division: 'Sylhet', dutyOfficerPhone: '01320065088', ocPhone: '01320065080', address: 'Bandar Bazar, Sylhet', latitude: 24.8949, longitude: 91.8687 },
+  { id: 'smp_jalalabad', nameEn: 'Jalalabad Thana', nameBn: 'জালালাবাদ থানা', unit: 'SMP', district: 'Sylhet', division: 'Sylhet', dutyOfficerPhone: '01320065488', ocPhone: '01320065480', address: 'SUST Gate, Akhalia, Sylhet', latitude: 24.9185, longitude: 91.8325 },
+  { id: 'smp_airport', nameEn: 'Airport Thana (Sylhet)', nameBn: 'বিমানবন্দর থানা (সিলেট)', unit: 'SMP', district: 'Sylhet', division: 'Sylhet', dutyOfficerPhone: '01320065888', ocPhone: '01320065880', address: 'Airport Road, Sylhet', latitude: 24.9652, longitude: 91.8712 },
+  { id: 'smp_shahparan', nameEn: 'Shah Paran Thana', nameBn: 'শাহপরাণ থানা', unit: 'SMP', district: 'Sylhet', division: 'Sylhet', dutyOfficerPhone: '01320066288', ocPhone: '01320066280', address: 'Shah Paran Mazar, Sylhet', latitude: 24.9085, longitude: 91.9215 },
+  { id: 'smp_south_surma', nameEn: 'South Surma Thana', nameBn: 'দক্ষিণ সুরমা থানা', unit: 'SMP', district: 'Sylhet', division: 'Sylhet', dutyOfficerPhone: '01320066688', ocPhone: '01320066680', address: 'Kadamtali, South Surma, Sylhet', latitude: 24.8785, longitude: 91.8652 },
+
+  // Sylhet District, Moulvibazar, Habiganj, Sunamganj
+  { id: 'moulvibazar_sadar', nameEn: 'Moulvibazar Model Thana', nameBn: 'মৌলভীবাজার মডেল থানা', unit: 'Moulvibazar District Police', district: 'Moulvibazar', division: 'Sylhet', dutyOfficerPhone: '01320120188', ocPhone: '01320120180', address: 'Court Road, Moulvibazar', latitude: 24.4829, longitude: 91.7774 },
+  { id: 'sreemangal_thana', nameEn: 'Sreemangal Thana', nameBn: 'শ্রীমঙ্গল থানা', unit: 'Moulvibazar District Police', district: 'Moulvibazar', division: 'Sylhet', dutyOfficerPhone: '01320120288', ocPhone: '01320120280', address: 'Chowmuhani, Sreemangal', latitude: 24.3065, longitude: 91.7296 },
+  { id: 'habiganj_sadar', nameEn: 'Habiganj Sadar Model Thana', nameBn: 'হবিগঞ্জ সদর মডেল থানা', unit: 'Habiganj District Police', district: 'Habiganj', division: 'Sylhet', dutyOfficerPhone: '01320121188', ocPhone: '01320121180', address: 'Thana Road, Habiganj', latitude: 24.3749, longitude: 91.4155 },
+  { id: 'sunamganj_sadar', nameEn: 'Sunamganj Sadar Model Thana', nameBn: 'সুনামগঞ্জ সদর মডেল থানা', unit: 'Sunamganj District Police', district: 'Sunamganj', division: 'Sylhet', dutyOfficerPhone: '01320122188', ocPhone: '01320122180', address: 'Traffic Point, Sunamganj', latitude: 25.0658, longitude: 91.3950 },
+
+  // ==========================================
+  // 4. RAJSHAHI DIVISION (RMP + 8 Districts)
+  // ==========================================
+  // RMP (Rajshahi Metropolitan Police)
+  { id: 'rmp_boalia', nameEn: 'Boalia Model Thana', nameBn: 'বোয়ালিয়া মডেল থানা (রাজশাহী)', unit: 'RMP', district: 'Rajshahi', division: 'Rajshahi', dutyOfficerPhone: '01320068088', ocPhone: '01320068080', address: 'Shaheb Bazar, Boalia, Rajshahi', latitude: 24.3636, longitude: 88.6042 },
+  { id: 'rmp_rajpara', nameEn: 'Rajpara Thana', nameBn: 'রাজপাড়া থানা', unit: 'RMP', district: 'Rajshahi', division: 'Rajshahi', dutyOfficerPhone: '01320068488', ocPhone: '01320068480', address: 'C&B Mor, Rajpara, Rajshahi', latitude: 24.3712, longitude: 88.5852 },
+  { id: 'rmp_motihar', nameEn: 'Motihar Thana', nameBn: 'মতিহার থানা', unit: 'RMP', district: 'Rajshahi', division: 'Rajshahi', dutyOfficerPhone: '01320068888', ocPhone: '01320068880', address: 'RU Gate, Motihar, Rajshahi', latitude: 24.3685, longitude: 88.6352 },
+  { id: 'rmp_shahmakhdum', nameEn: 'Shah Makhdum Thana', nameBn: 'শাহমখদুম থানা', unit: 'RMP', district: 'Rajshahi', division: 'Rajshahi', dutyOfficerPhone: '01320069288', ocPhone: '01320069280', address: 'Nawdapara, Rajshahi', latitude: 24.4012, longitude: 88.6125 },
+
+  // Bogura, Pabna, Sirajganj, Naogaon, Natore, Joypurhat, Chapainawabganj
+  { id: 'bogura_sadar', nameEn: 'Bogura Sadar Thana', nameBn: 'বগুড়া সদর থানা', unit: 'Bogura District Police', district: 'Bogura', division: 'Rajshahi', dutyOfficerPhone: '01320125188', ocPhone: '01320125180', address: 'Satmatha, Bogura', latitude: 24.8465, longitude: 89.3734 },
+  { id: 'pabna_sadar', nameEn: 'Pabna Sadar Thana', nameBn: 'পাবনা সদর থানা', unit: 'Pabna District Police', district: 'Pabna', division: 'Rajshahi', dutyOfficerPhone: '01320126188', ocPhone: '01320126180', address: 'Abdul Hamid Road, Pabna', latitude: 24.0116, longitude: 89.2458 },
+  { id: 'sirajganj_sadar', nameEn: 'Sirajganj Sadar Thana', nameBn: 'সিরাজগঞ্জ সদর থানা', unit: 'Sirajganj District Police', district: 'Sirajganj', division: 'Rajshahi', dutyOfficerPhone: '01320127188', ocPhone: '01320127180', address: 'Mujib Sarak, Sirajganj', latitude: 24.4534, longitude: 89.7008 },
+  { id: 'naogaon_sadar', nameEn: 'Naogaon Sadar Thana', nameBn: 'নওগাঁ সদর থানা', unit: 'Naogaon District Police', district: 'Naogaon', division: 'Rajshahi', dutyOfficerPhone: '01320128188', ocPhone: '01320128180', address: 'Mukti Mor, Naogaon', latitude: 24.8103, longitude: 88.9419 },
+  { id: 'natore_sadar', nameEn: 'Natore Sadar Thana', nameBn: 'নাটোর সদর থানা', unit: 'Natore District Police', district: 'Natore', division: 'Rajshahi', dutyOfficerPhone: '01320129188', ocPhone: '01320129180', address: 'Madrasa Mor, Natore', latitude: 24.4102, longitude: 88.9834 },
+  { id: 'joypurhat_sadar', nameEn: 'Joypurhat Sadar Thana', nameBn: 'জয়পুরহাট সদর থানা', unit: 'Joypurhat District Police', district: 'Joypurhat', division: 'Rajshahi', dutyOfficerPhone: '01320130188', ocPhone: '01320130180', address: 'Zero Point, Joypurhat', latitude: 25.0947, longitude: 89.0270 },
+  { id: 'chapainawabganj_sadar', nameEn: 'Chapainawabganj Sadar Thana', nameBn: 'চাঁপাইনবাবগঞ্জ সদর থানা', unit: 'Chapainawabganj District Police', district: 'Chapainawabganj', division: 'Rajshahi', dutyOfficerPhone: '01320131188', ocPhone: '01320131180', address: 'Shantinagar, Chapainawabganj', latitude: 24.5965, longitude: 88.2776 },
+
+  // ==========================================
+  // 5. KHULNA DIVISION (KMP + 10 Districts)
+  // ==========================================
+  // KMP (Khulna Metropolitan Police)
+  { id: 'kmp_sadar', nameEn: 'Khulna Sadar Thana', nameBn: 'খুলনা সদর থানা', unit: 'KMP', district: 'Khulna', division: 'Khulna', dutyOfficerPhone: '01320071088', ocPhone: '01320071080', address: 'Picture Palace Mor, Khulna Sadar', latitude: 22.8157, longitude: 89.5644 },
+  { id: 'kmp_sonadanga', nameEn: 'Sonadanga Model Thana', nameBn: 'সোনাডাঙ্গা মডেল থানা', unit: 'KMP', district: 'Khulna', division: 'Khulna', dutyOfficerPhone: '01320071488', ocPhone: '01320071480', address: 'Sonadanga Bus Stand, Khulna', latitude: 22.8252, longitude: 89.5485 },
+  { id: 'kmp_khalishpur', nameEn: 'Khalishpur Thana', nameBn: 'খালিশপুর থানা', unit: 'KMP', district: 'Khulna', division: 'Khulna', dutyOfficerPhone: '01320071888', ocPhone: '01320071880', address: 'Khalishpur, Khulna', latitude: 22.8512, longitude: 89.5352 },
+  { id: 'kmp_daulatpur', nameEn: 'Daulatpur Thana', nameBn: 'দৌলতপুর থানা', unit: 'KMP', district: 'Khulna', division: 'Khulna', dutyOfficerPhone: '01320072288', ocPhone: '01320072280', address: 'Daulatpur Bazar, Khulna', latitude: 22.8852, longitude: 89.5215 },
+
+  // Jashore, Kushtia, Jhenaidah, Satkhira, Bagerhat, Chuadanga, Meherpur, Magura, Narail
+  { id: 'jashore_kotwali', nameEn: 'Kotwali Model Thana (Jashore)', nameBn: 'কোতোয়ালি মডেল থানা (যশোর)', unit: 'Jashore District Police', district: 'Jashore', division: 'Khulna', dutyOfficerPhone: '01320135188', ocPhone: '01320135180', address: 'Daratana, Jashore', latitude: 23.1664, longitude: 89.2081 },
+  { id: 'benapole_port', nameEn: 'Benapole Port Thana', nameBn: 'বেনাপোল পোর্ট থানা', unit: 'Jashore District Police', district: 'Jashore', division: 'Khulna', dutyOfficerPhone: '01320135288', ocPhone: '01320135280', address: 'Benapole Border, Jashore', latitude: 23.0415, longitude: 88.8985 },
+  { id: 'kushtia_model', nameEn: 'Kushtia Model Thana', nameBn: 'কুষ্টিয়া মডেল থানা', unit: 'Kushtia District Police', district: 'Kushtia', division: 'Khulna', dutyOfficerPhone: '01320136188', ocPhone: '01320136180', address: 'NS Road, Kushtia', latitude: 23.9013, longitude: 89.1205 },
+  { id: 'jhenaidah_sadar', nameEn: 'Jhenaidah Sadar Thana', nameBn: 'ঝিনাইদহ সদর থানা', unit: 'Jhenaidah District Police', district: 'Jhenaidah', division: 'Khulna', dutyOfficerPhone: '01320137188', ocPhone: '01320137180', address: 'Payra Chattar, Jhenaidah', latitude: 23.5450, longitude: 89.1726 },
+  { id: 'satkhira_sadar', nameEn: 'Satkhira Sadar Thana', nameBn: 'সাতক্ষীরা সদর থানা', unit: 'Satkhira District Police', district: 'Satkhira', division: 'Khulna', dutyOfficerPhone: '01320138188', ocPhone: '01320138180', address: 'Court Mor, Satkhira', latitude: 22.7185, longitude: 89.0705 },
+  { id: 'bagerhat_sadar', nameEn: 'Bagerhat Model Thana', nameBn: 'বাগেরহাট মডেল থানা', unit: 'Bagerhat District Police', district: 'Bagerhat', division: 'Khulna', dutyOfficerPhone: '01320139188', ocPhone: '01320139180', address: 'Rail Road, Bagerhat', latitude: 22.6602, longitude: 89.7895 },
+  { id: 'chuadanga_sadar', nameEn: 'Chuadanga Sadar Thana', nameBn: 'চুয়াডাঙ্গা সদর থানা', unit: 'Chuadanga District Police', district: 'Chuadanga', division: 'Khulna', dutyOfficerPhone: '01320140188', ocPhone: '01320140180', address: 'Court Road, Chuadanga', latitude: 23.6402, longitude: 88.8418 },
+  { id: 'meherpur_sadar', nameEn: 'Meherpur Sadar Thana', nameBn: 'মেহেরপুর সদর থানা', unit: 'Meherpur District Police', district: 'Meherpur', division: 'Khulna', dutyOfficerPhone: '01320141188', ocPhone: '01320141180', address: 'Hotel Bazar, Meherpur', latitude: 23.7622, longitude: 88.6318 },
+  { id: 'magura_sadar', nameEn: 'Magura Sadar Thana', nameBn: 'মাগুরা সদর থানা', unit: 'Magura District Police', district: 'Magura', division: 'Khulna', dutyOfficerPhone: '01320142188', ocPhone: '01320142180', address: 'Dhaka Road, Magura', latitude: 23.4873, longitude: 89.4198 },
+  { id: 'narail_sadar', nameEn: 'Narail Sadar Thana', nameBn: 'নড়াইল সদর থানা', unit: 'Narail District Police', district: 'Narail', division: 'Khulna', dutyOfficerPhone: '01320143188', ocPhone: '01320143180', address: 'Rupganj, Narail', latitude: 23.1725, longitude: 89.5127 },
+
+  // ==========================================
+  // 6. BARISHAL DIVISION (BMP + 6 Districts)
+  // ==========================================
+  // BMP (Barishal Metropolitan Police)
+  { id: 'bmp_kotwali', nameEn: 'Kotwali Model Thana (Barishal)', nameBn: 'কোতোয়ালি মডেল থানা (বরিশাল)', unit: 'BMP', district: 'Barishal', division: 'Barishal', dutyOfficerPhone: '01320074088', ocPhone: '01320074080', address: 'Band Road, Barishal', latitude: 22.7010, longitude: 90.3535 },
+  { id: 'bmp_airport', nameEn: 'Airport Thana (Barishal)', nameBn: 'বিমানবন্দর থানা (বরিশাল)', unit: 'BMP', district: 'Barishal', division: 'Barishal', dutyOfficerPhone: '01320074488', ocPhone: '01320074480', address: 'Nathullabad, Barishal', latitude: 22.7352, longitude: 90.3421 },
+  { id: 'bmp_kawnia', nameEn: 'Kawnia Thana', nameBn: 'কাউনিয়া থানা', unit: 'BMP', district: 'Barishal', division: 'Barishal', dutyOfficerPhone: '01320074888', ocPhone: '01320074880', address: 'Kawnia Main Road, Barishal', latitude: 22.7152, longitude: 90.3685 },
+
+  // Patuakhali, Bhola, Pirojpur, Barguna, Jhalokati
+  { id: 'patuakhali_sadar', nameEn: 'Patuakhali Sadar Thana', nameBn: 'পটুয়াখালী সদর থানা', unit: 'Patuakhali District Police', district: 'Patuakhali', division: 'Barishal', dutyOfficerPhone: '01320148188', ocPhone: '01320148180', address: 'Sadar Road, Patuakhali', latitude: 22.3596, longitude: 90.3299 },
+  { id: 'bhola_sadar', nameEn: 'Bhola Sadar Thana', nameBn: 'ভোলা সদর থানা', unit: 'Bhola District Police', district: 'Bhola', division: 'Barishal', dutyOfficerPhone: '01320149188', ocPhone: '01320149180', address: 'Banglabazar, Bhola', latitude: 22.6859, longitude: 90.6481 },
+  { id: 'pirojpur_sadar', nameEn: 'Pirojpur Sadar Thana', nameBn: 'পিরোজপুর সদর থানা', unit: 'Pirojpur District Police', district: 'Pirojpur', division: 'Barishal', dutyOfficerPhone: '01320150188', ocPhone: '01320150180', address: 'Palashpul, Pirojpur', latitude: 22.5841, longitude: 89.9720 },
+  { id: 'barguna_sadar', nameEn: 'Barguna Sadar Thana', nameBn: 'বরগুনা সদর থানা', unit: 'Barguna District Police', district: 'Barguna', division: 'Barishal', dutyOfficerPhone: '01320151188', ocPhone: '01320151180', address: 'Launch Ghat Road, Barguna', latitude: 22.1570, longitude: 90.1264 },
+  { id: 'jhalokati_sadar', nameEn: 'Jhalokati Sadar Thana', nameBn: 'ঝালকাঠি সদর থানা', unit: 'Jhalokati District Police', district: 'Jhalokati', division: 'Barishal', dutyOfficerPhone: '01320152188', ocPhone: '01320152180', address: 'Kalibari Mor, Jhalokati', latitude: 22.6406, longitude: 90.1987 },
+
+  // ==========================================
+  // 7. RANGPUR DIVISION (RPMP + 8 Districts)
+  // ==========================================
+  // RPMP (Rangpur Metropolitan Police)
+  { id: 'rpmp_kotwali', nameEn: 'Kotwali Thana (Rangpur)', nameBn: 'কোতোয়ালি থানা (রংপুর)', unit: 'RPMP', district: 'Rangpur', division: 'Rangpur', dutyOfficerPhone: '01320077088', ocPhone: '01320077080', address: 'Kachari Bazar, Rangpur', latitude: 25.7533, longitude: 89.2444 },
+  { id: 'rpmp_tazhat', nameEn: 'Tazhat Thana', nameBn: 'তাজহাট থানা', unit: 'RPMP', district: 'Rangpur', division: 'Rangpur', dutyOfficerPhone: '01320077488', ocPhone: '01320077480', address: 'Tazhat Palace Road, Rangpur', latitude: 25.7285, longitude: 89.2612 },
+  { id: 'rpmp_mahiganj', nameEn: 'Mahiganj Thana', nameBn: 'মাহিগঞ্জ থানা', unit: 'RPMP', district: 'Rangpur', division: 'Rangpur', dutyOfficerPhone: '01320077888', ocPhone: '01320077880', address: 'Mahiganj Bazar, Rangpur', latitude: 25.7412, longitude: 89.2852 },
+
+  // Dinajpur, Gaibandha, Kurigram, Lalmonirhat, Nilphamari, Panchagarh, Thakurgaon
+  { id: 'dinajpur_kotwali', nameEn: 'Kotwali Thana (Dinajpur)', nameBn: 'কোতোয়ালি থানা (দিনাজপুর)', unit: 'Dinajpur District Police', district: 'Dinajpur', division: 'Rangpur', dutyOfficerPhone: '01320155188', ocPhone: '01320155180', address: 'Maldhapati, Dinajpur', latitude: 25.6217, longitude: 88.6355 },
+  { id: 'gaibandha_sadar', nameEn: 'Gaibandha Sadar Thana', nameBn: 'গাইবান্ধা সদর থানা', unit: 'Gaibandha District Police', district: 'Gaibandha', division: 'Rangpur', dutyOfficerPhone: '01320156188', ocPhone: '01320156180', address: 'DBC Road, Gaibandha', latitude: 25.3288, longitude: 89.5406 },
+  { id: 'kurigram_sadar', nameEn: 'Kurigram Sadar Thana', nameBn: 'কুড়িগ্রাম সদর থানা', unit: 'Kurigram District Police', district: 'Kurigram', division: 'Rangpur', dutyOfficerPhone: '01320157188', ocPhone: '01320157180', address: 'Ghoshpara, Kurigram', latitude: 25.8054, longitude: 89.6362 },
+  { id: 'lalmonirhat_sadar', nameEn: 'Lalmonirhat Sadar Thana', nameBn: 'লালমনিরহাট সদর থানা', unit: 'Lalmonirhat District Police', district: 'Lalmonirhat', division: 'Rangpur', dutyOfficerPhone: '01320158188', ocPhone: '01320158180', address: 'Mission Mor, Lalmonirhat', latitude: 25.9165, longitude: 89.4447 },
+  { id: 'nilphamari_sadar', nameEn: 'Nilphamari Sadar Thana', nameBn: 'নীলফামারী সদর থানা', unit: 'Nilphamari District Police', district: 'Nilphamari', division: 'Rangpur', dutyOfficerPhone: '01320159188', ocPhone: '01320159180', address: 'Chowrangi Mor, Nilphamari', latitude: 25.9317, longitude: 88.8483 },
+  { id: 'panchagarh_sadar', nameEn: 'Panchagarh Sadar Thana', nameBn: 'পঞ্চগড় সদর থানা', unit: 'Panchagarh District Police', district: 'Panchagarh', division: 'Rangpur', dutyOfficerPhone: '01320160188', ocPhone: '01320160180', address: 'Dhaka Highway, Panchagarh', latitude: 26.3354, longitude: 88.5517 },
+  { id: 'thakurgaon_sadar', nameEn: 'Thakurgaon Sadar Thana', nameBn: 'ঠাকুরগাঁও সদর থানা', unit: 'Thakurgaon District Police', district: 'Thakurgaon', division: 'Rangpur', dutyOfficerPhone: '01320161188', ocPhone: '01320161180', address: 'Old Bus Stand, Thakurgaon', latitude: 26.0337, longitude: 88.4617 },
+
+  // ==========================================
+  // 8. MYMENSINGH DIVISION (4 Districts)
+  // ==========================================
+  { id: 'mymensingh_kotwali', nameEn: 'Kotwali Model Thana (Mymensingh)', nameBn: 'কোতোয়ালি মডেল থানা (ময়মনসিংহ)', unit: 'Mymensingh District Police', district: 'Mymensingh', division: 'Mymensingh', dutyOfficerPhone: '01320163188', ocPhone: '01320163180', address: 'Chhoto Bazar, Mymensingh', latitude: 24.7570, longitude: 90.4073 },
+  { id: 'bhaluka_thana', nameEn: 'Bhaluka Model Thana', nameBn: 'ভালুকা মডেল থানা', unit: 'Mymensingh District Police', district: 'Mymensingh', division: 'Mymensingh', dutyOfficerPhone: '01320163288', ocPhone: '01320163280', address: 'Bhaluka Bus Stand, Mymensingh', latitude: 24.3752, longitude: 90.3785 },
+  { id: 'jamalpur_sadar', nameEn: 'Jamalpur Sadar Thana', nameBn: 'জামালপুর সদর থানা', unit: 'Jamalpur District Police', district: 'Jamalpur', division: 'Mymensingh', dutyOfficerPhone: '01320164188', ocPhone: '01320164180', address: 'Station Road, Jamalpur', latitude: 24.9375, longitude: 89.9378 },
+  { id: 'netrokona_sadar', nameEn: 'Netrokona Model Thana', nameBn: 'নেত্রকোণা মডেল থানা', unit: 'Netrokona District Police', district: 'Netrokona', division: 'Mymensingh', dutyOfficerPhone: '01320165188', ocPhone: '01320165180', address: 'Madan Road, Netrokona', latitude: 24.8709, longitude: 90.7279 },
+  { id: 'sherpur_sadar', nameEn: 'Sherpur Sadar Thana', nameBn: 'শেরপুর সদর থানা', unit: 'Sherpur District Police', district: 'Sherpur', division: 'Mymensingh', dutyOfficerPhone: '01320166188', ocPhone: '01320166180', address: 'Nabinagar, Sherpur', latitude: 25.0205, longitude: 90.0153 },
+];
+
+const fileContent = `export interface PoliceStation {
+  id: string;
+  nameEn: string;
+  nameBn: string;
+  unit: string;
+  district: string;
+  division: string;
+  dutyOfficerPhone: string;
+  ocPhone?: string;
+  tntPhone?: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+export const BANGLADESH_POLICE_STATIONS: PoliceStation[] = ${JSON.stringify(stations, null, 2)};
+`;
+
+fs.writeFileSync(
+  path.join(__dirname, '../src/police-recovery/police-stations.data.ts'),
+  fileContent,
+  'utf-8'
+);
+
+console.log('Successfully wrote', stations.length, 'police stations across all 64 districts & 8 divisions of Bangladesh!');
